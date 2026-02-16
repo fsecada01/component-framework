@@ -6,7 +6,7 @@ Framework-agnostic server components with LiveView-style interactivity inspired 
 
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Status: Alpha](https://img.shields.io/badge/status-alpha-orange.svg)](https://github.com/yourusername/component-framework)
+[![Status: Alpha](https://img.shields.io/badge/status-alpha-orange.svg)](https://github.com/fsecada01/component-framework)
 
 ---
 
@@ -60,7 +60,7 @@ This is an **experimental** framework. We're actively developing and testing cor
 
 ```bash
 # Clone repository
-git clone https://github.com/yourusername/component-framework.git
+git clone https://github.com/fsecada01/component-framework.git
 cd component-framework
 
 # Install with uv (recommended)
@@ -336,7 +336,7 @@ Optional:
 - Documentation incomplete
 - Test coverage needs improvement
 
-See [Issues](https://github.com/yourusername/component-framework/issues) for full list.
+See [Issues](https://github.com/fsecada01/component-framework/issues) for full list.
 
 ---
 
@@ -358,8 +358,8 @@ Inspired by:
 
 ## Support
 
-- 📧 Issues: [GitHub Issues](https://github.com/yourusername/component-framework/issues)
-- 💬 Discussions: [GitHub Discussions](https://github.com/yourusername/component-framework/discussions)
+- 📧 Issues: [GitHub Issues](https://github.com/fsecada01/component-framework/issues)
+- 💬 Discussions: [GitHub Discussions](https://github.com/fsecada01/component-framework/discussions)
 - 📖 Docs: [Documentation](docs/)
 
 ---
