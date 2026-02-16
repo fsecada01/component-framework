@@ -1,0 +1,60 @@
+{% load components %}
+
+<div id="{{ component_id }}" class="contact-form">
+    <h3>Contact Us</h3>
+
+    {% if success_message %}
+        <div class="success">{{ state.success_message }}</div>
+    {% endif %}
+
+    <form hx-post="/components/contact_form/"
+          hx-vals='{"event": "submit", "state": "{{ state|component_state }}", "params": {"component_id": "{{ component_id }}"}}'
+          hx-target="#{{ component_id }}"
+          hx-swap="outerHTML">
+
+        <label for="name">Name:</label>
+        <input type="text" name="name" id="name" value="{{ form_data.name|default:'' }}" required>
+        {% if field_errors.name %}
+            <div class="error">{{ field_errors.name.0 }}</div>
+        {% endif %}
+
+        <label for="email">Email:</label>
+        <input type="email" name="email" id="email" value="{{ form_data.email|default:'' }}" required>
+        {% if field_errors.email %}
+            <div class="error">{{ field_errors.email.0 }}</div>
+        {% endif %}
+
+        <label for="message">Message:</label>
+        <textarea name="message" id="message" rows="5" required>{{ form_data.message|default:'' }}</textarea>
+        {% if field_errors.message %}
+            <div class="error">{{ field_errors.message.0 }}</div>
+        {% endif %}
+
+        <button type="submit">Send Message</button>
+    </form>
+</div>
+
+<script>
+document.body.addEventListener('htmx:configRequest', (event) => {
+    if (event.detail.path.includes('/components/contact_form/')) {
+        const form = event.detail.elt;
+        const formData = new FormData(form);
+        const data = {};
+        formData.forEach((value, key) => data[key] = value);
+
+        event.detail.parameters = JSON.stringify({
+            event: 'submit',
+            payload: { form_data: data },
+            state: '{{ state|component_state }}',
+            params: { component_id: '{{ component_id }}' }
+        });
+        event.detail.headers['Content-Type'] = 'application/json';
+    }
+});
+</script>
+
+<style>
+.contact-form {
+    max-width: 600px;
+}
+</style>

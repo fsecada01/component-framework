@@ -1,0 +1,84 @@
+{% load components %}
+
+<div id="{{ component_id }}" class="order-editor">
+    <h3>Order #{{ state.order_id }} - {{ state.customer_name }}</h3>
+
+    {% if state.success %}
+        <div class="success">Order updated successfully!</div>
+    {% endif %}
+
+    <div class="order-info">
+        <p><strong>Status:</strong> {{ state.status }}</p>
+        <p><strong>Total:</strong> ${{ state.total }}</p>
+    </div>
+
+    <div class="status-buttons">
+        <button hx-post="/components/order_editor/"
+                hx-vals='{"event": "update_status", "payload": {"status": "pending"}, "state": {{ state|tojson }}, "params": {"component_id": "{{ component_id }}", "pk": {{ state.pk }}}}'
+                hx-target="#{{ component_id }}"
+                hx-swap="outerHTML"
+                class="{% if state.status == 'pending' %}primary{% else %}secondary{% endif %}">
+            Pending
+        </button>
+
+        <button hx-post="/components/order_editor/"
+                hx-vals='{"event": "update_status", "payload": {"status": "processing"}, "state": {{ state|tojson }}, "params": {"component_id": "{{ component_id }}", "pk": {{ state.pk }}}}'
+                hx-target="#{{ component_id }}"
+                hx-swap="outerHTML"
+                class="{% if state.status == 'processing' %}primary{% else %}secondary{% endif %}">
+            Processing
+        </button>
+
+        <button hx-post="/components/order_editor/"
+                hx-vals='{"event": "update_status", "payload": {"status": "shipped"}, "state": {{ state|tojson }}, "params": {"component_id": "{{ component_id }}", "pk": {{ state.pk }}}}'
+                hx-target="#{{ component_id }}"
+                hx-swap="outerHTML"
+                class="{% if state.status == 'shipped' %}primary{% else %}secondary{% endif %}">
+            Shipped
+        </button>
+
+        <button hx-post="/components/order_editor/"
+                hx-vals='{"event": "update_status", "payload": {"status": "delivered"}, "state": {{ state|tojson }}, "params": {"component_id": "{{ component_id }}", "pk": {{ state.pk }}}}'
+                hx-target="#{{ component_id }}"
+                hx-swap="outerHTML"
+                class="{% if state.status == 'delivered' %}primary{% else %}secondary{% endif %}">
+            Delivered
+        </button>
+    </div>
+
+    <div class="notes-section">
+        <h4>Notes:</h4>
+        <pre style="background: #f8f8f8; padding: 10px; border-radius: 4px;">{{ state.notes|default:"No notes yet" }}</pre>
+    </div>
+</div>
+
+<style>
+.order-editor {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+}
+
+.order-info {
+    margin: 15px 0;
+    padding: 15px;
+    background: #f8f8f8;
+    border-radius: 4px;
+}
+
+.status-buttons {
+    display: flex;
+    gap: 10px;
+    margin: 20px 0;
+    flex-wrap: wrap;
+}
+
+.status-buttons button {
+    flex: 1;
+    min-width: 120px;
+}
+
+.notes-section {
+    margin-top: 20px;
+}
+</style>

@@ -1,0 +1,59 @@
+{% load components %}
+
+<div id="{{ component_id }}" class="live-counter">
+    <h2>Count: {{ state.count }}</h2>
+
+    <div class="controls">
+        <button hx-post="/components/live_counter/"
+                hx-vals='{"event": "decrement", "payload": {"amount": 1}, "state": {{ state|tojson }}, "params": {"component_id": "{{ component_id }}"}}'
+                hx-target="#{{ component_id }}"
+                hx-swap="outerHTML">
+            -
+        </button>
+
+        <button hx-post="/components/live_counter/"
+                hx-vals='{"event": "increment", "payload": {"amount": 1}, "state": {{ state|tojson }}, "params": {"component_id": "{{ component_id }}"}}'
+                hx-target="#{{ component_id }}"
+                hx-swap="outerHTML">
+            +
+        </button>
+
+        <button hx-post="/components/live_counter/"
+                hx-vals='{"event": "reset", "payload": {}, "state": {{ state|tojson }}, "params": {"component_id": "{{ component_id }}"}}'
+                hx-target="#{{ component_id }}"
+                hx-swap="outerHTML"
+                class="secondary">
+            Reset
+        </button>
+    </div>
+</div>
+
+{% component_js component_id %}
+
+<style>
+.live-counter {
+    text-align: center;
+    padding: 30px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.live-counter h2 {
+    font-size: 48px;
+    margin-bottom: 30px;
+    color: #2c3e50;
+}
+
+.live-counter .controls {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+.live-counter button {
+    min-width: 60px;
+    font-size: 24px;
+    padding: 15px 25px;
+}
+</style>

@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <h2>Welcome to Component Framework</h2>
+    <p>This demo showcases server-side components with Django, HTMX, and WebSockets.</p>
+</div>
+
+<div class="info">
+    <h3>Features Demonstrated:</h3>
+    <ul style="margin-left: 20px; margin-top: 10px;">
+        <li><strong>Forms:</strong> Pydantic validation with live error feedback</li>
+        <li><strong>Models:</strong> Django ORM integration with model-bound components</li>
+        <li><strong>WebSockets:</strong> Real-time updates across multiple clients</li>
+        <li><strong>HTMX:</strong> Dynamic UI updates without writing JavaScript</li>
+    </ul>
+</div>
+
+<div class="card">
+    <h2>Quick Start</h2>
+    <p>Navigate using the menu above to explore different features:</p>
+    <ul style="margin-left: 20px; margin-top: 10px;">
+        <li><a href="{% url 'form_demo' %}">Forms</a> - See validation in action</li>
+        <li><a href="{% url 'model_demo' %}">Models</a> - Edit database records</li>
+        <li><a href="{% url 'websocket_demo' %}">WebSockets</a> - Real-time collaboration</li>
+    </ul>
+</div>
+
+<div class="card">
+    <h2>Architecture</h2>
+    <pre style="background: #f8f8f8; padding: 15px; border-radius: 4px; overflow-x: auto;">
+Core (framework agnostic)
+    ↓
+Django Adapter
+    ├─ DjangoRenderer
+    ├─ DjangoModelMixin
+    └─ WebSocket support (Channels)
+    </pre>
+</div>
+{% endblock %}

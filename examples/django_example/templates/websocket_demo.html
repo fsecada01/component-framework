@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% load components %}
+
+{% block title %}WebSocket Demo - Component Framework{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>Real-Time WebSocket Updates</h2>
+    <p>Open this page in multiple browser windows and watch them sync in real-time!</p>
+</div>
+
+<div class="info">
+    <h3>Features:</h3>
+    <ul style="margin-left: 20px; margin-top: 10px;">
+        <li>Django Channels WebSocket integration</li>
+        <li>Real-time component updates</li>
+        <li>Automatic reconnection</li>
+        <li>Broadcasting to multiple clients</li>
+    </ul>
+</div>
+
+<div class="card">
+    {% live_component "live_counter" initial=0 broadcast=True %}
+</div>
+
+<div class="card">
+    <h3>Try it:</h3>
+    <ol style="margin-left: 20px; margin-top: 10px;">
+        <li>Open this page in another browser window</li>
+        <li>Click the + or - buttons in one window</li>
+        <li>Watch the counter update in both windows instantly!</li>
+    </ol>
+</div>
+
+<div class="card">
+    <h3>Architecture:</h3>
+    <pre style="background: #f8f8f8; padding: 15px; border-radius: 4px; overflow-x: auto;">
+Client clicks button
+    ↓
+Component handles event
+    ↓
+State updated
+    ↓
+HTML re-rendered
+    ↓
+Broadcast via WebSocket
+    ↓
+All subscribed clients update
+    </pre>
+</div>
+{% endblock %}

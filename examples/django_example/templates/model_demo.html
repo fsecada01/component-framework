@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% load components %}
+
+{% block title %}Model Demo - Component Framework{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>Model-Bound Components</h2>
+    <p>These components are bound to Django models with automatic database updates.</p>
+</div>
+
+<div class="info">
+    <h3>Features:</h3>
+    <ul style="margin-left: 20px; margin-top: 10px;">
+        <li>Django ORM integration</li>
+        <li>Query optimization (select_related, prefetch_related)</li>
+        <li>Automatic state synchronization</li>
+        <li>Transaction support</li>
+    </ul>
+</div>
+
+{% for order in orders %}
+    <div class="card">
+        {% live_component "order_editor" pk=order.pk %}
+    </div>
+{% empty %}
+    <div class="card">
+        <p>No orders found. Sample data will be created automatically.</p>
+    </div>
+{% endfor %}
+
+<div class="card">
+    <h3>How it works:</h3>
+    <ol style="margin-left: 20px; margin-top: 10px;">
+        <li>Component loads Order model instance by PK</li>
+        <li>State is populated from model fields</li>
+        <li>UI changes trigger events</li>
+        <li>Events update model and save to database</li>
+        <li>Component re-renders with fresh data</li>
+    </ol>
+</div>
+{% endblock %}
