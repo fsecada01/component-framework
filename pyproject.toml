@@ -43,9 +43,10 @@ websockets = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/yourusername/component-framework"
-Documentation = "https://github.com/yourusername/component-framework#readme"
-Repository = "https://github.com/yourusername/component-framework"
+Homepage = "https://github.com/fsecada01/component-framework"
+Documentation = "https://github.com/fsecada01/component-framework#readme"
+Repository = "https://github.com/fsecada01/component-framework"
+Issues = "https://github.com/fsecada01/component-framework/issues"
 
 [build-system]
 requires = ["hatchling"]
