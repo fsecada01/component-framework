@@ -46,9 +46,11 @@ component_framework/
 
 - **Formatter:** ruff format
 - **Linter:** ruff check
+- **Type checker:** ty (Astral's Rust-based type checker)
 - **Line length:** 100 characters
 - **Type hints:** Required for public APIs
 - **Docstrings:** Required for classes and public methods
+- **Pre-commit:** ruff + ty (see `.pre-commit-config.yaml`)
 
 ### Testing
 
@@ -148,7 +150,7 @@ Components should:
 
 ### Short Term
 - Permission decorators
-- Rate limiting (integrate django-ratelimit)
+- Rate limiting (integrate django-ratelimit or similar)
 - Optimistic UI
 
 ### Long Term
@@ -179,6 +181,8 @@ Components should:
 - pytest-asyncio >= 0.21
 - httpx >= 0.26
 - ruff >= 0.1
+- ty >= 0.0.18 (type checker)
+- pre-commit >= 3.5
 - prek (pre-commit hooks)
 - just (task runner, cross-platform)
 

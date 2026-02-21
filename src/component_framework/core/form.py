@@ -29,7 +29,7 @@ class FormComponent(Component):
     """
 
     # Pydantic model for validation
-    schema: ClassVar[type[BaseModel]] = None
+    schema: ClassVar[type[BaseModel] | None] = None
 
     def __init__(self, **params):
         super().__init__(**params)
@@ -66,7 +66,7 @@ class FormComponent(Component):
             # Convert Pydantic errors to field errors
             self.field_errors = {}
             for error in e.errors():
-                field = error["loc"][0] if error["loc"] else "form"
+                field = str(error["loc"][0]) if error["loc"] else "form"
                 message = error["msg"]
 
                 if field not in self.field_errors:

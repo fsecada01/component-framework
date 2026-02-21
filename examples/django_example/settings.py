@@ -1,6 +1,5 @@
 """Django settings for component framework demo."""
 
-import os
 import sys
 from pathlib import Path
 
@@ -104,11 +103,7 @@ STATICFILES_DIRS = [
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Channels
-CHANNEL_LAYERS = {
-    "default": {
-        "BACKEND": "channels.layers.InMemoryChannelLayer"
-    }
-}
+CHANNEL_LAYERS = {"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}}
 
 # Cotton
 COTTON = {

@@ -315,9 +315,9 @@ class SingleComponentView(ComponentView):
         ]
     """
 
-    component_name: str = None
+    component_name: str | None = None
 
-    def post(self, request: HttpRequest, **kwargs) -> JsonResponse:
+    def post(self, request: HttpRequest, **kwargs) -> JsonResponse:  # type: ignore[override]
         """Override to use fixed component name."""
         if not self.component_name:
             raise ValueError("component_name must be set")

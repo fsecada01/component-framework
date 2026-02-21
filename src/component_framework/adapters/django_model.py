@@ -18,14 +18,14 @@ class DjangoModelMixin:
     """
 
     # Django model class
-    model: ClassVar[type[Model]] = None
+    model: ClassVar[type[Model] | None] = None
 
     # Query optimization
     select_related: ClassVar[list[str]] = []
     prefetch_related: ClassVar[list[str]] = []
 
     # Form/validation
-    form_class: ClassVar[type] = None
+    form_class: ClassVar[type | None] = None
 
     def __init__(self, **params):
         super().__init__(**params)

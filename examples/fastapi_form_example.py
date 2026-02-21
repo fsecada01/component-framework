@@ -98,7 +98,7 @@ async def index():
             Submit with invalid data to see field-level errors.</p>
         </div>
 
-        {result['html']}
+        {result["html"]}
     </body>
     </html>
     """

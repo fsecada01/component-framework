@@ -18,7 +18,7 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "django_example.settings")
 django_asgi_app = get_asgi_application()
 
 # Import after Django setup
-from component_framework.adapters.django_websocket import ComponentConsumer
+from component_framework.adapters.django_websocket import ComponentConsumer  # noqa: E402
 
 application = ProtocolTypeRouter(
     {

@@ -77,11 +77,11 @@ async def index():
             </ul>
         </div>
 
-        {result['html']}
+        {result["html"]}
 
         <div class="info" style="margin-top: 30px;">
             <h3>Component State:</h3>
-            <pre id="state-display">{result['state']}</pre>
+            <pre id="state-display">{result["state"]}</pre>
         </div>
     </body>
     </html>
