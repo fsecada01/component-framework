@@ -6,7 +6,7 @@ from uuid import uuid4
 
 from channels.generic.websocket import AsyncWebsocketConsumer
 
-from ..core.websocket import ComponentWebSocketManager, WebSocketConnection, ws_manager
+from ..core.websocket import WebSocketConnection, ws_manager
 
 logger = logging.getLogger(__name__)
 
@@ -65,9 +65,7 @@ class ComponentConsumer(AsyncWebsocketConsumer):
 
         # Send connection confirmation
         await self.send(
-            text_data=json.dumps(
-                {"type": "connected", "connection_id": self.connection_id}
-            )
+            text_data=json.dumps({"type": "connected", "connection_id": self.connection_id})
         )
 
         logger.info(f"WebSocket connected: {self.connection_id}")
@@ -82,18 +80,12 @@ class ComponentConsumer(AsyncWebsocketConsumer):
         """Handle incoming WebSocket message."""
         try:
             data = json.loads(text_data)
-            await ws_manager.handle_message(
-                self.connection, self.connection_id, data
-            )
+            await ws_manager.handle_message(self.connection, self.connection_id, data)
         except json.JSONDecodeError:
-            await self.send(
-                text_data=json.dumps({"type": "error", "error": "Invalid JSON"})
-            )
+            await self.send(text_data=json.dumps({"type": "error", "error": "Invalid JSON"}))
         except Exception as e:
             logger.exception("Error handling WebSocket message")
-            await self.send(
-                text_data=json.dumps({"type": "error", "error": str(e)})
-            )
+            await self.send(text_data=json.dumps({"type": "error", "error": str(e)}))
 
 
 # Channel layer helper for broadcasting

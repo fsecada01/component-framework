@@ -1,7 +1,5 @@
 """Django template tags for live components."""
 
-import json
-
 from django import template
 from django.utils.safestring import mark_safe
 
@@ -98,7 +96,8 @@ def component_js(component_id):
     <script>
     (function() {{
         const componentId = '{component_id}';
-        const ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws/');
+        const proto = location.protocol === 'https:' ? 'wss://' : 'ws://';
+        const ws = new WebSocket(proto + location.host + '/ws/');
 
         ws.onopen = function() {{
             // Subscribe to component updates

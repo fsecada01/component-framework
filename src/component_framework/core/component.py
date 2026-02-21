@@ -10,11 +10,13 @@ logger = logging.getLogger(__name__)
 
 class ComponentError(Exception):
     """Base exception for component errors."""
+
     pass
 
 
 class EventNotFoundError(ComponentError):
     """Raised when an event handler is not found."""
+
     pass
 
 
@@ -159,7 +161,7 @@ class Component:
                 "component_id": self.id,
             }
 
-        except Exception as e:
+        except Exception:
             logger.exception(f"Error in {self.__class__.__name__}.dispatch()")
             raise
 

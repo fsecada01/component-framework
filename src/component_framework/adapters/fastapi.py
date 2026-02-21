@@ -1,7 +1,6 @@
 """FastAPI adapter for component endpoints."""
 
 import logging
-from typing import Any
 
 from fastapi import HTTPException, Request
 from fastapi.responses import JSONResponse
@@ -32,9 +31,7 @@ async def component_endpoint(name: str, request: Request) -> JSONResponse:
         # Get component class
         component_cls = registry.get(name)
         if not component_cls:
-            raise HTTPException(
-                status_code=404, detail=f"Component '{name}' not found"
-            )
+            raise HTTPException(status_code=404, detail=f"Component '{name}' not found")
 
         # Parse request data
         try:
@@ -67,7 +64,7 @@ async def component_endpoint(name: str, request: Request) -> JSONResponse:
 
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
         logger.exception(f"Error processing component '{name}'")
         raise HTTPException(status_code=500, detail="Internal server error")
 

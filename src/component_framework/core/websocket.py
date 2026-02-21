@@ -1,10 +1,8 @@
 """WebSocket support for real-time component updates."""
 
 import asyncio
-import json
 import logging
 from abc import ABC, abstractmethod
-from typing import Any, Callable
 
 from .component import StateSerializer
 from .registry import registry
@@ -100,16 +98,12 @@ class ComponentWebSocketManager:
             component_id = message.get("component_id")
             if component_id:
                 self.subscribe(connection_id, component_id)
-                await connection.send(
-                    {"type": "subscribed", "component_id": component_id}
-                )
+                await connection.send({"type": "subscribed", "component_id": component_id})
         elif msg_type == "unsubscribe":
             component_id = message.get("component_id")
             if component_id:
                 self.unsubscribe(connection_id, component_id)
-                await connection.send(
-                    {"type": "unsubscribed", "component_id": component_id}
-                )
+                await connection.send({"type": "unsubscribed", "component_id": component_id})
         else:
             logger.warning(f"Unknown message type: {msg_type}")
 
@@ -182,9 +176,7 @@ class ComponentWebSocketManager:
 
         if tasks:
             await asyncio.gather(*tasks, return_exceptions=True)
-            logger.debug(
-                f"Broadcasted update for {component_id} to {len(tasks)} connections"
-            )
+            logger.debug(f"Broadcasted update for {component_id} to {len(tasks)} connections")
 
     async def push_update(self, component_id: str, html: str, state: dict):
         """

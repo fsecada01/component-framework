@@ -2,10 +2,9 @@
 
 import json
 import logging
-from typing import Any, Type
 
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
-from django.http import HttpRequest, HttpResponse, JsonResponse
+from django.http import HttpRequest, JsonResponse
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
@@ -36,9 +35,7 @@ def component_view(request: HttpRequest, name: str) -> JsonResponse:
         # Get component class
         component_cls = registry.get(name)
         if not component_cls:
-            return JsonResponse(
-                {"error": f"Component '{name}' not found"}, status=404
-            )
+            return JsonResponse({"error": f"Component '{name}' not found"}, status=404)
 
         # Parse request data (supports both JSON and form-encoded)
         if request.content_type == "application/json":
@@ -84,7 +81,7 @@ def component_view(request: HttpRequest, name: str) -> JsonResponse:
 
         return JsonResponse(result)
 
-    except Exception as e:
+    except Exception:
         logger.exception(f"Error processing component '{name}'")
         return JsonResponse({"error": "Internal server error"}, status=500)
 
@@ -169,7 +166,7 @@ class ComponentView(View):
         except Exception as e:
             return self.handle_error(e, name)
 
-    def get_component_class(self, name: str) -> Type[Component] | None:
+    def get_component_class(self, name: str) -> type[Component] | None:
         """Get component class from registry."""
         return registry.get(name)
 
@@ -223,7 +220,7 @@ class ComponentView(View):
         """
         return {}
 
-    def create_component(self, component_cls: Type[Component], params: dict) -> Component:
+    def create_component(self, component_cls: type[Component], params: dict) -> Component:
         """Create component instance."""
         return component_cls(**params)
 
@@ -383,7 +380,11 @@ class RateLimitMixin:
     """
     Mixin to add rate limiting to component views.
 
-    Usage:
+    **Status: Not yet implemented.** This mixin currently passes through to the
+    parent dispatch without applying any rate limiting. A future version will
+    integrate with django-ratelimit or a similar library.
+
+    Usage (once implemented):
         class MyComponentView(RateLimitMixin, ComponentView):
             rate_limit_key = "component"
             rate_limit_rate = "10/m"  # 10 per minute
@@ -393,9 +394,8 @@ class RateLimitMixin:
     rate_limit_rate: str = "60/m"
 
     def dispatch(self, request, *args, **kwargs):
-        """Check rate limit before dispatching."""
-        # Note: Requires django-ratelimit or similar
-        # This is a placeholder - implement with your rate limiting library
+        """Check rate limit before dispatching. (Not yet implemented.)"""
+        # TODO: Integrate with django-ratelimit or similar library.
         return super().dispatch(request, *args, **kwargs)
 
 
@@ -417,7 +417,9 @@ class CacheMixin:
         """Generate cache key. Override for custom keys."""
         import hashlib
 
-        key_data = f"{name}:{json.dumps(params, sort_keys=True)}:{json.dumps(state or {}, sort_keys=True)}"
+        params_json = json.dumps(params, sort_keys=True)
+        state_json = json.dumps(state or {}, sort_keys=True)
+        key_data = f"{name}:{params_json}:{state_json}"
         return f"component:{hashlib.md5(key_data.encode()).hexdigest()}"
 
     def post(self, request: HttpRequest, name: str, **kwargs) -> JsonResponse:
