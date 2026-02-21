@@ -6,7 +6,7 @@ readme = "README.md"
 requires-python = ">=3.11"
 license = {text = "MIT"}
 authors = [
-    {name = "fsecada01"}
+    {name = "Francis Secada", email = "francis.secada@gmail.com"}
 ]
 keywords = ["components", "server-components", "liveview", "htmx", "fastapi", "django"]
 classifiers = [
