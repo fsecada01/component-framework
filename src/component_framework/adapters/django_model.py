@@ -1,6 +1,6 @@
 """Django model integration mixin."""
 
-from typing import Any, ClassVar
+from typing import ClassVar
 
 from django.db import transaction
 from django.db.models import Model, QuerySet

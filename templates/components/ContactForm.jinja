@@ -1,0 +1,125 @@
+{#def state, errors, component_id, form_data, field_errors, is_valid, submitted #}
+<div id="{{ component_id }}" class="contact-form">
+
+  {% if state.get("success_message") %}
+    <div class="success">{{ state.success_message }}</div>
+  {% else %}
+    <form>
+      <div class="field">
+        <label for="name">Name</label>
+        <input
+          type="text"
+          id="name"
+          name="name"
+          value="{{ form_data.get('name', '') }}"
+          hx-post="/components/contact_form"
+          hx-trigger="change"
+          hx-vals='{"event": "field_change", "payload": {"field": "name", "value": event.target.value}, "state": {{ state | tojson }}, "params": {"component_id": "{{ component_id }}"}}'
+          hx-target="#{{ component_id }}"
+          hx-swap="outerHTML"
+        />
+        {% if field_errors.get("name") %}
+          <span class="error">{{ field_errors["name"][0] }}</span>
+        {% endif %}
+      </div>
+
+      <div class="field">
+        <label for="email">Email</label>
+        <input
+          type="email"
+          id="email"
+          name="email"
+          value="{{ form_data.get('email', '') }}"
+          hx-post="/components/contact_form"
+          hx-trigger="change"
+          hx-vals='{"event": "field_change", "payload": {"field": "email", "value": event.target.value}, "state": {{ state | tojson }}, "params": {"component_id": "{{ component_id }}"}}'
+          hx-target="#{{ component_id }}"
+          hx-swap="outerHTML"
+        />
+        {% if field_errors.get("email") %}
+          <span class="error">{{ field_errors["email"][0] }}</span>
+        {% endif %}
+      </div>
+
+      <div class="field">
+        <label for="message">Message</label>
+        <textarea
+          id="message"
+          name="message"
+          rows="4"
+        >{{ form_data.get('message', '') }}</textarea>
+        {% if field_errors.get("message") %}
+          <span class="error">{{ field_errors["message"][0] }}</span>
+        {% endif %}
+      </div>
+
+      <button
+        type="button"
+        hx-post="/components/contact_form"
+        hx-vals='{"event": "submit", "payload": {"form_data": {"name": "", "email": "", "message": ""}}, "state": {{ state | tojson }}, "params": {"component_id": "{{ component_id }}"}}'
+        hx-target="#{{ component_id }}"
+        hx-swap="outerHTML"
+        hx-include="closest form"
+      >
+        Submit
+      </button>
+
+      {% if submitted and not is_valid %}
+        <div class="form-error">Please fix the errors above.</div>
+      {% endif %}
+    </form>
+  {% endif %}
+</div>
+
+<style>
+.contact-form {
+  padding: 20px;
+  border: 2px solid #333;
+  border-radius: 8px;
+  background: #f9f9f9;
+}
+.contact-form .field {
+  margin-bottom: 16px;
+}
+.contact-form label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.contact-form input,
+.contact-form textarea {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+.contact-form .error {
+  color: #d32f2f;
+  font-size: 13px;
+}
+.contact-form .form-error {
+  color: #d32f2f;
+  margin-top: 12px;
+  font-weight: 600;
+}
+.contact-form .success {
+  color: #2e7d32;
+  font-size: 18px;
+  padding: 20px;
+  text-align: center;
+}
+.contact-form button {
+  padding: 10px 24px;
+  font-size: 16px;
+  cursor: pointer;
+  background: #1976d2;
+  color: white;
+  border: none;
+  border-radius: 4px;
+}
+.contact-form button:hover {
+  background: #1565c0;
+}
+</style>

@@ -1,9 +1,7 @@
 """Django template renderer implementation."""
 
-from typing import Any
-
 from django.template import Context, Template
-from django.template.loader import get_template, render_to_string
+from django.template.loader import render_to_string
 
 from ..core import Renderer
 
@@ -51,7 +49,7 @@ class DjangoCottonRenderer(Renderer):
         # Cotton components are referenced with 'c-' prefix
         # e.g., 'counter' becomes <c-counter ... />
         # We use Django's template system to render the cotton component
-        cotton_template = f'{{% load cotton %}}<c-{template_name} {self._build_attrs(context)} />'
+        cotton_template = f"{{% load cotton %}}<c-{template_name} {self._build_attrs(context)} />"
         template = Template(cotton_template)
         return template.render(Context(context))
 

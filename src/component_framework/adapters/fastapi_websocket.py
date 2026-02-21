@@ -1,12 +1,11 @@
 """FastAPI WebSocket adapter."""
 
-import json
 import logging
 from uuid import uuid4
 
 from fastapi import WebSocket, WebSocketDisconnect
 
-from ..core.websocket import ComponentWebSocketManager, WebSocketConnection, ws_manager
+from ..core.websocket import WebSocketConnection, ws_manager
 
 logger = logging.getLogger(__name__)
 
@@ -56,9 +55,7 @@ async def component_websocket_endpoint(websocket: WebSocket):
 
     try:
         # Send connection confirmation
-        await connection.send(
-            {"type": "connected", "connection_id": connection_id}
-        )
+        await connection.send({"type": "connected", "connection_id": connection_id})
 
         # Message loop
         while True:
