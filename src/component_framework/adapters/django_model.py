@@ -90,7 +90,7 @@ class DjangoModelMixin:
 
     # ---------- Form Integration ----------
 
-    def get_form_class(self):
+    def get_form_class(self) -> type | None:
         """Get form class for validation."""
         return self.form_class
 
@@ -137,7 +137,7 @@ class DjangoModelMixin:
             self.params["pk"] = state["pk"]
             self.instance = self.get_instance()
 
-    def populate_state_from_instance(self):
+    def populate_state_from_instance(self) -> None:
         """
         Populate component state from model instance.
 
@@ -156,7 +156,7 @@ class DjangoModelMixin:
                 value = getattr(self.instance, field_name, None)
                 self.state[field_name] = value
 
-    def update_instance_from_state(self):
+    def update_instance_from_state(self) -> None:
         """
         Update model instance from component state.
 

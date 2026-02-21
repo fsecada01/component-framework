@@ -1,6 +1,9 @@
 """Django template tags for live components."""
 
+import json as json_module
+
 from django import template
+from django.utils.html import escape
 from django.utils.safestring import mark_safe
 
 from ..core import StateSerializer, registry
@@ -9,7 +12,7 @@ register = template.Library()
 
 
 @register.simple_tag(takes_context=True)
-def live_component(context, name, **params):
+def live_component(context: dict, name: str, **params) -> str:
     """
     Render a live component.
 
@@ -34,7 +37,7 @@ def live_component(context, name, **params):
 
 
 @register.simple_tag
-def component_state(state_dict):
+def component_state(state_dict: dict) -> str:
     """
     Serialize component state for HTMX attributes.
 
@@ -45,7 +48,7 @@ def component_state(state_dict):
 
 
 @register.inclusion_tag("components/htmx_component.html", takes_context=True)
-def htmx_component(context, name, **params):
+def htmx_component(context: dict, name: str, **params) -> dict:
     """
     Render component with HTMX wrapper.
 
@@ -70,7 +73,7 @@ def htmx_component(context, name, **params):
 
 
 @register.filter
-def component_errors(errors_dict, field_name):
+def component_errors(errors_dict: dict | None, field_name: str) -> list:
     """
     Get field errors from component error dict.
 
@@ -85,17 +88,19 @@ def component_errors(errors_dict, field_name):
 
 
 @register.simple_tag
-def component_js(component_id):
+def component_js(component_id: str) -> str:
     """
     Generate JavaScript for component WebSocket connection.
 
     Usage:
         {% component_js component.id %}
     """
+    # Safely encode the component_id for embedding in JavaScript
+    safe_id = json_module.dumps(str(component_id))
     js = f"""
     <script>
     (function() {{
-        const componentId = '{component_id}';
+        const componentId = {safe_id};
         const proto = location.protocol === 'https:' ? 'wss://' : 'ws://';
         const ws = new WebSocket(proto + location.host + '/ws/');
 
@@ -134,7 +139,7 @@ def component_js(component_id):
 
 # Django-Cotton specific tags
 @register.simple_tag(takes_context=True)
-def cotton_component(context, name, **attrs):
+def cotton_component(context: dict, name: str, **attrs) -> str:
     """
     Render a live component as a Cotton component.
 
@@ -160,7 +165,7 @@ def cotton_component(context, name, **attrs):
 
 
 @register.simple_tag
-def component_attrs(component_id, state_dict, **extra_attrs):
+def component_attrs(component_id: str, state_dict: dict, **extra_attrs) -> str:
     """
     Generate HTMX attributes for component interaction.
 
@@ -175,6 +180,6 @@ def component_attrs(component_id, state_dict, **extra_attrs):
     # Add extra attributes
     attrs.update(extra_attrs)
 
-    # Build attribute string
-    attr_str = " ".join(f'{k}="{v}"' for k, v in attrs.items())
+    # Build attribute string with HTML escaping to prevent XSS
+    attr_str = " ".join(f'{escape(str(k))}="{escape(str(v))}"' for k, v in attrs.items())
     return mark_safe(attr_str)

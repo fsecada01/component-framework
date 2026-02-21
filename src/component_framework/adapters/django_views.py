@@ -376,32 +376,16 @@ class ComponentPageView(TemplateView):
 # ==================== Mixins ====================
 
 
-class RateLimitMixin:
-    """
-    Mixin to add rate limiting to component views.
-
-    **Status: Not yet implemented.** This mixin currently passes through to the
-    parent dispatch without applying any rate limiting. A future version will
-    integrate with django-ratelimit or a similar library.
-
-    Usage (once implemented):
-        class MyComponentView(RateLimitMixin, ComponentView):
-            rate_limit_key = "component"
-            rate_limit_rate = "10/m"  # 10 per minute
-    """
-
-    rate_limit_key: str = "component"
-    rate_limit_rate: str = "60/m"
-
-    def dispatch(self, request, *args, **kwargs):
-        """Check rate limit before dispatching. (Not yet implemented.)"""
-        # TODO: Integrate with django-ratelimit or similar library.
-        return super().dispatch(request, *args, **kwargs)
-
-
 class CacheMixin:
     """
-    Mixin to add caching to component responses.
+    Mixin to add caching to component responses via Django's cache framework.
+
+    Caches the JSON result of component dispatches. On subsequent requests with
+    the same component name, params, and state, the cached result is returned
+    directly without re-dispatching the component.
+
+    Attributes:
+        cache_timeout: Cache TTL in seconds. Defaults to 60.
 
     Usage:
         class MyComponentView(CacheMixin, ComponentView):
