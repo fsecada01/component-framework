@@ -1,6 +1,7 @@
 """Core framework components."""
 
 from .component import Component, ComponentError, EventNotFoundError, StateSerializer
+from .composition import SlotRenderer, compose
 from .form import FormComponent, ModelFormComponent
 from .permissions import (
     AllowAny,
@@ -20,6 +21,8 @@ __all__ = [
     "ComponentError",
     "EventNotFoundError",
     "StateSerializer",
+    "compose",
+    "SlotRenderer",
     "FormComponent",
     "ModelFormComponent",
     "AllowAny",

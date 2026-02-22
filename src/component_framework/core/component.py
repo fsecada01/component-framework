@@ -34,11 +34,18 @@ class Component:
         4. before_render()
         5. render()
         6. dehydrate()
+
+    Slots:
+        Components can declare named slots via the ``slots`` class variable.
+        Child components are assigned to slots with ``fill_slot()`` and their
+        rendered HTML is available in the template context under ``slots``.
     """
 
     template_name: str | None = None
     renderer = None
     permission_classes: ClassVar[list[type["BasePermission"]]] = []
+    slots: ClassVar[list[str]] = []
+    """Slot names this component accepts. Empty list means *any* slot name is accepted."""
 
     def __init__(self, **params):
         self.params = params
@@ -46,6 +53,7 @@ class Component:
         self.errors: dict[str, str] = {}
         self.id = params.get("component_id") or self._generate_id()
         self._mounted = False
+        self._slot_components: dict[str, Component] = {}
 
     # ---------- Lifecycle ----------
 
@@ -69,6 +77,69 @@ class Component:
     def before_render(self):
         """Called before rendering. Use for derived state computation."""
         pass
+
+    # ---------- Slots / Composition ----------
+
+    def fill_slot(self, slot_name: str, component: "Component") -> None:
+        """
+        Assign a child component to a named slot.
+
+        If the component declares specific ``slots``, *slot_name* must be one of
+        them.  If ``slots`` is empty (the default), any name is accepted
+        (permissive mode).
+
+        Args:
+            slot_name: Target slot identifier.
+            component: Child component instance to render in the slot.
+
+        Raises:
+            ComponentError: If *slot_name* is not in the declared ``slots`` list.
+        """
+        if self.slots and slot_name not in self.slots:
+            raise ComponentError(f"Unknown slot '{slot_name}'. Available: {self.slots}")
+        self._slot_components[slot_name] = component
+
+    def render_slots(self) -> dict[str, str]:
+        """
+        Render all filled slot components.
+
+        Returns:
+            Dict mapping slot names to their rendered HTML strings.
+        """
+        rendered: dict[str, str] = {}
+        for name, child in self._slot_components.items():
+            rendered[name] = child.render()
+        return rendered
+
+    # ---------- Optimistic UI ----------
+
+    def get_optimistic_patch(self, event: str, payload: dict) -> dict | None:
+        """
+        Return a partial state dict that the client can apply immediately before the server
+        responds, for the given event and payload.
+
+        This enables optimistic UI updates: the client shows the expected result right away
+        and reconciles with the actual server state once the response arrives. On error, the
+        client can roll back to the previous state.
+
+        Override in subclasses to enable optimistic updates for specific events. Return None
+        (the default) to disable optimistic updates for a given event.
+
+        Args:
+            event: The event name being dispatched (e.g., "increment").
+            payload: The event payload dict.
+
+        Returns:
+            A partial state dict to apply optimistically, or None to skip.
+
+        Example::
+
+            def get_optimistic_patch(self, event: str, payload: dict) -> dict | None:
+                if event == "increment":
+                    return {"count": self.state.get("count", 0) + payload.get("amount", 1)}
+                return None
+        """
+        return None
 
     # ---------- Events ----------
 
@@ -104,11 +175,14 @@ class Component:
         Build template context. Does not expose full component.
 
         Override to add custom context variables.
+        The returned dict always includes a ``slots`` key containing the
+        rendered HTML of any filled child components.
         """
         return {
             "state": self.state,
             "errors": self.errors,
             "component_id": self.id,
+            "slots": self.render_slots(),
         }
 
     def render(self) -> str:
@@ -163,6 +237,7 @@ class Component:
                 "html": html,
                 "state": self.dehydrate(),
                 "component_id": self.id,
+                "slots": self.render_slots(),
             }
 
         except Exception:
