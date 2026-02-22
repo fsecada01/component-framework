@@ -220,7 +220,7 @@ def write_root_index(
     if has_main:
         items.append(
             _LI_TEMPLATE.format(
-                href="main/component_framework/",
+                href="main/component_framework.html",
                 label="main",
                 tag_class="tag-dev",
                 tag_text="dev",
@@ -230,7 +230,7 @@ def write_root_index(
     if latest:
         items.append(
             _LI_TEMPLATE.format(
-                href="latest/component_framework/",
+                href="latest/component_framework.html",
                 label=f"latest  ({latest})",
                 tag_class="tag-latest",
                 tag_text="stable",
@@ -242,7 +242,7 @@ def write_root_index(
         tag_text = "latest" if version == latest else "release"
         items.append(
             _LI_TEMPLATE.format(
-                href=f"{version}/component_framework/",
+                href=f"{version}/component_framework.html",
                 label=version,
                 tag_class=tag_class,
                 tag_text=tag_text,

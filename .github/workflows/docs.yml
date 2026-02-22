@@ -148,7 +148,7 @@ jobs:
           DEST="gh-pages-dir/${LABEL}"
           rm -rf "${DEST}"
           mkdir -p "${DEST}"
-          cp -r downloaded-docs/component_framework "${DEST}/"
+          cp -r downloaded-docs/. "${DEST}/"
 
       - name: Update latest symlink (releases only)
         if: needs.build.outputs.is-release == 'true'
