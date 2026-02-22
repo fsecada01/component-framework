@@ -411,6 +411,7 @@ class TestPermissionComponentView:
         old = views_mod.registry
         views_mod.registry = registry_override
         try:
+
             class TestPermView(PermissionComponentView):
                 pass
 
