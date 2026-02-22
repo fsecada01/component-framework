@@ -521,11 +521,16 @@ main#content { background: var(--cfx-bg); }
   "use strict";
 
   var pathParts      = window.location.pathname.split("/");
-  var pkgIdx         = pathParts.indexOf("component_framework");
-  var isLocal        = pkgIdx < 2;
-  var repoSegment    = isLocal ? "" : pathParts[1];
-  var currentVersion = isLocal ? "local" : pathParts[pkgIdx - 1];
-  var afterPkg       = pathParts.slice(pkgIdx).join("/");
+  var REPO           = "component-framework";
+  var repoIdx        = pathParts.indexOf(REPO);
+  var isLocal        = repoIdx < 0;
+  var repoSegment    = REPO;
+  var currentVersion = isLocal ? "local" : (pathParts[repoIdx + 1] || "main");
+  // Path within the version dir — used by version switcher to keep the same page.
+  // Falls back to component_framework.html (the package root) when at the version root.
+  var afterPkg       = isLocal
+    ? "component_framework.html"
+    : (pathParts.slice(repoIdx + 2).join("/") || "component_framework.html");
 
   /* ── Compute base URLs ─────────────────────────────────────────────────── */
   var baseUrl = isLocal

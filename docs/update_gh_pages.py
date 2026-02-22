@@ -88,7 +88,10 @@ _ROOT_HTML = """\
   <title>component-framework — Documentation</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&display=swap"
+        rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap"
+        rel="stylesheet">
   <style>
     :root {{
       --bg:     #0c1117;
@@ -237,7 +240,7 @@ def write_root_index(
     if has_main:
         items.append(
             _LI_TEMPLATE.format(
-                href="main/component_framework.html",
+                href="main/index.html",
                 label="main",
                 tag_class="tag-dev",
                 tag_text="dev",
@@ -247,7 +250,7 @@ def write_root_index(
     if latest:
         items.append(
             _LI_TEMPLATE.format(
-                href="latest/component_framework.html",
+                href="latest/index.html",
                 label=f"latest  ({latest})",
                 tag_class="tag-latest",
                 tag_text="stable",
@@ -259,7 +262,7 @@ def write_root_index(
         tag_text = "latest" if version == latest else "release"
         items.append(
             _LI_TEMPLATE.format(
-                href=f"{version}/component_framework.html",
+                href=f"{version}/index.html",
                 label=version,
                 tag_class=tag_class,
                 tag_text=tag_text,
