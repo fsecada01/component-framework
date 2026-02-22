@@ -7,11 +7,11 @@ default:
 
 # Install all dependencies (core + dev + django + websockets)
 install:
-    pip install -e ".[dev,django,websockets]"
+    uv pip install -e ".[dev,django,websockets]"
 
 # Install core dependencies only
 install-core:
-    pip install -e "."
+    uv pip install -e "."
 
 # Run full test suite
 test *ARGS:
@@ -63,5 +63,29 @@ clean:
 
 # Build the package
 build: clean
-    pip install build
-    python -m build
+    uv build
+
+# ─── Claude Code ────────────────────────────────────────────────────────────
+
+# Default system prompt file appended to Claude's context (override per-call)
+CLAUDE_PROMPT_FILE := "CLAUDE.md"
+
+# Run Claude Code interactively (pass extra args with: just claude -- --flag)
+claude *ARGS:
+    claude {{ ARGS }}
+
+# Run Claude Code skipping all permission prompts (local/trusted environments only)
+claude-unsafe *ARGS:
+    claude --dangerously-skip-permissions {{ ARGS }}
+
+# Run Claude Code with an appended system prompt from a file
+claude-prompt PROMPT_FILE=CLAUDE_PROMPT_FILE *ARGS:
+    claude --append-system-prompt-file {{ PROMPT_FILE }} {{ ARGS }}
+
+# Run Claude Code with system prompt file + skip permissions
+claude-unsafe-prompt PROMPT_FILE=CLAUDE_PROMPT_FILE *ARGS:
+    claude --dangerously-skip-permissions --append-system-prompt-file {{ PROMPT_FILE }} {{ ARGS }}
+
+# Run Claude Code with full orchestration workflow (multi-agent, model routing, RTK)
+claude-orchestrate *ARGS:
+    claude --dangerously-skip-permissions --append-system-prompt-file prompts/WORKFLOW.md {{ ARGS }}
