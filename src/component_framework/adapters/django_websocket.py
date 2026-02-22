@@ -76,7 +76,7 @@ class ComponentConsumer(AsyncWebsocketConsumer):
             await ws_manager.disconnect(self.connection_id)
         logger.info(f"WebSocket disconnected: {self.connection_id}")
 
-    async def receive(self, text_data=None, bytes_data=None):  # type: ignore[override]
+    async def receive(self, text_data=None, bytes_data=None):
         """Handle incoming WebSocket message."""
         if text_data is None:
             return

@@ -164,19 +164,20 @@ class ModelFormComponent(FormComponent):
     Works with DjangoModelMixin or similar patterns.
     """
 
+    # Provided by DjangoModelMixin or subclass
+    instance: Any = None
+    state_fields: ClassVar[list[str]] = []
+
     def mount(self):
         """Initialize form with instance data."""
         super().mount()
 
         # Populate form from instance if available
-        if hasattr(self, "instance") and self.instance:
+        if self.instance:
             self.populate_form_from_instance()
 
     def populate_form_from_instance(self):
         """Populate form data from model instance."""
-        if not hasattr(self, "state_fields"):
-            return
-
         form_data = {}
         for field_name in self.state_fields:
             value = getattr(self.instance, field_name, None)
@@ -196,4 +197,4 @@ class ModelFormComponent(FormComponent):
 
         # Save instance (if method exists)
         if hasattr(self, "save_instance"):
-            self.save_instance()
+            self.save_instance()  # type: ignore[call-non-callable]  # provided by DjangoModelMixin via MRO

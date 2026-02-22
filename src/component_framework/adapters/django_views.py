@@ -262,8 +262,8 @@ class AuthenticatedComponentView(LoginRequiredMixin, ComponentView):
     def get_component_params(self, request: HttpRequest, **kwargs) -> dict:
         """Add user to component params."""
         params = super().get_component_params(request, **kwargs)
-        params["user"] = request.user
-        params["user_id"] = request.user.id
+        params["user"] = request.user  # type: ignore[unresolved-attribute]  # added by AuthenticationMiddleware
+        params["user_id"] = request.user.id  # type: ignore[unresolved-attribute]  # added by AuthenticationMiddleware
         return params
 
 
@@ -410,10 +410,10 @@ class CacheMixin:
         """Check cache before processing."""
         from django.core.cache import cache
 
-        # Try to get from cache
-        data = self.parse_request_data(request)
-        params = self.parse_params(data.get("params", "{}"))
-        state = self.parse_state(data.get("state"))
+        # Try to get from cache — methods provided by ComponentView via MRO
+        data = self.parse_request_data(request)  # type: ignore[unresolved-attribute]  # cooperative mixin
+        params = self.parse_params(data.get("params", "{}"))  # type: ignore[unresolved-attribute]  # cooperative mixin
+        state = self.parse_state(data.get("state"))  # type: ignore[unresolved-attribute]  # cooperative mixin
 
         cache_key = self.get_cache_key(name, params, state)
         cached_result = cache.get(cache_key)
@@ -422,7 +422,7 @@ class CacheMixin:
             return JsonResponse(cached_result)
 
         # Process normally
-        response = super().post(request, name, **kwargs)
+        response = super().post(request, name, **kwargs)  # type: ignore[unresolved-attribute]  # cooperative mixin
 
         # Cache the result
         if response.status_code == 200:
