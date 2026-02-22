@@ -4,6 +4,7 @@
 
 Framework-agnostic server components with LiveView-style interactivity inspired by Phoenix LiveView and Laravel Livewire.
 
+[![CI](https://github.com/fsecada01/component-framework/actions/workflows/ci.yml/badge.svg)](https://github.com/fsecada01/component-framework/actions/workflows/ci.yml)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Status: Alpha](https://img.shields.io/badge/status-alpha-orange.svg)](https://github.com/fsecada01/component-framework)
@@ -220,11 +221,25 @@ component-framework/
 │   ├── fastapi_example.py       # FastAPI demo
 │   └── django_example/          # Complete Django app
 │
-├── tests/
-│   └── test_counter.py
+├── tests/                         # Test suite
+│   ├── conftest.py                # Shared fixtures
+│   ├── test_component.py          # Core component tests
+│   ├── test_form.py               # Form validation tests
+│   ├── test_registry.py           # Registry tests
+│   ├── test_state.py              # State storage tests
+│   ├── test_websocket.py          # WebSocket manager tests
+│   ├── test_fastapi_adapter.py    # FastAPI adapter tests
+│   ├── test_fastapi_websocket.py  # FastAPI WebSocket tests
+│   ├── test_django_views.py       # Django views tests
+│   ├── test_django_model.py       # Django model binding tests
+│   ├── test_django_renderer.py    # Django renderer tests
+│   ├── test_django_websocket.py   # Django Channels tests
+│   └── test_templatetags.py       # Template tags tests
 │
-├── docs/                        # Documentation
-└── templates/                   # Component templates
+├── docs/                          # Documentation
+├── justfile                       # Task runner commands
+├── .pre-commit-config.yaml        # Pre-commit hooks
+└── templates/                     # Component templates
 ```
 
 ---
@@ -232,16 +247,23 @@ component-framework/
 ## Testing
 
 ```bash
-# Core tests
-pytest tests/
+# Run full test suite
+just test
 
-# Manual test
-python tests/test_counter.py
+# Run with verbose output
+just test-verbose
 
-# Django tests
-cd examples/django_example
-python manage.py test
+# Run only core tests
+just test-core
+
+# Run only adapter tests
+just test-adapters
+
+# Or use pytest directly
+pytest tests/ -q --tb=short
 ```
+
+CI runs the test suite against Python 3.11, 3.12, 3.13, and 3.14 on every push and pull request.
 
 ---
 
@@ -250,15 +272,35 @@ python manage.py test
 ### Setup
 
 ```bash
-# Install development dependencies
-uv pip install -e ".[dev]"
+# Install all dependencies (requires just: https://github.com/casey/just)
+just install
 
-# Format code
-ruff format .
+# Or install manually
+pip install -e ".[dev,django,websockets]"
 
-# Lint
-ruff check .
+# Install pre-commit hooks
+just pre-commit-install
 ```
+
+### Common Commands
+
+```bash
+just format          # Format code with ruff
+just lint            # Lint with ruff
+just lint-fix        # Lint and auto-fix
+just check           # Run lint + format check + tests
+just pre-commit      # Run all pre-commit hooks
+just clean           # Remove build artifacts
+just build           # Build the package
+```
+
+### Code Quality
+
+The project uses the following tools, enforced via CI and pre-commit hooks:
+
+- **[ruff](https://docs.astral.sh/ruff/)** - Linting and formatting (line length: 100)
+- **[ty](https://github.com/astral-sh/ty)** - Type checking (Astral's Rust-based type checker)
+- **[pre-commit](https://pre-commit.com/)** - Git hooks for trailing whitespace, YAML checks, merge conflict detection, ruff, and ty
 
 ### Contributing
 
@@ -284,6 +326,9 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for details (coming soon).
 - [x] Model binding
 - [x] WebSocket support
 - [x] Class-based views
+- [x] CI pipeline (GitHub Actions)
+- [x] Pre-commit hooks (ruff + ty)
+- [x] Comprehensive test suite
 
 ### Beta (Planned)
 - [ ] Authentication & permissions
@@ -334,7 +379,6 @@ Optional:
 - State size limits not enforced
 - CSRF handling needs improvement
 - Documentation incomplete
-- Test coverage needs improvement
 
 See [Issues](https://github.com/fsecada01/component-framework/issues) for full list.
 
