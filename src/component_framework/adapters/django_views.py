@@ -78,12 +78,27 @@ def component_view(request: HttpRequest, name: str) -> JsonResponse:
             except Exception as e:
                 return JsonResponse({"error": f"Invalid state: {e}"}, status=400)
 
+        # Compute optimistic patch BEFORE dispatch (uses pre-dispatch state).
+        # Hydrate state so get_optimistic_patch can access current state values.
+        optimistic_patch: dict | None = None
+        if event:
+            probe = component_cls(**params)
+            if state:
+                probe.hydrate(state)
+            else:
+                probe.mount()
+            optimistic_patch = probe.get_optimistic_patch(event, payload or {})
+
         # Create and dispatch component
         component = component_cls(**params)
         result = component.dispatch(event=event, payload=payload, state=state)
 
         # Serialize state for response
         result["state"] = StateSerializer.serialize(result["state"])
+
+        # Include optimistic patch if the component provided one
+        if optimistic_patch is not None:
+            result["optimistic"] = optimistic_patch
 
         return JsonResponse(result)
 
@@ -179,12 +194,27 @@ class ComponentView(View):
             # Add custom params
             params.update(self.get_component_params(request, **kwargs))
 
+            # Compute optimistic patch BEFORE dispatch (uses pre-dispatch state).
+            # A separate probe instance is used so the real dispatch starts clean.
+            optimistic_patch: dict | None = None
+            if event:
+                probe = self.create_component(component_cls, params)
+                if state:
+                    probe.hydrate(state)
+                else:
+                    probe.mount()
+                optimistic_patch = probe.get_optimistic_patch(event, payload)
+
             # Create and dispatch component
             component = self.create_component(component_cls, params)
             result = self.dispatch_component(component, event, payload, state)
 
             # Post-process result
             result = self.post_process_result(result, component)
+
+            # Attach optimistic patch if the component provided one
+            if optimistic_patch is not None:
+                result["optimistic"] = optimistic_patch
 
             return self.render_response(result)
 
@@ -417,19 +447,35 @@ class CacheMixin:
     """
     Mixin to add caching to component responses via Django's cache framework.
 
-    Caches the JSON result of component dispatches. On subsequent requests with
-    the same component name, params, and state, the cached result is returned
-    directly without re-dispatching the component.
+    Caches the JSON result of component dispatches (mount/hydrate only). On
+    subsequent requests with the same component name, params, and state, the
+    cached result is returned directly without re-dispatching the component.
+
+    Cache bypass rules:
+    - **Event requests** (requests that carry an ``event`` field) are never
+      served from or written to the cache. Events mutate component state, so
+      caching them would cause stale state to be returned on the next request.
+    - **Non-200 responses** are not stored in the cache. Errors, 404s, and
+      permission denials must always go through the full request cycle.
 
     Attributes:
         cache_timeout: Cache TTL in seconds. Defaults to 60.
 
-    Usage:
-        class MyComponentView(CacheMixin, ComponentView):
-            cache_timeout = 60  # seconds
+    Customising the cache key:
+        Override ``get_cache_key`` to produce application-specific keys::
 
-            def get_cache_key(self, name, params, state):
-                return f"component:{name}:{params.get('id')}"
+            class MyComponentView(CacheMixin, ComponentView):
+                cache_timeout = 300  # 5 minutes
+
+                def get_cache_key(self, name, params, state):
+                    return f"component:{name}:{params.get('id')}"
+
+    MRO note:
+        Always place ``CacheMixin`` *before* ``ComponentView`` in the class
+        bases so that this ``post`` override runs first::
+
+            class CachedView(CacheMixin, ComponentView):
+                pass
     """
 
     cache_timeout: int = 60
@@ -444,24 +490,30 @@ class CacheMixin:
         return f"component:{hashlib.md5(key_data.encode()).hexdigest()}"
 
     def post(self, request: HttpRequest, name: str, **kwargs) -> JsonResponse:
-        """Check cache before processing."""
+        """Check cache before processing. Event requests bypass the cache entirely."""
         from django.core.cache import cache
 
-        # Try to get from cache — methods provided by ComponentView via MRO
+        # Parse request data — methods provided by ComponentView via MRO
         data = self.parse_request_data(request)  # type: ignore[unresolved-attribute]  # cooperative mixin
+
+        # Event requests mutate state and must never be served from or stored
+        # in the cache. Skip all cache logic and go straight to the parent view.
+        if data.get("event"):
+            return super().post(request, name, **kwargs)  # type: ignore[unresolved-attribute]  # cooperative mixin
+
         params = self.parse_params(data.get("params", "{}"))  # type: ignore[unresolved-attribute]  # cooperative mixin
         state = self.parse_state(data.get("state"))  # type: ignore[unresolved-attribute]  # cooperative mixin
 
         cache_key = self.get_cache_key(name, params, state)
         cached_result = cache.get(cache_key)
 
-        if cached_result:
+        if cached_result is not None:
             return JsonResponse(cached_result)
 
         # Process normally
         response = super().post(request, name, **kwargs)  # type: ignore[unresolved-attribute]  # cooperative mixin
 
-        # Cache the result
+        # Only cache successful responses
         if response.status_code == 200:
             cache.set(cache_key, json.loads(response.content), self.cache_timeout)
 
