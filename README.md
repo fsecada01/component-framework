@@ -92,10 +92,18 @@ python manage.py runserver
 ## Documentation
 
 - 📖 [Architecture Overview](docs/server_component_spec.md)
-- 🚀 [Getting Started Guide](docs/BUILD_COMPLETE.md)
 - 🐍 [Django Implementation](docs/DJANGO_IMPLEMENTATION.md)
 - 🎓 [Class-Based Views Guide](docs/CBV_GUIDE.md)
-- 📊 [Prototype Status](docs/PROTOTYPE_STATUS.md)
+
+### Reports & Status
+
+- 🚀 [Build Summary](docs/reports/BUILD_COMPLETE.md)
+- 📊 [Prototype Status](docs/reports/PROTOTYPE_STATUS.md)
+
+### AI / LLM Context
+
+- 🤖 [Project Context](CLAUDE.md) — loaded automatically by Claude Code
+- ⚙️ [Orchestration Workflow](prompts/WORKFLOW.md) — multi-agent routing, model selection, RTK
 
 ---
 
@@ -276,7 +284,7 @@ CI runs the test suite against Python 3.11, 3.12, 3.13, and 3.14 on every push a
 just install
 
 # Or install manually
-pip install -e ".[dev,django,websockets]"
+uv pip install -e ".[dev,django,websockets]"
 
 # Install pre-commit hooks
 just pre-commit-install
@@ -293,6 +301,33 @@ just pre-commit      # Run all pre-commit hooks
 just clean           # Remove build artifacts
 just build           # Build the package
 ```
+
+### Claude Code Development
+
+The justfile includes recipes for running [Claude Code](https://claude.ai/claude-code) with project-specific context:
+
+```bash
+just claude                          # Run Claude Code interactively
+just claude-unsafe                   # Skip permission prompts (local/trusted only)
+just claude-prompt                   # Append CLAUDE.md as system prompt
+just claude-unsafe-prompt            # System prompt + skip permissions
+just claude-orchestrate              # Full orchestration workflow (see WORKFLOW.md)
+
+# Override the default system prompt file (CLAUDE.md)
+just claude-prompt PROMPT_FILE=my_prompt.md
+just claude-unsafe-prompt PROMPT_FILE=my_prompt.md
+```
+
+Two system prompt files are available:
+
+| File | Purpose |
+|------|---------|
+| `CLAUDE.md` | Project architecture, conventions, and development guidelines (default) |
+| `prompts/WORKFLOW.md` | Multi-agent orchestration, model selection matrix, RTK token efficiency, and skill routing |
+
+`CLAUDE.md` is the default for `claude-prompt`. `WORKFLOW.md` defines parallel agent patterns, model cost-routing (Haiku/Sonnet/Opus by task type), RTK integration for 60–99% token reduction, and skill-to-task mappings for this project. Use `just claude-orchestrate` to activate it.
+
+The `--dangerously-skip-permissions` flag is only appropriate in trusted local environments.
 
 ### Code Quality
 
