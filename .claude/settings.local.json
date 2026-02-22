@@ -6,7 +6,11 @@
       "Bash(curl:*)",
       "Bash(kill:*)",
       "Bash(git init:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(gh repo create:*)",
+      "Bash(git push:*)",
+      "Bash(cd:*)"
     ]
   }
 }

@@ -1,6 +1,9 @@
 # Component Framework - Development Commands
 # Install just: https://github.com/casey/just
 
+
+set shell := ["cmd.exe", "/c"]
+
 # Default recipe: show available commands
 default:
     @just --list
