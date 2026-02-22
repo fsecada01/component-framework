@@ -14,7 +14,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install ruff ty
+      - name: Install dependencies
+        run: pip install -e ".[dev,django,websockets]"
       - name: Check formatting
         run: ruff format --check .
       - name: Lint
