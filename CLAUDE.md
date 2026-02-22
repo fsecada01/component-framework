@@ -6,7 +6,7 @@ This file provides context for AI assistants working on this project.
 
 **Component Framework** is a Python library for building server-side components with LiveView-style interactivity. It provides a framework-agnostic core with adapters for FastAPI and Django.
 
-**Status:** Alpha (0.1.0-alpha)
+**Status:** Beta (0.2.0-beta)
 **Language:** Python 3.11+
 **License:** MIT
 
@@ -24,20 +24,25 @@ This file provides context for AI assistants working on this project.
 
 ```
 component_framework/
-├── core/              # Framework-agnostic
-│   ├── component.py   # Base Component class
-│   ├── form.py        # Form validation (Pydantic)
-│   ├── websocket.py   # WebSocket manager
-│   ├── registry.py    # Component registration
-│   ├── renderer.py    # Renderer interface
-│   └── state.py       # State storage
+├── core/                  # Framework-agnostic
+│   ├── component.py       # Base Component class
+│   ├── form.py            # Form validation (Pydantic)
+│   ├── websocket.py       # WebSocket manager
+│   ├── registry.py        # Component registration
+│   ├── renderer.py        # Renderer interface
+│   ├── state.py           # State storage
+│   ├── permissions.py     # Permission classes (Beta)
+│   └── composition.py     # Slot + composite components (Beta)
 │
-├── adapters/          # Framework-specific
+├── adapters/              # Framework-specific
 │   ├── fastapi.py
 │   ├── django_*.py
+│   ├── django_permissions.py   # FBV decorators (Beta)
+│   ├── django_ratelimit.py     # RateLimitMixin (Beta)
 │   └── jinjax_renderer.py
 │
-└── templatetags/      # Django templates
+├── testing.py             # ComponentTestCase + fixtures (Beta)
+└── templatetags/          # Django templates
 ```
 
 ## Development Guidelines
@@ -107,9 +112,11 @@ Components should:
 ### Documentation
 
 - `docs/server_component_spec.md` - Original specification
-- `docs/BUILD_COMPLETE.md` - Implementation summary
 - `docs/DJANGO_IMPLEMENTATION.md` - Django guide
 - `docs/CBV_GUIDE.md` - Class-based views guide
+- `docs/make.py` - pdoc build script (calls `just docs-build`)
+- `docs/update_gh_pages.py` - CI helper: versions.json + root index for GitHub Pages
+- API reference: https://fsecada01.github.io/component-framework/
 
 ## Common Tasks
 
@@ -141,24 +148,31 @@ Components should:
 ## Known Limitations
 
 - State must be JSON-serializable
-- No automatic CSRF for WebSockets yet
+- No automatic CSRF for WebSockets (manual handling required)
 - Component IDs generated client-side (could conflict)
-- CacheMixin available but requires Django cache backend configuration
-- Query optimization manual (not automatic)
+- CacheMixin requires Django cache backend configuration
+- Query optimization is manual (select_related, prefetch_related)
 
-## Future Enhancements
+## Completed Beta Features
 
-### Short Term
-- Permission decorators
-- Rate limiting (integrate django-ratelimit or similar)
-- Optimistic UI
+All Beta roadmap items are implemented and test-covered:
 
-### Long Term
-- Component composition/nesting
-- Automatic form generation
-- Devtools/inspector
-- Performance profiling
+- Permission classes (`AllowAny`, `IsAuthenticated`, `IsStaff`, `IsSuperuser`, `DjangoModelPermission`)
+- FBV permission decorators returning JSON 401/403 (no redirects)
+- Rate limiting (`RateLimitMixin`)
+- Component caching (`CacheMixin`)
+- Optimistic UI (`OptimisticMixin` + `get_optimistic_patch()`)
+- Component composition (`SlotComponent`, `CompositeComponent`)
+- Testing utilities (`ComponentTestCase`, `dispatch_event`, `assert_state`)
+- Versioned API docs via pdoc + GitHub Pages
+
+## Future Enhancements (1.0)
+
+- Stable, frozen public API
+- Performance benchmarks and optimisation
+- Devtools / inspector
 - Component marketplace
+- Full user guide and tutorials
 
 ## Dependencies
 
@@ -182,6 +196,7 @@ Components should:
 - httpx >= 0.26
 - ruff >= 0.1
 - ty >= 0.0.18 (type checker)
+- pdoc >= 14.0 (API docs)
 - pre-commit >= 3.5
 - prek (pre-commit hooks)
 - just (task runner, cross-platform)
@@ -295,7 +310,7 @@ class Editor(DjangoModelComponent):
 
 ## Contributing
 
-This is an alpha project. Breaking changes are expected.
+This is a beta project. Core APIs are stable; minor changes before 1.0.
 
 When contributing:
 1. Open issue first for major changes
