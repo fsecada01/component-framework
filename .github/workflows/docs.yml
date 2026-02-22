@@ -1,15 +1,21 @@
 name: Docs
 
-# Deploy API documentation to GitHub Pages.
+# Deploy API documentation to GitHub Pages via GitHub Actions.
 #
 # Versioning strategy
 # ───────────────────
-# • Push to master  → docs deployed to  gh-pages:/main/
-# • Push of v* tag  → docs deployed to  gh-pages:/{tag}/   (e.g. /v0.1.0/)
-#                     AND the symlink    gh-pages:/latest/  is updated
-# • Older versions are never touched — their directories remain on the branch.
-# • Root gh-pages/index.html lists all available versions.
-# • Each page contains a version-switcher (fetches /versions.json at runtime).
+# • Push to master  → docs deployed under  /main/
+# • Push of v* tag  → docs deployed under  /{tag}/   (e.g. /v0.1.0/)
+#                     AND /latest/  is updated to point at the new tag
+# • Older versions are never removed — the gh-pages branch acts as a
+#   persistent version store.  The deploy job checks it out, merges the
+#   new version in, then uploads the whole tree with upload-pages-artifact
+#   so GitHub Pages (Actions mode) serves it.
+# • Root index.html and versions.json are regenerated on every deploy.
+# • Each page carries a JS version-switcher that reads versions.json.
+#
+# GitHub Pages setup (one-time, in repo Settings → Pages):
+#   Source → GitHub Actions   (NOT "Deploy from a branch")
 
 on:
   push:
@@ -18,29 +24,33 @@ on:
   workflow_dispatch:
     inputs:
       version_override:
-        description: "Version label to deploy as (leave blank to use branch/tag)"
+        description: "Version label (leave blank to derive from branch/tag)"
         required: false
         default: ""
-
-permissions:
-  contents: write    # needed to push to gh-pages branch
 
 concurrency:
   group: docs-deploy
   cancel-in-progress: false   # never cancel a running deploy mid-flight
 
+# ── Job 1: Build ──────────────────────────────────────────────────────────────
+#
+# Generates pdoc HTML for the current commit and uploads it as a workflow
+# artifact.  No write permissions needed here.
+
 jobs:
-  build-and-deploy:
-    name: Build & Deploy Docs
+  build:
+    name: Build Docs
     runs-on: ubuntu-latest
 
+    outputs:
+      version-label: ${{ steps.version.outputs.label }}
+      is-release:    ${{ steps.version.outputs.is_release }}
+
     steps:
-      # ── 1. Checkout source ─────────────────────────────────────────────
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0   # full history so git-describe works
+          fetch-depth: 0
 
-      # ── 2. Python + pdoc ──────────────────────────────────────────────
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -50,7 +60,6 @@ jobs:
           pip install pdoc
           pip install -e ".[dev,django,websockets]"
 
-      # ── 3. Determine the version label ────────────────────────────────
       - name: Determine version label
         id: version
         run: |
@@ -58,97 +67,124 @@ jobs:
             LABEL="${{ github.event.inputs.version_override }}"
             IS_RELEASE="false"
           elif [[ "$GITHUB_REF" == refs/tags/* ]]; then
-            LABEL="${GITHUB_REF#refs/tags/}"   # e.g. "v0.1.0"
+            LABEL="${GITHUB_REF#refs/tags/}"
             IS_RELEASE="true"
           else
             LABEL="main"
             IS_RELEASE="false"
           fi
-          echo "label=${LABEL}" >> "$GITHUB_OUTPUT"
+          echo "label=${LABEL}"       >> "$GITHUB_OUTPUT"
           echo "is_release=${IS_RELEASE}" >> "$GITHUB_OUTPUT"
-          echo "Deploying docs as version: ${LABEL} (is_release=${IS_RELEASE})"
+          echo "Building docs for version: ${LABEL}"
 
-      # ── 4. Generate API docs with pdoc ────────────────────────────────
-      # make.py uses pdoc's Python API (not the CLI) so that Django can
-      # be initialised before the package is imported.  Output goes to
-      # generated/component_framework/.
       - name: Generate docs
         run: python docs/make.py --output-dir generated
 
-      # ── 5. Prepare gh-pages working tree ──────────────────────────────
-      #
-      # We use a git worktree so we can work on the gh-pages branch in a
-      # subdirectory while staying on the main branch in the repo root.
-      # If the gh-pages branch does not yet exist we initialise it as an
-      # orphan branch with a bare commit so the worktree add succeeds.
-      - name: Prepare gh-pages worktree
+      # Upload only the new version's output — the deploy job merges it
+      # with the existing version store.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: docs-${{ steps.version.outputs.label }}
+          path: generated/
+          retention-days: 7
+
+# ── Job 2: Deploy ─────────────────────────────────────────────────────────────
+#
+# 1. Checks out the gh-pages branch (version store).
+# 2. Downloads the artifact from the build job.
+# 3. Copies the new version into the store.
+# 4. Regenerates versions.json and root index.html.
+# 5. Uploads the full store with upload-pages-artifact.
+# 6. Deploys via actions/deploy-pages (OIDC — no PAT needed).
+# 7. Pushes the updated store back to gh-pages so future runs see all versions.
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write   # push updated version store to gh-pages branch
+      pages: write      # upload Pages artifact
+      id-token: write   # OIDC token for Pages deployment
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+
+    steps:
+      # ── Checkout source (for docs/ scripts) ───────────────────────────
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # ── Prepare the gh-pages version-store worktree ───────────────────
+      - name: Prepare gh-pages version store
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          # Fetch gh-pages if it already exists on origin
           git fetch origin gh-pages:gh-pages 2>/dev/null || true
 
           if git show-ref --quiet refs/heads/gh-pages; then
-            # Branch exists locally → add as worktree
             git worktree add gh-pages-dir gh-pages
           else
-            # Branch does not exist yet → create orphan
+            # First run: create the orphan branch
             git worktree add --orphan -b gh-pages gh-pages-dir
-            # Commit a placeholder so the branch is not empty
             cd gh-pages-dir
-            cat > index.html <<'HTML'
-          <!DOCTYPE html>
-          <html><head><meta charset="utf-8"><title>component-framework docs</title></head>
-          <body><p>Documentation is being generated…</p></body></html>
-          HTML
-            git add index.html
-            git commit -m "chore: initialise gh-pages branch"
+            git commit --allow-empty -m "chore: initialise gh-pages version store"
             cd ..
           fi
 
-      # ── 6. Copy generated docs into the version subfolder ─────────────
-      - name: Copy docs to version directory
-        run: |
-          LABEL="${{ steps.version.outputs.label }}"
-          DEST="gh-pages-dir/${LABEL}"
+      # ── Merge new version into the store ──────────────────────────────
+      - uses: actions/download-artifact@v4
+        with:
+          name: docs-${{ needs.build.outputs.version-label }}
+          path: downloaded-docs/
 
-          # Remove stale version directory so old removed modules don't linger
+      - name: Copy new version into store
+        run: |
+          LABEL="${{ needs.build.outputs.version-label }}"
+          DEST="gh-pages-dir/${LABEL}"
           rm -rf "${DEST}"
           mkdir -p "${DEST}"
+          cp -r downloaded-docs/component_framework "${DEST}/"
 
-          # pdoc output is generated/component_framework/
-          cp -r generated/component_framework "${DEST}/"
-
-      # ── 7. Update latest/ symlink for release tags ────────────────────
       - name: Update latest symlink (releases only)
-        if: steps.version.outputs.is_release == 'true'
+        if: needs.build.outputs.is-release == 'true'
         run: |
-          LABEL="${{ steps.version.outputs.label }}"
           cd gh-pages-dir
-          # Remove existing symlink or directory
           rm -rf latest
-          ln -s "${LABEL}" latest
+          ln -sfn "${{ needs.build.outputs.version-label }}" latest
 
-      # ── 8. Regenerate versions.json and root index ────────────────────
-      - name: Update versions.json and root index.html
+      - name: Regenerate versions.json and root index
         run: |
           python docs/update_gh_pages.py --pages-dir gh-pages-dir
 
-      # ── 9. Commit and push gh-pages ───────────────────────────────────
-      - name: Commit and push
-        run: |
-          LABEL="${{ steps.version.outputs.label }}"
-          COMMIT_SHA="${GITHUB_SHA:0:7}"
+      # ── Upload full store as the Pages artifact ────────────────────────
+      - uses: actions/configure-pages@v5
 
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: gh-pages-dir/
+
+      # ── Deploy to GitHub Pages (OIDC) ──────────────────────────────────
+      - name: Deploy
+        id: deploy
+        uses: actions/deploy-pages@v4
+
+      # ── Persist the updated version store ─────────────────────────────
+      # Push the merged gh-pages branch back so the next run can check it
+      # out and see all previously deployed versions.
+      - name: Persist version store
+        run: |
+          LABEL="${{ needs.build.outputs.version-label }}"
+          COMMIT_SHA="${GITHUB_SHA:0:7}"
           cd gh-pages-dir
           git add -A
-
-          # Only commit if there are actual changes
           if git diff --cached --quiet; then
-            echo "No changes to commit — docs are already up to date."
+            echo "Version store unchanged — nothing to push."
           else
-            git commit -m "docs: deploy ${LABEL} (${COMMIT_SHA})"
+            git commit -m "docs: add ${LABEL} (${COMMIT_SHA})"
             git push origin gh-pages
-            echo "Docs deployed to gh-pages/${LABEL}/"
           fi
