@@ -1,3 +1,123 @@
 <!DOCTYPE html>
-<html><head><meta charset="utf-8"><title>component-framework docs</title></head>
-<body><p>Documentation is being generated…</p></body></html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>component-framework — Documentation</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&display=swap');
+    :root {
+      --bg:     #0a0c0b;
+      --panel:  #0f1210;
+      --border: #1e2b22;
+      --green:  #7fff5f;
+      --orange: #ff6e27;
+      --cyan:   #1dfcf0;
+      --dim:    #3a5043;
+      --mid:    #698075;
+      --text:   #c8d9cc;
+      --white:  #e8f0ea;
+      --mono:   'IBM Plex Mono', monospace;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--mono);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+    .card {
+      width: 100%;
+      max-width: 560px;
+      border: 1px solid var(--border);
+      background: var(--panel);
+    }
+    .card-header {
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: baseline;
+      gap: 1rem;
+    }
+    .card-header h1 {
+      font-size: 1rem;
+      color: var(--green);
+      font-weight: 600;
+    }
+    .card-header h1::before { content: "> "; color: var(--orange); }
+    .card-header .badge {
+      font-size: 9px;
+      color: var(--orange);
+      border: 1px solid var(--orange);
+      padding: 1px 5px;
+      letter-spacing: 0.1em;
+      opacity: 0.8;
+    }
+    .version-list {
+      list-style: none;
+    }
+    .version-list li {
+      border-bottom: 1px solid var(--border);
+    }
+    .version-list li:last-child { border-bottom: none; }
+    .version-list a {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.75rem 1.5rem;
+      color: var(--mid);
+      text-decoration: none;
+      font-size: 13px;
+      transition: background 0.12s, color 0.12s;
+    }
+    .version-list a:hover {
+      background: rgba(127,255,95,0.04);
+      color: var(--green);
+    }
+    .version-list .tag {
+      font-size: 9px;
+      padding: 1px 6px;
+      border-radius: 2px;
+      letter-spacing: 0.08em;
+    }
+    .tag-dev     { color: var(--cyan);   border: 1px solid var(--cyan);   }
+    .tag-latest  { color: var(--green);  border: 1px solid var(--green);  }
+    .tag-release { color: var(--dim);    border: 1px solid var(--border); }
+    footer {
+      margin-top: 2rem;
+      font-size: 10px;
+      color: var(--dim);
+      text-align: center;
+    }
+    footer a { color: var(--dim); text-decoration: none; }
+    footer a:hover { color: var(--green); }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="card-header">
+      <h1>component-framework</h1>
+      <span class="badge">DOCS</span>
+    </div>
+    <ul class="version-list">
+      <li>
+        <a href="main/component_framework/">
+          <span>main</span>
+          <span class="tag tag-dev">dev</span>
+        </a>
+      </li>
+    </ul>
+  </div>
+  <footer>
+    <a href="https://github.com/fsecada01/component-framework" target="_blank" rel="noopener">
+      GitHub
+    </a>
+    &nbsp;·&nbsp; MIT license
+  </footer>
+</body>
+</html>
