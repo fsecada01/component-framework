@@ -1,0 +1,256 @@
+{% extends "default/frame.html.jinja2" %}
+
+{#
+  Custom frame template for component-framework docs.
+
+  Adds:
+    1. Terminal Brutalism colour overrides (chartreuse green on near-black,
+       electric orange accents, IBM Plex Mono) — matching docs/index.html.
+    2. A version-switcher banner fetched from /versions.json at the
+       gh-pages root; auto-detects the current version from the URL path
+       so it works for /main/, /v0.1.0/, etc.
+
+  Template inheritance: pdoc loads templates from --template-directory first,
+  falling back to its own built-in defaults for anything we don't override.
+#}
+
+{# ── Extra CSS ── inject after pdoc's default styles ─────────────────────── #}
+{% block style %}
+{{ super() }}
+<style>
+  /* ── Design tokens ───────────────────────────────────────────────────── */
+  :root {
+    --cfx-bg:        #0a0c0b;
+    --cfx-panel:     #0f1210;
+    --cfx-border:    #1e2b22;
+    --cfx-green:     #7fff5f;
+    --cfx-orange:    #ff6e27;
+    --cfx-cyan:      #1dfcf0;
+    --cfx-dim:       #3a5043;
+    --cfx-mid:       #698075;
+    --cfx-text:      #c8d9cc;
+    --cfx-white:     #e8f0ea;
+    --cfx-mono:      'IBM Plex Mono', 'Courier New', monospace;
+  }
+
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&display=swap');
+
+  /* ── Override pdoc's root colours ───────────────────────────────────── */
+  :root {
+    --pdoc-background: var(--cfx-bg);
+  }
+
+  body {
+    background: var(--cfx-bg);
+    color: var(--cfx-text);
+    font-family: var(--cfx-mono);
+  }
+
+  /* Sidebar */
+  nav#sidebar {
+    background: var(--cfx-panel);
+    border-right: 1px solid var(--cfx-border);
+  }
+  nav#sidebar a { color: var(--cfx-mid); }
+  nav#sidebar a:hover,
+  nav#sidebar a:focus { color: var(--cfx-green); }
+  nav#sidebar h2 { color: var(--cfx-dim); font-size: 0.7rem; letter-spacing: 0.15em; }
+
+  /* Content */
+  main#content { background: var(--cfx-bg); }
+  h1, h2, h3, h4 { color: var(--cfx-white); font-family: var(--cfx-mono); }
+  h2 { color: var(--cfx-green); }
+  h3 { color: var(--cfx-cyan); }
+  a { color: var(--cfx-cyan); }
+  a:hover { color: var(--cfx-green); }
+
+  /* Code */
+  code, pre { font-family: var(--cfx-mono); }
+  pre {
+    background: #111813 !important;
+    border: 1px solid var(--cfx-border);
+    border-left: 3px solid var(--cfx-green);
+  }
+  .pdoc code {
+    color: var(--cfx-cyan);
+    background: rgba(29,252,240,0.07);
+    border: 1px solid rgba(29,252,240,0.12);
+    padding: 0.1em 0.35em;
+    border-radius: 2px;
+  }
+
+  /* Docstring attr chips */
+  .pdoc .attr { color: var(--cfx-orange); }
+  .pdoc .def  { color: var(--cfx-green); }
+
+  /* ── Version banner ──────────────────────────────────────────────────── */
+  #cfx-version-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.45rem 1rem;
+    background: var(--cfx-panel);
+    border-bottom: 1px solid var(--cfx-border);
+    font-family: var(--cfx-mono);
+    font-size: 11px;
+    color: var(--cfx-dim);
+    white-space: nowrap;
+  }
+  #cfx-version-bar .cfx-logo {
+    color: var(--cfx-green);
+    font-weight: 600;
+    font-size: 12px;
+    letter-spacing: 0.03em;
+    text-decoration: none;
+  }
+  #cfx-version-bar .cfx-logo::before { content: "> "; color: var(--cfx-orange); }
+  #cfx-version-bar select {
+    font-family: var(--cfx-mono);
+    font-size: 11px;
+    color: var(--cfx-text);
+    background: var(--cfx-bg);
+    border: 1px solid var(--cfx-border);
+    border-radius: 2px;
+    padding: 2px 6px;
+    cursor: pointer;
+    outline: none;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+  #cfx-version-bar select:focus { border-color: var(--cfx-green); }
+  #cfx-version-bar .cfx-sep { color: var(--cfx-border); }
+  #cfx-version-bar a {
+    color: var(--cfx-dim);
+    text-decoration: none;
+    font-size: 10px;
+    letter-spacing: 0.05em;
+  }
+  #cfx-version-bar a:hover { color: var(--cfx-green); }
+  #cfx-version-bar .cfx-badge {
+    color: var(--cfx-orange);
+    border: 1px solid var(--cfx-orange);
+    padding: 0 5px;
+    border-radius: 2px;
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    opacity: 0.8;
+  }
+</style>
+{% endblock style %}
+
+{# ── Nav block: prepend version banner ────────────────────────────────────── #}
+{% block nav %}
+<div id="cfx-version-bar">
+  <a class="cfx-logo" href="../">component-framework</a>
+  <span class="cfx-badge" id="cfx-alpha-badge" style="display:none">ALPHA</span>
+  <span class="cfx-sep">|</span>
+  <span>version:</span>
+  <select id="cfx-version-select" title="Switch documentation version">
+    <option value="">detecting…</option>
+  </select>
+  <span class="cfx-sep">|</span>
+  <a href="https://github.com/fsecada01/component-framework" target="_blank" rel="noopener">
+    GitHub
+  </a>
+</div>
+{{ super() }}
+{% endblock nav %}
+
+{# ── Script block: version-switcher logic ─────────────────────────────────── #}
+{% block script %}
+{{ super() }}
+<script>
+(function () {
+  "use strict";
+
+  /**
+   * Detect the current docs version from the URL path.
+   *
+   * GitHub Pages URL structure:
+   *   https://USER.github.io/REPO/VERSION/component_framework/...
+   *
+   * pathParts[0] = "" (leading slash)
+   * pathParts[1] = REPO name (e.g. "component-framework")
+   * pathParts[2] = VERSION  (e.g. "main" or "v0.1.0")
+   * pathParts[3] = "component_framework"
+   * pathParts[4..] = sub-module path
+   *
+   * For local dev (no version prefix):
+   *   http://localhost:8000/component_framework/...
+   * → We skip the switcher in that case.
+   */
+  var pathParts = window.location.pathname.split("/");
+  // Find "component_framework" in the path
+  var pkgIdx = pathParts.indexOf("component_framework");
+
+  // Need at least one segment before "component_framework" that is the version
+  // (pkgIdx >= 2 means there's a repo name AND a version segment before the pkg)
+  if (pkgIdx < 2) {
+    // Local dev server — hide the switcher gracefully
+    document.getElementById("cfx-version-select").parentElement.style.display = "none";
+    return;
+  }
+
+  var repoSegment    = pathParts[1];          // e.g. "component-framework"
+  var currentVersion = pathParts[pkgIdx - 1]; // e.g. "main" or "v0.1.0"
+
+  // Show alpha badge for pre-release versions
+  if (/alpha|beta|rc/i.test(currentVersion)) {
+    document.getElementById("cfx-alpha-badge").style.display = "";
+  }
+
+  // Relative path *within* the package docs (for cross-version deep linking)
+  var afterPkg = pathParts.slice(pkgIdx).join("/"); // "component_framework/core/index.html"
+
+  // versions.json is always at the gh-pages root
+  var versionsUrl =
+    window.location.origin + "/" + repoSegment + "/versions.json";
+
+  fetch(versionsUrl)
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      var sel = document.getElementById("cfx-version-select");
+      sel.innerHTML = "";
+
+      var entries = [];
+
+      // "main" entry (development)
+      if (data.main) {
+        entries.push({ value: "main", label: "main (dev)" });
+      }
+
+      // Release versions, newest first
+      var releases = (data.versions || []).slice().reverse();
+      releases.forEach(function (v) {
+        var label = v === data.latest ? v + " (latest)" : v;
+        entries.push({ value: v, label: label });
+      });
+
+      entries.forEach(function (entry) {
+        var opt = document.createElement("option");
+        opt.value = entry.value;
+        opt.textContent = entry.label;
+        if (entry.value === currentVersion) opt.selected = true;
+        sel.appendChild(opt);
+      });
+
+      sel.addEventListener("change", function () {
+        var target = sel.value;
+        // Try to deep-link to the same page in the target version;
+        // fall back to the version root if the page might not exist.
+        var base =
+          window.location.origin +
+          "/" + repoSegment +
+          "/" + target +
+          "/" + afterPkg;
+        window.location.href = base;
+      });
+    })
+    .catch(function () {
+      // Couldn't fetch versions.json — show current version as static text
+      var sel = document.getElementById("cfx-version-select");
+      sel.innerHTML = '<option value="">' + currentVersion + "</option>";
+    });
+})();
+</script>
+{% endblock script %}

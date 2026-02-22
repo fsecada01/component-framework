@@ -68,6 +68,24 @@ clean:
 build: clean
     uv build
 
+# ─── Docs ───────────────────────────────────────────────────────────────────
+
+# Build API docs with pdoc -> docs/site/
+docs-build:
+    python docs/make.py
+
+# Start pdoc dev server (live reload at localhost:8000)
+docs-serve:
+    python docs/make.py --serve
+
+# Verify pdoc is available and print config
+docs-check:
+    python docs/make.py --check
+
+# Clean generated docs
+docs-clean:
+    rm -rf docs/site/
+
 # ─── Claude Code ────────────────────────────────────────────────────────────
 
 # Default system prompt file appended to Claude's context (override per-call)

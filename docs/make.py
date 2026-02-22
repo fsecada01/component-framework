@@ -1,253 +1,98 @@
 """
-docs/make.py — Static site generator for component-framework documentation.
+docs/make.py — API documentation builder for component-framework.
 
-Converts Markdown files in docs/ to HTML using pandoc, injecting each page
-into docs/index.html (the layout template).
+Generates an HTML API reference from Python docstrings using pdoc.
+The output is a self-contained static site suitable for GitHub Pages.
+
+Uses pdoc's Python API (not the CLI) so that Django can be initialised
+before the package is imported — required because the Django adapters
+import from django.contrib.auth at module scope.
 
 Usage:
-    python docs/make.py                  # build all pages → docs/site/
-    python docs/make.py --serve          # build + serve on http://localhost:8000
-    python docs/make.py --check          # verify pandoc is available, dry-run
+    python docs/make.py                   # build -> docs/site/
+    python docs/make.py --serve           # start pdoc dev server (localhost:8000)
+    python docs/make.py --check           # verify pdoc is available, print config
+    python docs/make.py -o /tmp/my-docs   # custom output directory
 
 Requirements:
-    pandoc >= 3.0  (https://pandoc.org/installing.html)
+    pdoc >= 14  (pip install pdoc  OR  uv pip install pdoc)
 """
 
 from __future__ import annotations
 
 import argparse
-import http.server
 import os
-import shutil
-import subprocess
 import sys
-from dataclasses import dataclass
 from pathlib import Path
 
-# ── Constants ────────────────────────────────────────────────────────────────
+# ── Paths ─────────────────────────────────────────────────────────────────────
 
 DOCS_DIR = Path(__file__).parent
-SITE_DIR = DOCS_DIR / "site"
-LAYOUT = DOCS_DIR / "index.html"
-
-# Ordered page registry. Each entry becomes a nav link + HTML file.
-# fmt: off
-PAGES: list[dict] = [
-    # section, title, source_md, output_html, description
-    {
-        "section": "Getting Started",
-        "title": "Introduction",
-        "src": DOCS_DIR / "server_component_spec.md",
-        "out": "index.html",
-        "desc": "Framework-agnostic server-side components with LiveView-style interactivity.",
-    },
-    {
-        "section": "Getting Started",
-        "title": "Build Status",
-        "src": DOCS_DIR / "reports" / "BUILD_COMPLETE.md",
-        "out": "build-complete.html",
-        "desc": "Implementation summary and current build status.",
-    },
-    {
-        "section": "Django",
-        "title": "Django Integration",
-        "src": DOCS_DIR / "DJANGO_IMPLEMENTATION.md",
-        "out": "django.html",
-        "desc": "Complete guide to using component-framework with Django.",
-    },
-    {
-        "section": "Django",
-        "title": "Class-Based Views",
-        "src": DOCS_DIR / "CBV_GUIDE.md",
-        "out": "cbv-guide.html",
-        "desc": "ComponentView, AuthenticatedComponentView, PermissionComponentView, and mixins.",
-    },
-    {
-        "section": "Examples",
-        "title": "E-Commerce Live View",
-        "src": DOCS_DIR / "examples" / "ecommerce.md",
-        "out": "examples/ecommerce.html",
-        "desc": "Real-time product page and shopping cart with optimistic UI — no React required.",
-    },
-]
-# fmt: on
-
-PANDOC_ARGS = [
-    "--from=gfm",
-    "--to=html5",
-    "--syntax-highlighting=none",  # we do our own minimal highlighting via CSS
-    "--wrap=none",
-]
+REPO_ROOT = DOCS_DIR.parent
+SRC_DIR = REPO_ROOT / "src"
+PACKAGE = "component_framework"
+TEMPLATES_DIR = DOCS_DIR / "pdoc_templates"
+DEFAULT_OUT = DOCS_DIR / "site"
 
 
-# ── Data model ───────────────────────────────────────────────────────────────
+# ── Environment bootstrap ─────────────────────────────────────────────────────
 
 
-@dataclass
-class Page:
-    section: str
-    title: str
-    src: Path
-    out: str
-    desc: str
+def _configure_environment() -> None:
+    """
+    Extend sys.path and configure Django settings before pdoc imports the package.
 
-    @property
-    def out_path(self) -> Path:
-        return SITE_DIR / self.out
+    The Django adapters import from ``django.contrib.auth`` at module scope, which
+    requires both ``DJANGO_SETTINGS_MODULE`` to be set **and** ``django.setup()``
+    to have been called before the first import.  This function handles both.
+    """
+    # Make src/ importable (component_framework) and repo root importable (docs.*)
+    for p in [str(SRC_DIR), str(REPO_ROOT)]:
+        if p not in sys.path:
+            sys.path.insert(0, p)
 
-    @property
-    def missing(self) -> bool:
-        return not self.src.exists()
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "docs.docs_settings")
 
+    import django
 
-def load_pages() -> list[Page]:
-    return [Page(**p) for p in PAGES]
-
-
-# ── Pandoc invocation ────────────────────────────────────────────────────────
+    django.setup()
 
 
-def check_pandoc() -> str:
-    """Return pandoc version string or exit with a helpful message."""
-    pandoc = shutil.which("pandoc")
-    if not pandoc:
-        sys.exit(
-            "ERROR: pandoc not found.\n"
-            "Install it from https://pandoc.org/installing.html\n"
-            "  macOS:   brew install pandoc\n"
-            "  Ubuntu:  sudo apt install pandoc\n"
-            "  Windows: winget install JohnMacFarlane.Pandoc\n"
-        )
-    result = subprocess.run(
-        [pandoc, "--version"],
-        capture_output=True,
-        text=True,
-        check=True,
+# ── Build ─────────────────────────────────────────────────────────────────────
+
+
+def build(output_dir: Path) -> None:
+    """Generate static HTML docs into *output_dir* via pdoc's Python API."""
+    _configure_environment()
+
+    import pdoc
+    import pdoc.render
+
+    pdoc.render.configure(
+        template_directory=TEMPLATES_DIR,
+        docformat="google",
     )
-    version_line = result.stdout.splitlines()[0]
-    return version_line
-
-
-def markdown_to_html(src: Path) -> str:
-    """Convert a Markdown file to an HTML fragment via pandoc."""
-    result = subprocess.run(
-        ["pandoc", *PANDOC_ARGS, str(src)],
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-    )
-    if result.returncode != 0:
-        raise RuntimeError(f"pandoc failed on {src}:\n{result.stderr}")
-    return result.stdout
-
-
-# ── Navigation builder ───────────────────────────────────────────────────────
-
-
-def build_nav(pages: list[Page], current_out: str) -> str:
-    """Return a sidebar <nav> HTML string with sections and links."""
-    sections: dict[str, list[Page]] = {}
-    for page in pages:
-        sections.setdefault(page.section, []).append(page)
-
-    lines: list[str] = []
-    for section, section_pages in sections.items():
-        lines.append('<div class="nav-section">')
-        lines.append(f'  <span class="nav-section__label">{section}</span>')
-        lines.append("  <ul>")
-        for page in section_pages:
-            # compute relative href from current page's directory
-            current_depth = current_out.count("/")
-            if current_depth == 0:
-                href = page.out
-            else:
-                prefix = "../" * current_depth
-                href = prefix + page.out
-            active = ' class="active"' if page.out == current_out else ""
-            lines.append(f'    <li><a href="{href}"{active}>{page.title}</a></li>')
-        lines.append("  </ul>")
-        lines.append("</div>")
-
-    return "\n".join(lines)
-
-
-# ── Layout injection ──────────────────────────────────────────────────────────
-
-
-def render_page(layout: str, page: Page, content_html: str, nav_html: str) -> str:
-    """Substitute placeholders in the layout template."""
-    out = layout
-    out = out.replace("{{TITLE}}", page.title)
-    out = out.replace("{{DESCRIPTION}}", page.desc)
-    out = out.replace("{{NAV}}", nav_html)
-    out = out.replace("{{CONTENT}}", content_html)
-    return out
-
-
-# ── Build pipeline ────────────────────────────────────────────────────────────
-
-
-def build(pages: list[Page], layout_text: str, *, verbose: bool = True) -> int:
-    """Build all pages into SITE_DIR. Returns number of pages built."""
-    SITE_DIR.mkdir(parents=True, exist_ok=True)
-    (SITE_DIR / "examples").mkdir(exist_ok=True)
-
-    built = 0
-    skipped = 0
-
-    for page in pages:
-        if page.missing:
-            if verbose:
-                print(f"  SKIP  {page.src.name!s:40s}  (not found)")
-            skipped += 1
-            continue
-
-        if verbose:
-            print(f"  BUILD {page.src.name!s:40s}  -> {page.out}")
-
-        try:
-            content_html = markdown_to_html(page.src)
-        except RuntimeError as exc:
-            print(f"  ERROR {exc}", file=sys.stderr)
-            continue
-
-        nav_html = build_nav(pages, page.out)
-        full_html = render_page(layout_text, page, content_html, nav_html)
-
-        page.out_path.parent.mkdir(parents=True, exist_ok=True)
-        page.out_path.write_text(full_html, encoding="utf-8")
-        built += 1
-
-    # copy any static assets (CSS, JS, images) from docs/static/ if present
-    static_src = DOCS_DIR / "static"
-    if static_src.is_dir():
-        static_dst = SITE_DIR / "static"
-        if static_dst.exists():
-            shutil.rmtree(static_dst)
-        shutil.copytree(static_src, static_dst)
-        if verbose:
-            print("  COPY  static/ -> site/static/")
-
-    if verbose:
-        print(f"\n  {built} page(s) built, {skipped} skipped -> {SITE_DIR}")
-
-    return built
+    output_dir.mkdir(parents=True, exist_ok=True)
+    pdoc.pdoc(PACKAGE, output_directory=output_dir)
 
 
 # ── Dev server ────────────────────────────────────────────────────────────────
 
 
-def serve(port: int = 8000) -> None:
-    """Start a simple HTTP server rooted at SITE_DIR."""
-    os.chdir(SITE_DIR)
+def serve(host: str = "localhost", port: int = 8000) -> None:
+    """Start pdoc's built-in live-reloading dev server."""
+    _configure_environment()
 
-    class _Handler(http.server.SimpleHTTPRequestHandler):
-        def log_message(self, fmt: str, *args: object) -> None:
-            # suppress verbose per-request logging
-            pass
+    import pdoc.render
+    import pdoc.web
 
-    server = http.server.HTTPServer(("", port), _Handler)
-    print(f"  Serving docs at http://localhost:{port}/")
+    pdoc.render.configure(
+        template_directory=TEMPLATES_DIR,
+        docformat="google",
+    )
+
+    server = pdoc.web.DocServer((host, port), [PACKAGE])
+    print(f"  Serving docs at http://{host}:{port}/")
     print("  Press Ctrl+C to stop.\n")
     try:
         server.serve_forever()
@@ -255,50 +100,69 @@ def serve(port: int = 8000) -> None:
         print("\n  Server stopped.")
 
 
-# ── CLI ───────────────────────────────────────────────────────────────────────
+# ── CLI ────────────────────────────────────────────────────────────────────────
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Build component-framework documentation site.",
+        description="Build component-framework API docs with pdoc.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=__doc__,
     )
-    parser.add_argument("--serve", action="store_true", help="Build then start dev server")
-    parser.add_argument("--port", type=int, default=8000, help="Dev server port (default: 8000)")
-    parser.add_argument("--check", action="store_true", help="Verify pandoc and list pages")
-    parser.add_argument("--quiet", action="store_true", help="Suppress build output")
+    parser.add_argument(
+        "--output-dir",
+        "-o",
+        type=Path,
+        default=DEFAULT_OUT,
+        metavar="DIR",
+        help="Output directory (default: docs/site/)",
+    )
+    parser.add_argument(
+        "--serve",
+        action="store_true",
+        help="Start pdoc's built-in dev server instead of writing files",
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=8000,
+        help="Dev-server port (default: 8000)",
+    )
+    parser.add_argument(
+        "--check",
+        action="store_true",
+        help="Verify pdoc is available and print configuration, then exit",
+    )
     args = parser.parse_args()
 
-    version = check_pandoc()
-    print(f"  {version}")
+    # Verify pdoc is importable and report its version
+    try:
+        import pdoc as _pdoc
+
+        pdoc_version = _pdoc.__version__
+    except ImportError:
+        sys.exit(
+            "ERROR: pdoc not found.\n"
+            "  Install with:  uv pip install pdoc\n"
+            "  Or:            pip install pdoc\n"
+        )
+
+    print(f"  pdoc {pdoc_version}")
 
     if args.check:
-        pages = load_pages()
-        print(f"\n  Pages ({len(pages)}):")
-        for page in pages:
-            status = "OK" if not page.missing else "MISSING"
-            print(f"    [{status}] {page.title:30s}  {page.src.relative_to(DOCS_DIR)}")
+        print(f"  Package   : {PACKAGE}")
+        print(f"  Source    : {SRC_DIR}")
+        print(f"  Templates : {TEMPLATES_DIR}")
+        print(f"  Output    : {args.output_dir}")
         return
 
-    if not LAYOUT.exists():
-        sys.exit(f"ERROR: layout template not found: {LAYOUT}")
-
-    layout_text = LAYOUT.read_text(encoding="utf-8")
-    pages = load_pages()
-
-    verbose = not args.quiet
-    if verbose:
-        print(f"\n  Building {len(pages)} page(s) -> {SITE_DIR}\n")
-
-    built = build(pages, layout_text, verbose=verbose)
-
-    if built == 0:
-        sys.exit("ERROR: no pages were built.")
-
     if args.serve:
-        print()
         serve(port=args.port)
+        return
+
+    print(f"\n  Building API docs -> {args.output_dir}\n")
+    build(args.output_dir)
+    print(f"\n  Done. Entry point: {args.output_dir / PACKAGE}/index.html")
 
 
 if __name__ == "__main__":

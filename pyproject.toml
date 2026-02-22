@@ -33,6 +33,7 @@ dev = [
     "ruff>=0.1.0",
     "ty>=0.0.18",
     "pre-commit>=3.5.0",
+    "pdoc>=14.0",
 ]
 django = [
     "django>=4.2",
@@ -46,7 +47,7 @@ websockets = [
 
 [project.urls]
 Homepage = "https://github.com/fsecada01/component-framework"
-Documentation = "https://github.com/fsecada01/component-framework#readme"
+Documentation = "https://fsecada01.github.io/component-framework/"
 Repository = "https://github.com/fsecada01/component-framework"
 Issues = "https://github.com/fsecada01/component-framework/issues"
 
