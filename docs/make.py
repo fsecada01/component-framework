@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import shutil
 import sys
 from pathlib import Path
 
@@ -74,6 +75,14 @@ def build(output_dir: Path) -> None:
     )
     output_dir.mkdir(parents=True, exist_ok=True)
     pdoc.pdoc(PACKAGE, output_directory=output_dir)
+
+    # Copy custom site pages (home, examples) into the output root.
+    site_pages_dir = DOCS_DIR / "site-pages"
+    if site_pages_dir.is_dir():
+        pages = list(site_pages_dir.glob("*.html"))
+        for page in pages:
+            shutil.copy2(page, output_dir / page.name)
+        print(f"  Copied {len(pages)} site page(s) from {site_pages_dir.name}/")
 
 
 # ── Dev server ────────────────────────────────────────────────────────────────
@@ -162,7 +171,8 @@ def main() -> None:
 
     print(f"\n  Building API docs -> {args.output_dir}\n")
     build(args.output_dir)
-    print(f"\n  Done. Entry point: {args.output_dir / PACKAGE}/index.html")
+    print(f"\n  Done. API ref: {args.output_dir / PACKAGE}.html")
+    print(f"        Home:    {args.output_dir}/index.html")
 
 
 if __name__ == "__main__":
