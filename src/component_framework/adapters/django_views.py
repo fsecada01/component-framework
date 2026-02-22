@@ -12,6 +12,7 @@ from django.views.decorators.http import require_POST
 from django.views.generic import TemplateView
 
 from ..core import Component, StateSerializer, registry
+from ..core.permissions import AllowAny
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +37,11 @@ def component_view(request: HttpRequest, name: str) -> JsonResponse:
         component_cls = registry.get(name)
         if not component_cls:
             return JsonResponse({"error": f"Component '{name}' not found"}, status=404)
+
+        # Check component-level permissions
+        for perm_class in getattr(component_cls, "permission_classes", []) or [AllowAny]:
+            if not perm_class().has_permission(request, component_cls):
+                return JsonResponse({"error": "Permission denied"}, status=403)
 
         # Parse request data (supports both JSON and form-encoded)
         if request.content_type == "application/json":
@@ -134,6 +140,20 @@ class ComponentView(View):
 
     http_method_names = ["post"]
 
+    def check_component_permissions(
+        self, request: HttpRequest, component_cls: type[Component]
+    ) -> JsonResponse | None:
+        """
+        Check component-level permission_classes.
+
+        Returns a JsonResponse (403) if any permission class denies access,
+        or None if all permissions are granted.
+        """
+        for perm_class in getattr(component_cls, "permission_classes", []) or [AllowAny]:
+            if not perm_class().has_permission(request, component_cls):
+                return JsonResponse({"error": "Permission denied"}, status=403)
+        return None
+
     def post(self, request: HttpRequest, name: str, **kwargs) -> JsonResponse:
         """Handle POST request for component."""
         try:
@@ -141,6 +161,11 @@ class ComponentView(View):
             component_cls = self.get_component_class(name)
             if not component_cls:
                 return self.component_not_found(name)
+
+            # Check component-level permissions
+            perm_response = self.check_component_permissions(request, component_cls)
+            if perm_response is not None:
+                return perm_response
 
             # Parse request data
             data = self.parse_request_data(request)
@@ -253,11 +278,18 @@ class AuthenticatedComponentView(LoginRequiredMixin, ComponentView):
     """
     Component view that requires authentication.
 
+    Returns a JSON 401 response (not a redirect) for unauthenticated requests,
+    making it safe for HTMX/fetch consumers.
+
     Usage:
         urlpatterns = [
             path("components/<str:name>/", AuthenticatedComponentView.as_view()),
         ]
     """
+
+    def handle_no_permission(self) -> JsonResponse:
+        """Return JSON 401 instead of redirecting to login."""
+        return JsonResponse({"error": "Authentication required"}, status=401)
 
     def get_component_params(self, request: HttpRequest, **kwargs) -> dict:
         """Add user to component params."""
@@ -271,6 +303,9 @@ class PermissionComponentView(PermissionRequiredMixin, ComponentView):
     """
     Component view with permission checking.
 
+    Returns a JSON 403 response (not a redirect) when permission is denied,
+    making it safe for HTMX/fetch consumers.
+
     Usage:
         class MyComponentView(PermissionComponentView):
             permission_required = 'app.change_model'
@@ -283,7 +318,9 @@ class PermissionComponentView(PermissionRequiredMixin, ComponentView):
                 return f'app.use_{component_name}'
     """
 
-    pass
+    def handle_no_permission(self) -> JsonResponse:
+        """Return JSON 403 instead of redirecting."""
+        return JsonResponse({"error": "Permission denied"}, status=403)
 
 
 @method_decorator(csrf_exempt, name="dispatch")
