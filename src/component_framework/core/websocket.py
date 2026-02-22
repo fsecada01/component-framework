@@ -112,11 +112,11 @@ class ComponentWebSocketManager:
     ):
         """Handle component event from WebSocket."""
         try:
-            component_name = message.get("component")
-            component_id = message.get("component_id")
-            event = message.get("event")
-            payload = message.get("payload", {})
-            state_str = message.get("state")
+            component_name: str = message.get("component", "")
+            component_id: str | None = message.get("component_id")
+            event: str | None = message.get("event")
+            payload: dict = message.get("payload", {})
+            state_str: str | None = message.get("state")
 
             # Get component class
             component_cls = registry.get(component_name)
@@ -146,7 +146,7 @@ class ComponentWebSocketManager:
             await connection.send({"type": "component_update", **result})
 
             # Broadcast to subscribers (optional)
-            if message.get("broadcast", False):
+            if message.get("broadcast", False) and component_id:
                 await self.broadcast_update(component_id, result)
 
         except Exception as e:

@@ -4,15 +4,6 @@ Alternative URL configuration using Class-Based Views.
 This demonstrates various ways to configure component endpoints using CBVs.
 """
 
-from django.contrib import admin
-from django.urls import path
-
-from component_framework.adapters.django_views import (
-    AuthenticatedComponentView,
-    ComponentView,
-    CSRFExemptComponentView,
-    PermissionComponentView,
-)
 from demo_app import views
 from demo_app.cbv_examples import (
     APIComponentView,
@@ -21,6 +12,15 @@ from demo_app.cbv_examples import (
     DashboardView,
     OrderDetailView,
     OrderEditorView,
+)
+from django.contrib import admin
+from django.urls import path
+
+from component_framework.adapters.django_views import (
+    AuthenticatedComponentView,
+    ComponentView,
+    CSRFExemptComponentView,
+    PermissionComponentView,
 )
 
 urlpatterns = [

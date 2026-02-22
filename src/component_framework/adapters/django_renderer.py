@@ -2,6 +2,7 @@
 
 from django.template import Context, Template
 from django.template.loader import render_to_string
+from django.utils.html import escape
 
 from ..core import Renderer
 
@@ -54,12 +55,15 @@ class DjangoCottonRenderer(Renderer):
         return template.render(Context(context))
 
     def _build_attrs(self, context: dict) -> str:
-        """Build cotton component attributes from context."""
+        """Build cotton component attributes from context.
+
+        Values are HTML-escaped to prevent XSS when context contains user input.
+        """
         attrs = []
         for key, value in context.items():
             if isinstance(value, (str, int, float, bool)):
-                attrs.append(f'{key}="{value}"')
+                attrs.append(f'{escape(str(key))}="{escape(str(value))}"')
             else:
-                # For complex objects, pass through context
-                attrs.append(f':{key}="{key}"')
+                # For complex objects, pass through context variable reference
+                attrs.append(f':{escape(str(key))}="{escape(str(key))}"')
         return " ".join(attrs)

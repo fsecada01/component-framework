@@ -28,9 +28,7 @@ class Order(models.Model):
         ("cancelled", "Cancelled"),
     ]
 
-    customer = models.ForeignKey(
-        Customer, on_delete=models.CASCADE, related_name="orders"
-    )
+    customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name="orders")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
     total = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     notes = models.TextField(blank=True)

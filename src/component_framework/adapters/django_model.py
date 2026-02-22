@@ -1,6 +1,6 @@
 """Django model integration mixin."""
 
-from typing import ClassVar
+from typing import Any, ClassVar
 
 from django.db import transaction
 from django.db.models import Model, QuerySet
@@ -15,17 +15,26 @@ class DjangoModelMixin:
     - Save with transaction support
     - Validation integration
     - Related object prefetching
+
+    Designed for use with ``Component`` which provides ``params`` and ``state``.
     """
 
     # Django model class
-    model: ClassVar[type[Model]] = None
+    model: ClassVar[type[Model] | None] = None
 
     # Query optimization
     select_related: ClassVar[list[str]] = []
     prefetch_related: ClassVar[list[str]] = []
 
     # Form/validation
-    form_class: ClassVar[type] = None
+    form_class: ClassVar[type | None] = None
+
+    # Fields to sync between model instance and component state
+    state_fields: ClassVar[list[str]] = []
+
+    # Provided by cooperating Component base class
+    params: dict
+    state: dict[str, Any]
 
     def __init__(self, **params):
         super().__init__(**params)
@@ -42,7 +51,7 @@ class DjangoModelMixin:
         if not self.model:
             raise ValueError("model attribute is required")
 
-        qs = self.model.objects.all()
+        qs = self.model.objects.all()  # type: ignore[unresolved-attribute]  # Django Manager descriptor
 
         if self.select_related:
             qs = qs.select_related(*self.select_related)
@@ -59,12 +68,15 @@ class DjangoModelMixin:
         Looks for 'pk' or 'id' in params.
         Returns new instance if not found.
         """
+        if not self.model:
+            raise ValueError("model attribute is required")
+
         pk = self.params.get("pk") or self.params.get("id")
 
         if pk:
             try:
                 return self.get_queryset().get(pk=pk)
-            except self.model.DoesNotExist:
+            except self.model.DoesNotExist:  # type: ignore[unresolved-attribute]  # Django metaclass attr
                 raise ValueError(f"{self.model.__name__} with pk={pk} not found")
 
         return self.model()
@@ -90,7 +102,7 @@ class DjangoModelMixin:
 
     # ---------- Form Integration ----------
 
-    def get_form_class(self):
+    def get_form_class(self) -> type | None:
         """Get form class for validation."""
         return self.form_class
 
@@ -125,19 +137,19 @@ class DjangoModelMixin:
 
     def mount(self):
         """Load instance on mount."""
-        super().mount()
+        super().mount()  # type: ignore[unresolved-attribute]  # cooperative mixin; Component provides mount()
         self.instance = self.get_instance()
         self.populate_state_from_instance()
 
     def hydrate(self, state: dict):
         """Load instance on hydrate."""
-        super().hydrate(state)
+        super().hydrate(state)  # type: ignore[unresolved-attribute]  # cooperative mixin; Component provides hydrate()
         # Reload instance if PK in state
         if "pk" in state:
             self.params["pk"] = state["pk"]
             self.instance = self.get_instance()
 
-    def populate_state_from_instance(self):
+    def populate_state_from_instance(self) -> None:
         """
         Populate component state from model instance.
 
@@ -151,12 +163,11 @@ class DjangoModelMixin:
             self.state["pk"] = self.instance.pk
 
         # Add fields defined in state_fields
-        if hasattr(self, "state_fields"):
-            for field_name in self.state_fields:
-                value = getattr(self.instance, field_name, None)
-                self.state[field_name] = value
+        for field_name in self.state_fields:
+            value = getattr(self.instance, field_name, None)
+            self.state[field_name] = value
 
-    def update_instance_from_state(self):
+    def update_instance_from_state(self) -> None:
         """
         Update model instance from component state.
 
@@ -165,10 +176,9 @@ class DjangoModelMixin:
         if not self.instance:
             return
 
-        if hasattr(self, "state_fields"):
-            for field_name in self.state_fields:
-                if field_name in self.state:
-                    setattr(self.instance, field_name, self.state[field_name])
+        for field_name in self.state_fields:
+            if field_name in self.state:
+                setattr(self.instance, field_name, self.state[field_name])
 
 
 class DjangoModelComponent(DjangoModelMixin):
@@ -188,4 +198,4 @@ class DjangoModelComponent(DjangoModelMixin):
                 self.save_instance()
     """
 
-    state_fields: ClassVar[list[str]] = []
+    pass

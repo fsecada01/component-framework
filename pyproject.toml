@@ -31,6 +31,8 @@ dev = [
     "pytest-django>=4.5.0",
     "httpx>=0.26.0",
     "ruff>=0.1.0",
+    "ty>=0.0.18",
+    "pre-commit>=3.5.0",
 ]
 django = [
     "django>=4.2",
@@ -59,6 +61,21 @@ packages = ["src/component_framework"]
 testpaths = ["tests"]
 pythonpath = ["src"]
 asyncio_mode = "auto"
+
+[tool.ty.src]
+include = ["src"]
+
+[tool.ty.rules]
+# Mixin patterns (DjangoModelMixin, ModelFormComponent) access attributes from
+# cooperating base classes that ty cannot resolve through cooperative inheritance.
+# Django ORM also uses dynamic attributes (objects, DoesNotExist) that ty cannot
+# see. Suppress these until ty gains Django plugin support.
+unresolved-attribute = "warn"
+# The mixin classes intentionally iterate over attributes defined by cooperating
+# classes, producing false not-iterable diagnostics.
+not-iterable = "warn"
+# Cooperative inheritance call-non-callable false positive (save_instance via hasattr guard).
+call-non-callable = "warn"
 
 [tool.ruff]
 line-length = 100

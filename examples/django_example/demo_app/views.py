@@ -19,12 +19,8 @@ def model_demo(request):
     """Model-bound component demo."""
     # Create sample data if needed
     if not Order.objects.exists():
-        customer = Customer.objects.create(
-            name="John Doe", email="john@example.com"
-        )
-        Order.objects.create(
-            customer=customer, status="pending", total=99.99, notes="Test order"
-        )
+        customer = Customer.objects.create(name="John Doe", email="john@example.com")
+        Order.objects.create(customer=customer, status="pending", total=99.99, notes="Test order")
 
     orders = Order.objects.select_related("customer").all()[:5]
     return render(request, "model_demo.html", {"orders": orders})

@@ -15,7 +15,6 @@ from component_framework.adapters.django_views import (
     SingleComponentView,
 )
 
-
 # ==================== Basic Usage ====================
 
 
@@ -203,9 +202,7 @@ class LoggingComponentView(ComponentView):
 
         logger = logging.getLogger(__name__)
         logger.info(
-            f"Component: {component.__class__.__name__}, "
-            f"Event: {event}, "
-            f"User: {self.request.user}"
+            f"Component: {component.__class__.__name__}, Event: {event}, User: {self.request.user}"
         )
 
         result = super().dispatch_component(component, event, payload, state)

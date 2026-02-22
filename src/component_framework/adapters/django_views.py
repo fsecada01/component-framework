@@ -262,8 +262,8 @@ class AuthenticatedComponentView(LoginRequiredMixin, ComponentView):
     def get_component_params(self, request: HttpRequest, **kwargs) -> dict:
         """Add user to component params."""
         params = super().get_component_params(request, **kwargs)
-        params["user"] = request.user
-        params["user_id"] = request.user.id
+        params["user"] = request.user  # type: ignore[unresolved-attribute]  # added by AuthenticationMiddleware
+        params["user_id"] = request.user.id  # type: ignore[unresolved-attribute]  # added by AuthenticationMiddleware
         return params
 
 
@@ -315,9 +315,9 @@ class SingleComponentView(ComponentView):
         ]
     """
 
-    component_name: str = None
+    component_name: str | None = None
 
-    def post(self, request: HttpRequest, **kwargs) -> JsonResponse:
+    def post(self, request: HttpRequest, **kwargs) -> JsonResponse:  # type: ignore[override]
         """Override to use fixed component name."""
         if not self.component_name:
             raise ValueError("component_name must be set")
@@ -376,32 +376,16 @@ class ComponentPageView(TemplateView):
 # ==================== Mixins ====================
 
 
-class RateLimitMixin:
-    """
-    Mixin to add rate limiting to component views.
-
-    **Status: Not yet implemented.** This mixin currently passes through to the
-    parent dispatch without applying any rate limiting. A future version will
-    integrate with django-ratelimit or a similar library.
-
-    Usage (once implemented):
-        class MyComponentView(RateLimitMixin, ComponentView):
-            rate_limit_key = "component"
-            rate_limit_rate = "10/m"  # 10 per minute
-    """
-
-    rate_limit_key: str = "component"
-    rate_limit_rate: str = "60/m"
-
-    def dispatch(self, request, *args, **kwargs):
-        """Check rate limit before dispatching. (Not yet implemented.)"""
-        # TODO: Integrate with django-ratelimit or similar library.
-        return super().dispatch(request, *args, **kwargs)
-
-
 class CacheMixin:
     """
-    Mixin to add caching to component responses.
+    Mixin to add caching to component responses via Django's cache framework.
+
+    Caches the JSON result of component dispatches. On subsequent requests with
+    the same component name, params, and state, the cached result is returned
+    directly without re-dispatching the component.
+
+    Attributes:
+        cache_timeout: Cache TTL in seconds. Defaults to 60.
 
     Usage:
         class MyComponentView(CacheMixin, ComponentView):
@@ -426,10 +410,10 @@ class CacheMixin:
         """Check cache before processing."""
         from django.core.cache import cache
 
-        # Try to get from cache
-        data = self.parse_request_data(request)
-        params = self.parse_params(data.get("params", "{}"))
-        state = self.parse_state(data.get("state"))
+        # Try to get from cache — methods provided by ComponentView via MRO
+        data = self.parse_request_data(request)  # type: ignore[unresolved-attribute]  # cooperative mixin
+        params = self.parse_params(data.get("params", "{}"))  # type: ignore[unresolved-attribute]  # cooperative mixin
+        state = self.parse_state(data.get("state"))  # type: ignore[unresolved-attribute]  # cooperative mixin
 
         cache_key = self.get_cache_key(name, params, state)
         cached_result = cache.get(cache_key)
@@ -438,7 +422,7 @@ class CacheMixin:
             return JsonResponse(cached_result)
 
         # Process normally
-        response = super().post(request, name, **kwargs)
+        response = super().post(request, name, **kwargs)  # type: ignore[unresolved-attribute]  # cooperative mixin
 
         # Cache the result
         if response.status_code == 200:

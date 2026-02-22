@@ -48,8 +48,8 @@ class ComponentConsumer(AsyncWebsocketConsumer):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.connection_id = None
-        self.connection = None
+        self.connection_id: str | None = None
+        self.connection: DjangoWebSocketConnection | None = None
 
     async def connect(self):
         """Handle WebSocket connection."""
@@ -70,16 +70,20 @@ class ComponentConsumer(AsyncWebsocketConsumer):
 
         logger.info(f"WebSocket connected: {self.connection_id}")
 
-    async def disconnect(self, close_code):
+    async def disconnect(self, close_code):  # type: ignore[override]
         """Handle WebSocket disconnection."""
         if self.connection_id:
             await ws_manager.disconnect(self.connection_id)
         logger.info(f"WebSocket disconnected: {self.connection_id}")
 
-    async def receive(self, text_data):
+    async def receive(self, text_data=None, bytes_data=None):
         """Handle incoming WebSocket message."""
+        if text_data is None:
+            return
         try:
             data = json.loads(text_data)
+            if self.connection is None or self.connection_id is None:
+                return
             await ws_manager.handle_message(self.connection, self.connection_id, data)
         except json.JSONDecodeError:
             await self.send(text_data=json.dumps({"type": "error", "error": "Invalid JSON"}))

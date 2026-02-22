@@ -46,9 +46,11 @@ component_framework/
 
 - **Formatter:** ruff format
 - **Linter:** ruff check
+- **Type checker:** ty (Astral's Rust-based type checker)
 - **Line length:** 100 characters
 - **Type hints:** Required for public APIs
 - **Docstrings:** Required for classes and public methods
+- **Pre-commit:** ruff + ty (see `.pre-commit-config.yaml`)
 
 ### Testing
 
@@ -141,15 +143,14 @@ Components should:
 - State must be JSON-serializable
 - No automatic CSRF for WebSockets yet
 - Component IDs generated client-side (could conflict)
-- No built-in caching yet
+- CacheMixin available but requires Django cache backend configuration
 - Query optimization manual (not automatic)
 
 ## Future Enhancements
 
 ### Short Term
 - Permission decorators
-- Component caching
-- Rate limiting
+- Rate limiting (integrate django-ratelimit or similar)
 - Optimistic UI
 
 ### Long Term
@@ -180,6 +181,10 @@ Components should:
 - pytest-asyncio >= 0.21
 - httpx >= 0.26
 - ruff >= 0.1
+- ty >= 0.0.18 (type checker)
+- pre-commit >= 3.5
+- prek (pre-commit hooks)
+- just (task runner, cross-platform)
 
 ## Testing Strategy
 

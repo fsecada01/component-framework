@@ -1,10 +1,10 @@
 """URL configuration for Django component demo."""
 
+from demo_app import views
 from django.contrib import admin
 from django.urls import path
 
 from component_framework.adapters.django_views import component_view
-from demo_app import views
 
 urlpatterns = [
     path("admin/", admin.site.urls),
