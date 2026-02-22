@@ -2,6 +2,14 @@
 
 from .component import Component, ComponentError, EventNotFoundError, StateSerializer
 from .form import FormComponent, ModelFormComponent
+from .permissions import (
+    AllowAny,
+    BasePermission,
+    DjangoModelPermission,
+    IsAuthenticated,
+    IsStaff,
+    IsSuperuser,
+)
 from .registry import ComponentRegistry, registry
 from .renderer import Renderer
 from .state import InMemoryStateStore, StateStore
@@ -14,6 +22,12 @@ __all__ = [
     "StateSerializer",
     "FormComponent",
     "ModelFormComponent",
+    "AllowAny",
+    "BasePermission",
+    "DjangoModelPermission",
+    "IsAuthenticated",
+    "IsStaff",
+    "IsSuperuser",
     "ComponentRegistry",
     "registry",
     "Renderer",

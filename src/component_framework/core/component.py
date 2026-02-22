@@ -2,8 +2,11 @@
 
 import json
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any, ClassVar
 from uuid import uuid4
+
+if TYPE_CHECKING:
+    from .permissions import BasePermission
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +38,7 @@ class Component:
 
     template_name: str | None = None
     renderer = None
+    permission_classes: ClassVar[list[type["BasePermission"]]] = []
 
     def __init__(self, **params):
         self.params = params
