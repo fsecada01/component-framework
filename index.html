@@ -4,26 +4,31 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>component-framework — Documentation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Inter:wght@400;500&display=swap" rel="stylesheet">
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&display=swap');
     :root {
-      --bg:     #0a0c0b;
-      --panel:  #0f1210;
-      --border: #1e2b22;
-      --green:  #7fff5f;
-      --orange: #ff6e27;
-      --cyan:   #1dfcf0;
-      --dim:    #3a5043;
-      --mid:    #698075;
-      --text:   #c8d9cc;
-      --white:  #e8f0ea;
-      --mono:   'IBM Plex Mono', monospace;
+      --bg:     #0c1117;
+      --panel:  #161c26;
+      --border: #1e2a3c;
+      --border-lit: #29394f;
+      --green:  #4ade80;
+      --amber:  #fbbf24;
+      --sky:    #38bdf8;
+      --dim:    #334155;
+      --muted:  #64748b;
+      --text:   #cbd5e1;
+      --white:  #f1f5f9;
+      --mono:   'IBM Plex Mono', 'Courier New', monospace;
+      --sans:   'Inter', system-ui, -apple-system, sans-serif;
+      --radius: 4px;
     }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       background: var(--bg);
       color: var(--text);
-      font-family: var(--mono);
+      font-family: var(--sans);
       min-height: 100vh;
       display: flex;
       flex-direction: column;
@@ -33,30 +38,38 @@
     }
     .card {
       width: 100%;
-      max-width: 560px;
+      max-width: 520px;
       border: 1px solid var(--border);
+      border-radius: var(--radius);
       background: var(--panel);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      overflow: hidden;
     }
     .card-header {
       padding: 1.25rem 1.5rem;
       border-bottom: 1px solid var(--border);
       display: flex;
-      align-items: baseline;
-      gap: 1rem;
+      align-items: center;
+      gap: 0.85rem;
+      background: linear-gradient(to right, #1a2232 0%, var(--panel) 100%);
     }
     .card-header h1 {
-      font-size: 1rem;
+      font-family: var(--mono);
+      font-size: 14px;
       color: var(--green);
       font-weight: 600;
+      letter-spacing: 0.02em;
     }
-    .card-header h1::before { content: "> "; color: var(--orange); }
+    .card-header h1::before { content: "> "; color: var(--amber); }
     .card-header .badge {
+      font-family: var(--mono);
       font-size: 9px;
-      color: var(--orange);
-      border: 1px solid var(--orange);
-      padding: 1px 5px;
+      color: var(--amber);
+      border: 1px solid rgba(251,191,36,0.4);
+      background: rgba(251,191,36,0.06);
+      padding: 2px 6px;
+      border-radius: 2px;
       letter-spacing: 0.1em;
-      opacity: 0.8;
     }
     .version-list {
       list-style: none;
@@ -70,31 +83,35 @@
       align-items: center;
       justify-content: space-between;
       padding: 0.75rem 1.5rem;
-      color: var(--mid);
+      color: var(--muted);
       text-decoration: none;
-      font-size: 13px;
+      font-family: var(--mono);
+      font-size: 12.5px;
       transition: background 0.12s, color 0.12s;
     }
     .version-list a:hover {
-      background: rgba(127,255,95,0.04);
+      background: rgba(74,222,128,0.04);
       color: var(--green);
     }
     .version-list .tag {
+      font-family: var(--mono);
       font-size: 9px;
       padding: 1px 6px;
       border-radius: 2px;
       letter-spacing: 0.08em;
     }
-    .tag-dev     { color: var(--cyan);   border: 1px solid var(--cyan);   }
-    .tag-latest  { color: var(--green);  border: 1px solid var(--green);  }
-    .tag-release { color: var(--dim);    border: 1px solid var(--border); }
+    .tag-dev     { color: var(--sky);   border: 1px solid rgba(56,189,248,0.4);  }
+    .tag-latest  { color: var(--green); border: 1px solid rgba(74,222,128,0.4);  }
+    .tag-release { color: var(--dim);   border: 1px solid var(--border-lit); }
     footer {
-      margin-top: 2rem;
+      margin-top: 1.75rem;
+      font-family: var(--mono);
       font-size: 10px;
       color: var(--dim);
       text-align: center;
+      letter-spacing: 0.04em;
     }
-    footer a { color: var(--dim); text-decoration: none; }
+    footer a { color: var(--dim); text-decoration: none; transition: color 0.15s; }
     footer a:hover { color: var(--green); }
   </style>
 </head>
