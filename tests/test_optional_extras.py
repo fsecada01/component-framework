@@ -49,17 +49,31 @@ def _block_import(blocked_name: str, real_modules: dict[str, ModuleType | None])
 
 def _reload_adapter(module_path: str, blocked_package: str):
     """
-    Remove the adapter module from sys.modules, block `blocked_package`,
-    then re-import the adapter module. Returns the ImportError raised (if any).
+    Temporarily remove the adapter module from sys.modules, block `blocked_package`,
+    attempt re-import (expected to fail with ImportError), then restore the ORIGINAL
+    module objects so subsequent tests see consistent module references.
+
+    Restoring the originals (not re-importing) matters because test modules hold
+    class references bound to the original module's globals at collection time.
+    A fresh import would create new module objects, breaking monkeypatch and
+    module-attribute patching done by other fixtures.
     """
-    # Remove cached adapter module so it re-executes on import
-    for key in list(sys.modules):
-        if key == module_path or key.startswith(f"{module_path}."):
-            del sys.modules[key]
+    # Save original adapter module(s) before evicting them
+    saved = {k: v for k, v in sys.modules.items() if k == module_path or k.startswith(f"{module_path}.")}
+
+    # Evict so the import machinery re-executes the module body
+    for key in saved:
+        del sys.modules[key]
 
     with _block_import(blocked_package, {}):
         with pytest.raises(ImportError) as exc_info:
             importlib.import_module(module_path)
+
+    # Clean up any partial state left by the failed import, then restore originals
+    for key in list(sys.modules):
+        if key == module_path or key.startswith(f"{module_path}."):
+            del sys.modules[key]
+    sys.modules.update(saved)
 
     return exc_info.value
 
