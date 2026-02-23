@@ -1,8 +1,13 @@
 """Django template renderer implementation."""
 
-from django.template import Context, Template
-from django.template.loader import render_to_string
-from django.utils.html import escape
+try:
+    from django.template import Context, Template
+    from django.template.loader import render_to_string
+    from django.utils.html import escape
+except ImportError as e:
+    from . import _require_extra
+
+    raise _require_extra("django", "django") from e
 
 from ..core import Renderer
 

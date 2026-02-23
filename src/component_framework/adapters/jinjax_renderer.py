@@ -1,6 +1,11 @@
 """Jinjax renderer implementation."""
 
-from jinjax import Catalog
+try:
+    from jinjax import Catalog
+except ImportError as e:
+    from . import _require_extra
+
+    raise _require_extra("jinjax", "fastapi") from e
 
 from ..core import Renderer
 

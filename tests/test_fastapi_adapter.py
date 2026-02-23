@@ -3,6 +3,9 @@
 import json
 
 import pytest
+
+pytest.importorskip("fastapi", reason="Install: pip install component-framework[fastapi]")
+
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 

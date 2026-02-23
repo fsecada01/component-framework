@@ -4,6 +4,9 @@ import json
 from unittest.mock import patch
 
 import pytest
+
+pytest.importorskip("django", reason="Install: pip install component-framework[django]")
+
 from django.core.cache import cache
 from django.test import RequestFactory
 

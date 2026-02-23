@@ -2,8 +2,13 @@
 
 from typing import Any, ClassVar
 
-from django.db import transaction
-from django.db.models import Model, QuerySet
+try:
+    from django.db import transaction
+    from django.db.models import Model, QuerySet
+except ImportError as e:
+    from . import _require_extra
+
+    raise _require_extra("django", "django") from e
 
 
 class DjangoModelMixin:

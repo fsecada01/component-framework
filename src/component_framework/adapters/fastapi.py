@@ -2,8 +2,13 @@
 
 import logging
 
-from fastapi import HTTPException, Request
-from fastapi.responses import JSONResponse
+try:
+    from fastapi import HTTPException, Request
+    from fastapi.responses import JSONResponse
+except ImportError as e:
+    from . import _require_extra
+
+    raise _require_extra("fastapi", "fastapi") from e
 
 from ..core import StateSerializer, registry
 

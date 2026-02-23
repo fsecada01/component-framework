@@ -6,7 +6,12 @@ making them safe for HTMX/fetch consumers.
 
 import functools
 
-from django.http import HttpRequest, JsonResponse
+try:
+    from django.http import HttpRequest, JsonResponse
+except ImportError as e:
+    from . import _require_extra
+
+    raise _require_extra("django", "django") from e
 
 
 def login_required_component(view_func):

@@ -3,6 +3,9 @@
 import json
 
 import pytest
+
+pytest.importorskip("django", reason="Install: pip install component-framework[django]")
+
 from django.test import RequestFactory
 
 from component_framework.adapters.django_views import (

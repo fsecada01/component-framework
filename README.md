@@ -14,10 +14,63 @@ Framework-agnostic server components with LiveView-style interactivity inspired 
 
 ## Development Status
 
-**Current Version:** 0.2.0-beta
+**Current Version:** 0.3.0-beta
 **API Documentation:** [fsecada01.github.io/component-framework](https://fsecada01.github.io/component-framework/)
 
 The framework has a complete, tested feature set covering the full Beta roadmap. APIs are solidifying — the core lifecycle, permissions, composition, and testing utilities are stable. We welcome feedback before the 1.0 release.
+
+---
+
+## Adapter Support
+
+| Framework | Status | Install extra | Notes |
+|-----------|--------|---------------|-------|
+| **FastAPI** | ✅ Supported | `[fastapi]` | Includes JinjaX renderer and WebSocket adapter |
+| **Django** | ✅ Supported | `[django]` | Includes Channels, Cotton, and template renderer |
+| **Flask** | 🗓 Planned | — | [Tracking issue #5](https://github.com/fsecada01/component-framework/issues/5) |
+| **Litestar** | 🗓 Planned | — | [Tracking issue #6](https://github.com/fsecada01/component-framework/issues/6) |
+
+---
+
+## Installation
+
+Install only what you need — `pydantic` is the only mandatory dependency:
+
+```bash
+# Django projects
+pip install "component-framework[django]"
+
+# FastAPI projects
+pip install "component-framework[fastapi]"
+
+# Both adapters
+pip install "component-framework[fastapi,django]"
+
+# Everything
+pip install "component-framework[all]"
+```
+
+### Migrating from 0.2.x
+
+> ⚠️ **Breaking change in 0.3.0**: `fastapi`, `uvicorn`, and `jinjax` are no longer
+> installed by default.
+
+If you were using the FastAPI adapter, add `[fastapi]` to your install command:
+
+```bash
+# Before
+pip install component-framework
+
+# After
+pip install "component-framework[fastapi]"
+```
+
+**CI pipelines** — any workflow step that installs `component-framework` without
+specifying an extras group will stop receiving FastAPI automatically. Update all
+install commands in your GitHub Actions, Dockerfile, tox.ini, Makefile, or other
+CI configuration files.
+
+See [CHANGELOG.md](CHANGELOG.md) for the full list of changes.
 
 ---
 

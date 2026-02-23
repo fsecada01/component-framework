@@ -3,13 +3,18 @@
 import json
 import logging
 
-from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
-from django.http import HttpRequest, JsonResponse
-from django.utils.decorators import method_decorator
-from django.views import View
-from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_POST
-from django.views.generic import TemplateView
+try:
+    from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
+    from django.http import HttpRequest, JsonResponse
+    from django.utils.decorators import method_decorator
+    from django.views import View
+    from django.views.decorators.csrf import csrf_exempt
+    from django.views.decorators.http import require_POST
+    from django.views.generic import TemplateView
+except ImportError as e:
+    from . import _require_extra
+
+    raise _require_extra("django", "django") from e
 
 from ..core import Component, StateSerializer, registry
 from ..core.permissions import AllowAny

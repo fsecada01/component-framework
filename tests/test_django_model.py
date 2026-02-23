@@ -4,6 +4,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+pytest.importorskip("django", reason="Install: pip install component-framework[django]")
+
 from component_framework.adapters.django_model import DjangoModelMixin
 from component_framework.core import Component, Renderer
 

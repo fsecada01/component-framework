@@ -1,5 +1,9 @@
 """Tests for Django renderer implementations."""
 
+import pytest
+
+pytest.importorskip("django", reason="Install: pip install component-framework[django]")
+
 from component_framework.adapters.django_renderer import DjangoCottonRenderer, DjangoRenderer
 
 # ---------- DjangoRenderer ----------

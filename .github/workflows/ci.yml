@@ -26,14 +26,28 @@ jobs:
   test:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         python-version: ["3.11", "3.12", "3.13", "3.14"]
+        extras:
+          - name: "base"
+            install: ".[dev-base]"
+            tests: "tests/test_component.py tests/test_form.py tests/test_registry.py tests/test_state.py tests/test_websocket.py tests/test_composition.py tests/test_optimistic.py tests/test_testing_utils.py tests/test_optional_extras.py"
+          - name: "fastapi"
+            install: ".[fastapi,dev-base]"
+            tests: "tests/test_fastapi_adapter.py tests/test_fastapi_websocket.py tests/test_optional_extras.py"
+          - name: "django"
+            install: ".[django,dev-base]"
+            tests: "tests/test_django_views.py tests/test_django_model.py tests/test_django_renderer.py tests/test_django_websocket.py tests/test_permissions.py tests/test_ratelimit.py tests/test_caching.py tests/test_templatetags.py tests/test_optional_extras.py"
+          - name: "all"
+            install: ".[dev]"
+            tests: "tests/"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Install dependencies
-        run: pip install -e ".[dev,django,websockets]"
-      - name: Run tests
-        run: pytest tests/ -q --tb=short
+      - name: Install dependencies (${{ matrix.extras.name }})
+        run: pip install -e "${{ matrix.extras.install }}"
+      - name: Run tests (${{ matrix.extras.name }})
+        run: pytest ${{ matrix.extras.tests }} -q --tb=short
