@@ -3,6 +3,9 @@
 import json
 
 import pytest
+
+pytest.importorskip("django", reason="Install: pip install component-framework[django]")
+
 from django.contrib.auth.models import AnonymousUser
 from django.test import RequestFactory
 

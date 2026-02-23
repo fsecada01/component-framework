@@ -4,7 +4,12 @@ import json
 import logging
 from uuid import uuid4
 
-from channels.generic.websocket import AsyncWebsocketConsumer
+try:
+    from channels.generic.websocket import AsyncWebsocketConsumer
+except ImportError as e:
+    from . import _require_extra
+
+    raise _require_extra("channels", "django") from e
 
 from ..core.websocket import WebSocketConnection, ws_manager
 

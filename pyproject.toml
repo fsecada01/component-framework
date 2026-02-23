@@ -1,6 +1,6 @@
 [project]
 name = "component-framework"
-version = "0.2.0b0"
+version = "0.3.0b0"
 description = "Framework-agnostic server components with LiveView-style interactivity"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -20,22 +20,14 @@ classifiers = [
 ]
 
 dependencies = [
-    "fastapi>=0.109.0",
-    "uvicorn[standard]>=0.27.0",
-    "jinjax>=0.41",
     "pydantic>=2.0",
 ]
 
 [project.optional-dependencies]
-dev = [
-    "pytest>=7.4.0",
-    "pytest-asyncio>=0.21.0",
-    "pytest-django>=4.5.0",
-    "httpx>=0.26.0",
-    "ruff>=0.1.0",
-    "ty>=0.0.18",
-    "pre-commit>=3.5.0",
-    "pdoc>=14.0",
+fastapi = [
+    "fastapi>=0.109.0",
+    "uvicorn[standard]>=0.27.0",
+    "jinjax>=0.41",
 ]
 django = [
     "django>=4.2",
@@ -45,6 +37,22 @@ django = [
 ]
 websockets = [
     "websockets>=12.0",
+]
+dev-base = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-django>=4.5.0",
+    "httpx>=0.26.0",
+    "ruff>=0.1.0",
+    "ty>=0.0.18",
+]
+dev = [
+    "component-framework[dev-base,fastapi,django,websockets]",
+    "pre-commit>=3.5.0",
+    "pdoc>=14.0",
+]
+all = [
+    "component-framework[fastapi,django,websockets]",
 ]
 
 [project.urls]

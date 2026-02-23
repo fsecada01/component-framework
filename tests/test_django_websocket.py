@@ -5,6 +5,8 @@ from unittest.mock import AsyncMock
 
 import pytest
 
+pytest.importorskip("django", reason="Install: pip install component-framework[django]")
+
 from component_framework.adapters.django_websocket import (
     ComponentConsumer,
     DjangoWebSocketConnection,

@@ -15,7 +15,12 @@ import threading
 import time
 from collections.abc import Callable
 
-from django.http import HttpRequest, JsonResponse
+try:
+    from django.http import HttpRequest, JsonResponse
+except ImportError as e:
+    from . import _require_extra
+
+    raise _require_extra("django", "django") from e
 
 # ---------------------------------------------------------------------------
 # Rate-limit parse helpers

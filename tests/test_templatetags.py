@@ -4,6 +4,8 @@ import json
 
 import pytest
 
+pytest.importorskip("django", reason="Install: pip install component-framework[django]")
+
 from component_framework.core import Component, Renderer
 from component_framework.core.registry import ComponentRegistry
 from component_framework.templatetags.components import (

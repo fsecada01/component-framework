@@ -3,7 +3,12 @@
 import logging
 from uuid import uuid4
 
-from fastapi import WebSocket, WebSocketDisconnect
+try:
+    from fastapi import WebSocket, WebSocketDisconnect
+except ImportError as e:
+    from . import _require_extra
+
+    raise _require_extra("fastapi", "fastapi") from e
 
 from ..core.websocket import WebSocketConnection, ws_manager
 
