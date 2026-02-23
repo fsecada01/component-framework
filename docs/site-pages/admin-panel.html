@@ -1,0 +1,1663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Panel — component-framework</title>
+  <meta name="description" content="A production-ready SaaS admin panel built with server-side Python components. User management, real-time audit logs, KPI dashboard, and role-based access — no JavaScript framework needed." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* ── TERMINAL MODERN — shared design system ─────────────────────────── */
+    :root {
+      --bg:          #0c1117;
+      --panel:       #161c26;
+      --panel-lit:   #1e2637;
+      --code-bg:     #090e18;
+      --border:      #1e2a3c;
+      --border-lit:  #29394f;
+
+      --green:       #4ade80;
+      --green-dim:   rgba(74,222,128,0.10);
+      --green-glow:  rgba(74,222,128,0.18);
+      --amber:       #fbbf24;
+      --amber-dim:   rgba(251,191,36,0.09);
+      --sky:         #38bdf8;
+      --sky-dim:     rgba(56,189,248,0.09);
+      --violet:      #a78bfa;
+      --rose:        #fb7185;
+
+      --text:        #cbd5e1;
+      --muted:       #64748b;
+      --dim:         #334155;
+      --white:       #f1f5f9;
+
+      --mono:        'IBM Plex Mono', 'Courier New', monospace;
+      --sans:        'Inter', system-ui, -apple-system, sans-serif;
+      --radius:      6px;
+      --radius-sm:   3px;
+      --bar-h:       42px;
+      --toc-w:       220px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 15px;
+      line-height: 1.75;
+      min-height: 100vh;
+    }
+
+    ::-webkit-scrollbar              { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-thumb        { background: var(--border-lit); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover  { background: var(--muted); }
+
+    /* ── TOP BAR ────────────────────────────────────────────────────────── */
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 200;
+      height: var(--bar-h);
+      display: flex;
+      align-items: center;
+      padding: 0 clamp(1rem, 4vw, 2.5rem);
+      background: linear-gradient(to right, #1a2232 0%, var(--panel) 60%);
+      border-bottom: 1px solid var(--border);
+      gap: 1rem;
+    }
+    .topbar__logo {
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--green);
+      text-decoration: none;
+      letter-spacing: 0.02em;
+      flex-shrink: 0;
+    }
+    .topbar__logo::before { content: "> "; color: var(--amber); }
+    .topbar__badge {
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 0.12em;
+      color: var(--amber);
+      border: 1px solid rgba(251,191,36,0.4);
+      background: rgba(251,191,36,0.06);
+      padding: 2px 6px;
+      border-radius: var(--radius-sm);
+    }
+    .topbar__nav {
+      margin-left: auto;
+      display: flex;
+      gap: 1.5rem;
+      list-style: none;
+      align-items: center;
+    }
+    .topbar__nav a {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--muted);
+      text-decoration: none;
+      letter-spacing: 0.03em;
+      transition: color 0.15s;
+    }
+    .topbar__nav a:hover         { color: var(--green); }
+    .topbar__nav a.nav-active    { color: var(--green); }
+    .topbar__nav a.nav-api       { color: var(--sky); }
+    .topbar__nav a.nav-api:hover { color: var(--green); }
+    @media (max-width: 640px) { .topbar__nav .nav-hide { display: none; } }
+
+    /* ── DOC HERO ───────────────────────────────────────────────────────── */
+    .doc-hero {
+      background: linear-gradient(180deg, #111926 0%, var(--bg) 100%);
+      border-bottom: 1px solid var(--border);
+      padding: clamp(2.5rem, 6vw, 4rem) clamp(1.5rem, 6vw, 4rem);
+    }
+    .doc-hero__inner {
+      max-width: 860px;
+      margin: 0 auto;
+    }
+    .doc-hero__eyebrow {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--amber);
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+    .doc-hero__eyebrow::before {
+      content: '';
+      display: block;
+      width: 20px;
+      height: 1px;
+      background: var(--amber);
+      opacity: 0.6;
+    }
+    .doc-hero__title {
+      font-family: var(--mono);
+      font-size: clamp(1.75rem, 4vw, 2.75rem);
+      font-weight: 600;
+      color: var(--white);
+      line-height: 1.1;
+      margin-bottom: 1rem;
+      letter-spacing: -0.02em;
+    }
+    .doc-hero__lead {
+      font-size: 16px;
+      color: var(--muted);
+      max-width: 680px;
+      line-height: 1.8;
+      margin-bottom: 1.75rem;
+    }
+    .doc-hero__tags {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .tag {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      padding: 3px 8px;
+      border-radius: var(--radius-sm);
+      text-transform: uppercase;
+    }
+    .tag--green  { color: var(--green); border: 1px solid rgba(74,222,128,0.3); background: var(--green-dim); }
+    .tag--sky    { color: var(--sky);   border: 1px solid rgba(56,189,248,0.3); background: var(--sky-dim);   }
+    .tag--amber  { color: var(--amber); border: 1px solid rgba(251,191,36,0.3); background: var(--amber-dim); }
+    .tag--violet { color: var(--violet);border: 1px solid rgba(167,139,250,0.3);background: rgba(167,139,250,0.08); }
+
+    /* ── DOC LAYOUT ─────────────────────────────────────────────────────── */
+    .doc-layout {
+      display: flex;
+      align-items: flex-start;
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 0 clamp(1rem, 3vw, 2rem);
+      gap: 3rem;
+    }
+
+    /* ── TOC ─────────────────────────────────────────────────────────────── */
+    .doc-toc {
+      flex-shrink: 0;
+      width: var(--toc-w);
+      position: sticky;
+      top: calc(var(--bar-h) + 1.5rem);
+      align-self: flex-start;
+      padding: 1.5rem 0;
+    }
+    .doc-toc__heading {
+      font-family: var(--mono);
+      font-size: 9px;
+      color: var(--dim);
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      margin-bottom: 0.75rem;
+    }
+    .doc-toc__heading::before { content: "// "; color: var(--amber); }
+    .doc-toc__list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+    .doc-toc__list li a {
+      display: block;
+      font-family: var(--mono);
+      font-size: 11.5px;
+      color: var(--muted);
+      text-decoration: none;
+      padding: 0.3rem 0.75rem;
+      border-left: 2px solid var(--border);
+      transition: color 0.12s, border-color 0.12s, background 0.12s;
+      line-height: 1.4;
+    }
+    .doc-toc__list li a:hover {
+      color: var(--green);
+      border-left-color: var(--green);
+      background: var(--green-dim);
+    }
+    .doc-toc__list li.toc-sub a {
+      font-size: 10.5px;
+      padding-left: 1.25rem;
+      color: var(--dim);
+    }
+    .doc-toc__list li.toc-sub a:hover { color: var(--sky); border-left-color: var(--sky); background: var(--sky-dim); }
+    @media (max-width: 900px) { .doc-toc { display: none; } }
+
+    /* ── CONTENT ────────────────────────────────────────────────────────── */
+    .doc-content {
+      flex: 1;
+      min-width: 0;
+      padding: 2.5rem 0 4rem;
+    }
+
+    .doc-content h2 {
+      font-family: var(--mono);
+      font-size: clamp(1.1rem, 2.5vw, 1.4rem);
+      font-weight: 600;
+      color: var(--white);
+      margin: 3rem 0 0.85rem;
+      padding-top: 1rem;
+      scroll-margin-top: calc(var(--bar-h) + 1rem);
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+    .doc-content h2::before {
+      content: attr(data-n);
+      font-size: 10px;
+      color: var(--amber);
+      border: 1px solid rgba(251,191,36,0.35);
+      background: var(--amber-dim);
+      padding: 1px 6px;
+      border-radius: var(--radius-sm);
+      letter-spacing: 0.1em;
+      flex-shrink: 0;
+    }
+    .doc-content h2:first-of-type { margin-top: 0; }
+
+    .doc-content h3 {
+      font-family: var(--mono);
+      font-size: 13.5px;
+      font-weight: 600;
+      color: var(--sky);
+      margin: 2rem 0 0.65rem;
+      scroll-margin-top: calc(var(--bar-h) + 1rem);
+      letter-spacing: 0.02em;
+    }
+    .doc-content h3::before { content: "→ "; color: var(--dim); }
+
+    .doc-content p {
+      color: var(--text);
+      margin-bottom: 1.1rem;
+      max-width: 72ch;
+    }
+    .doc-content p:last-child { margin-bottom: 0; }
+
+    .doc-content ul {
+      margin: 0.5rem 0 1.1rem 1.25rem;
+      color: var(--muted);
+    }
+    .doc-content ul li { margin-bottom: 0.3rem; }
+    .doc-content ul li strong { color: var(--text); }
+
+    .doc-content strong { color: var(--white); font-weight: 600; }
+
+    .doc-content code {
+      font-family: var(--mono);
+      font-size: 11.5px;
+      color: var(--green);
+      background: var(--green-dim);
+      padding: 0.1em 0.4em;
+      border-radius: var(--radius-sm);
+    }
+
+    /* ── CODE BLOCKS ────────────────────────────────────────────────────── */
+    .code-block {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      margin: 1.25rem 0;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+    .code-block__header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.55rem 1rem;
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+    }
+    .code-block__filename {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .code-block__lang {
+      font-family: var(--mono);
+      font-size: 9px;
+      color: var(--dim);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+    .code-block pre {
+      margin: 0;
+      padding: 1.1rem 1.25rem;
+      overflow-x: auto;
+      font-family: var(--mono);
+      font-size: 12.5px;
+      line-height: 1.7;
+    }
+    .code-block pre code { color: var(--text); background: none; padding: 0; border-radius: 0; font-size: inherit; }
+
+    /* ── SYNTAX TOKENS ──────────────────────────────────────────────────── */
+    .kw  { color: var(--amber); }
+    .fn  { color: var(--sky); }
+    .cls { color: var(--sky); font-weight: 600; }
+    .dec { color: var(--amber); opacity: 0.85; }
+    .str { color: var(--green); }
+    .cm  { color: var(--dim); font-style: italic; }
+    .num { color: var(--green); }
+    .typ { color: var(--violet); }
+    .xml-tag  { color: var(--rose); }
+    .xml-attr { color: var(--amber); opacity: 0.85; }
+    .xml-val  { color: var(--green); }
+    .xml-cm   { color: var(--dim); font-style: italic; }
+
+    /* ── CALLOUT BOXES ──────────────────────────────────────────────────── */
+    .callout {
+      border-left: 3px solid;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      padding: 0.9rem 1.1rem;
+      margin: 1.25rem 0;
+      font-size: 14px;
+      line-height: 1.65;
+    }
+    .callout--insight {
+      border-color: var(--green);
+      background: var(--green-dim);
+      color: var(--text);
+    }
+    .callout--insight strong { color: var(--green); }
+    .callout--note {
+      border-color: var(--sky);
+      background: var(--sky-dim);
+      color: var(--text);
+    }
+    .callout--note strong { color: var(--sky); }
+    .callout--warn {
+      border-color: var(--amber);
+      background: var(--amber-dim);
+      color: var(--text);
+    }
+    .callout--warn strong { color: var(--amber); }
+
+    /* ── ARCHITECTURE BOX ────────────────────────────────────────────────── */
+    .arch-box {
+      background: var(--code-bg);
+      border: 1px solid var(--border-lit);
+      border-radius: var(--radius);
+      padding: 1.25rem 1.5rem;
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height: 1.8;
+      color: var(--muted);
+      white-space: pre;
+      overflow-x: auto;
+      margin: 1.25rem 0;
+    }
+    .arch-box .arch-hl  { color: var(--green); }
+    .arch-box .arch-dim { color: var(--dim); }
+    .arch-box .arch-sky { color: var(--sky); }
+    .arch-box .arch-amb { color: var(--amber); }
+
+    /* ── CODE SPLIT (2-col) ──────────────────────────────────────────────── */
+    .code-split {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.25rem;
+      margin: 1.5rem 0;
+    }
+    @media (max-width: 800px) { .code-split { grid-template-columns: 1fr; } }
+    .code-split__label {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      margin-bottom: 0.6rem;
+    }
+
+    /* ── COMPARISON TABLE ───────────────────────────────────────────────── */
+    .cmp-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin: 1.5rem 0;
+    }
+    .cmp-table th {
+      text-align: left;
+      padding: 0.55rem 0.9rem;
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      border-bottom: 2px solid var(--border-lit);
+    }
+    .cmp-table th:first-child { color: var(--muted); }
+    .cmp-table th.th-react    { color: #61dafb; }
+    .cmp-table th.th-cfx      { color: var(--green); }
+    .cmp-table td {
+      padding: 0.5rem 0.9rem;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+      color: var(--text);
+    }
+    .cmp-table td:first-child  { color: var(--muted); font-family: var(--mono); font-size: 11.5px; }
+    .cmp-table td code         { font-family: var(--mono); font-size: 11px; color: var(--green); background: var(--green-dim); padding: 0.1em 0.4em; border-radius: var(--radius-sm); }
+    .cmp-table td.td-react code { color: var(--sky); background: var(--sky-dim); }
+    .cmp-table tr:hover td     { background: rgba(74,222,128,0.025); }
+    .win { color: var(--green); font-weight: 600; }
+
+    /* ── SUMMARY TABLE ──────────────────────────────────────────────────── */
+    .summary-table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 1.5rem 0; }
+    .summary-table th { text-align: left; padding: 0.5rem 0.85rem; font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; border-bottom: 2px solid var(--border-lit); color: var(--muted); }
+    .summary-table td { padding: 0.5rem 0.85rem; border-bottom: 1px solid var(--border); color: var(--text); font-size: 13px; }
+    .summary-table td:first-child  { color: var(--sky); font-family: var(--mono); font-size: 12px; }
+    .summary-table td:nth-child(2) { color: var(--green); font-family: var(--mono); font-size: 11.5px; }
+    .summary-table tr:hover td { background: rgba(74,222,128,0.02); }
+
+    /* ── STEP INLINE ────────────────────────────────────────────────────── */
+    .run-steps { list-style: none; counter-reset: run-step; display: flex; flex-direction: column; gap: 0.85rem; margin: 1.25rem 0; }
+    .run-steps li { counter-increment: run-step; display: flex; gap: 0.9rem; align-items: flex-start; }
+    .run-steps li::before {
+      content: counter(run-step, decimal-leading-zero);
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--amber);
+      border: 1px solid rgba(251,191,36,0.35);
+      background: var(--amber-dim);
+      padding: 1px 6px;
+      border-radius: var(--radius-sm);
+      flex-shrink: 0;
+      line-height: 1.8;
+    }
+    .run-steps li .step-text { color: var(--muted); font-size: 13.5px; }
+    .run-steps li .step-text code { font-family: var(--mono); font-size: 11px; color: var(--sky); background: var(--sky-dim); padding: 0.1em 0.4em; border-radius: 2px; }
+
+    /* ── FOOTER ─────────────────────────────────────────────────────────── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 1.25rem clamp(1.5rem, 6vw, 4rem);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--dim);
+      background: var(--panel);
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+    footer a { color: var(--dim); text-decoration: none; transition: color 0.15s; }
+    footer a:hover { color: var(--green); }
+    footer .sep { margin: 0 0.45rem; }
+
+    /* ── NAV DROPDOWN ──────────────────────────────────────────────────────── */
+    .nav-dropdown { position: relative; cursor: default; }
+    .nav-dropdown > span {
+      color: var(--text); font-size: 13px; font-family: var(--mono);
+      letter-spacing: 0.03em; padding: 0 0.1rem; cursor: pointer;
+      display: flex; align-items: center; gap: 0.25rem;
+    }
+    .nav-dropdown__menu {
+      display: none; position: absolute; top: calc(100% + 8px); left: 50%;
+      transform: translateX(-50%);
+      background: var(--panel); border: 1px solid var(--border-lit);
+      border-radius: var(--radius); padding: 0.35rem 0; min-width: 190px;
+      list-style: none; z-index: 100;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    }
+    .nav-dropdown:hover .nav-dropdown__menu { display: block; }
+    .nav-dropdown__menu li a {
+      display: block; padding: 0.4rem 1rem;
+      font-size: 13px; font-family: var(--mono); color: var(--text);
+      text-decoration: none; letter-spacing: 0.03em;
+    }
+    .nav-dropdown__menu li a:hover,
+    .nav-dropdown__menu li a.nav-active { color: var(--green); }
+  </style>
+</head>
+<body>
+
+<!-- ── TOP BAR ──────────────────────────────────────────────────────────── -->
+<header class="topbar">
+  <a href="index.html" class="topbar__logo">component-framework</a>
+  <span class="topbar__badge">BETA</span>
+  <nav aria-label="Main navigation">
+    <ul class="topbar__nav">
+      <li><a href="index.html">Home</a></li>
+      <li class="nav-dropdown">
+        <span>Examples ▾</span>
+        <ul class="nav-dropdown__menu">
+          <li><a href="ecommerce.html">E-Commerce</a></li>
+          <li><a href="admin-panel.html" class="nav-active">Admin Panel</a></li>
+          <li><a href="customer-support.html">Customer Support</a></li>
+          <li><a href="education-lms.html">Education / LMS</a></li>
+          <li><a href="financial-dashboard.html">Financial Dashboard</a></li>
+        </ul>
+      </li>
+      <li><a href="component_framework.html" class="nav-api">API Ref</a></li>
+      <li class="nav-hide"><a href="https://github.com/fsecada01/component-framework" target="_blank" rel="noopener">GitHub ↗</a></li>
+    </ul>
+  </nav>
+</header>
+
+<!-- ── DOC HERO ─────────────────────────────────────────────────────────── -->
+<div class="doc-hero">
+  <div class="doc-hero__inner">
+    <p class="doc-hero__eyebrow">SaaS Admin Panel · Django · Real-time Audit Log · RBAC</p>
+    <h1 class="doc-hero__title">Admin Panel</h1>
+    <p class="doc-hero__lead">
+      Every SaaS product needs one. A real-time admin panel — user management, live audit logs,
+      KPI dashboards with caching, and role-based access control — all in Python, without a
+      single JavaScript framework.
+    </p>
+    <div class="doc-hero__tags">
+      <span class="tag tag--green">IsStaff/IsSuperuser</span>
+      <span class="tag tag--sky">WebSocket Audit Log</span>
+      <span class="tag tag--amber">CacheMixin</span>
+      <span class="tag tag--violet">DjangoModelPermission</span>
+      <span class="tag tag--green">FormComponent</span>
+      <span class="tag tag--sky">Pure-Python Tests</span>
+    </div>
+  </div>
+</div>
+
+<!-- ── MAIN ─────────────────────────────────────────────────────────────── -->
+<div class="doc-layout">
+
+  <!-- ── TOC ─────────────────────────────────────────────────────────────── -->
+  <aside class="doc-toc" aria-label="Table of contents">
+    <div class="doc-toc__heading">On this page</div>
+    <ul class="doc-toc__list">
+      <li><a href="#scenario">The Scenario</a></li>
+      <li><a href="#architecture">Architecture</a></li>
+      <li><a href="#userlist">1. UserListComponent</a></li>
+      <li class="toc-sub"><a href="#userlist-component">Component</a></li>
+      <li class="toc-sub"><a href="#userlist-view">View</a></li>
+      <li class="toc-sub"><a href="#userlist-template">Template</a></li>
+      <li><a href="#auditlog">2. AuditLogComponent</a></li>
+      <li class="toc-sub"><a href="#auditlog-component">Component</a></li>
+      <li class="toc-sub"><a href="#auditlog-websocket">WebSocket Push</a></li>
+      <li><a href="#metrics">3. MetricsComponent</a></li>
+      <li class="toc-sub"><a href="#metrics-component">Component</a></li>
+      <li class="toc-sub"><a href="#metrics-caching">Caching</a></li>
+      <li><a href="#useredit">4. UserEditComponent</a></li>
+      <li class="toc-sub"><a href="#useredit-component">Component</a></li>
+      <li class="toc-sub"><a href="#useredit-permissions">Permissions</a></li>
+      <li><a href="#compare">React vs Component Framework</a></li>
+      <li><a href="#testing">Testing</a></li>
+      <li><a href="#running">Running the Example</a></li>
+      <li><a href="#summary">Summary</a></li>
+    </ul>
+  </aside>
+
+  <!-- ── CONTENT ──────────────────────────────────────────────────────────── -->
+  <article class="doc-content">
+
+    <!-- SCENARIO -->
+    <h2 id="scenario" data-n="§">The Scenario</h2>
+    <p>A growing SaaS company needs an internal admin panel. The requirements are demanding: a <strong>searchable, paginated user table</strong> with instant status toggles — no full-page reload — a <strong>live audit log stream</strong> showing every action across the platform in real time, a <strong>KPI dashboard</strong> (monthly active users, revenue, churn rate) that caches expensive aggregations and does not hammer the database on every page load, and <strong>user-edit forms</strong> with permission gating so only superusers can assign roles.</p>
+
+    <p>The engineering team considered React + REST API + Redux. The state management alone would have required: <em>an async thunk layer, separate reducers for users/audit/metrics, a WebSocket hook, a polling strategy for KPIs, and enough TypeScript plumbing to keep client and server state in sync across four separate feature slices.</em></p>
+
+    <div class="callout callout--insight">
+      <strong>The component-framework answer:</strong> four Python classes. State lives on the server. HTMX sends events, receives rendered HTML. The WebSocket channel pushes new audit entries directly into the browser. There is no client-side state machine to debug.
+    </div>
+
+    <!-- ARCHITECTURE -->
+    <h2 id="architecture" data-n="§">Architecture at a Glance</h2>
+    <div class="arch-box"><span class="arch-sky">Browser (HTMX + WebSocket)</span>
+  │  <span class="arch-hl">POST /admin/components/users/</span>    <span class="arch-dim">(search, toggle_status, change_page)</span>
+  │  <span class="arch-hl">POST /admin/components/metrics/</span>   <span class="arch-dim">(refresh)</span>
+  │  <span class="arch-hl">POST /admin/components/user-edit/</span>  <span class="arch-dim">(submit — superuser only)</span>
+  │  <span class="arch-sky">WS   /ws/admin/audit/</span>             <span class="arch-dim">(real-time audit log push)</span>
+  ▼
+<span class="arch-amb">Django Admin Views  (IsStaff / IsSuperuser permission checks)</span>
+  ▼
+<span class="arch-hl">Component Framework Core</span>  <span class="arch-dim">(hydrate → handle_event → render)</span>
+  │
+  ├─ <span class="arch-hl">UserListComponent</span>    <span class="arch-dim">DjangoModelComponent — Django User model</span>
+  ├─ <span class="arch-sky">AuditLogComponent</span>    <span class="arch-dim">CacheMixin (30 s) + WebSocket subscription</span>
+  ├─ <span class="arch-amb">MetricsComponent</span>     <span class="arch-dim">CacheMixin (300 s) + on_refresh invalidation</span>
+  └─ <span class="arch-hl">UserEditComponent</span>    <span class="arch-dim">FormComponent + IsSuperuser + OptimisticMixin</span>
+  ▼
+<span class="arch-sky">Django ORM / Redis Cache (django-channels channel layer)</span></div>
+
+    <p><strong>Key insight:</strong> every component is a plain Python class. The framework handles hydration, event dispatch, and re-render. Redis serves two roles — the Django Channels channel layer for WebSocket fan-out and the Django cache backend for <code>CacheMixin</code>. Neither role requires any JavaScript configuration.</p>
+
+    <!-- USER LIST COMPONENT -->
+    <h2 id="userlist" data-n="01">UserListComponent</h2>
+    <p>Renders a paginated, searchable table of Django <code>User</code> objects. Staff can search by username or email, toggle a user's active status with a single click, and navigate between pages — all without leaving the view or writing any JavaScript.</p>
+
+    <h3 id="userlist-component">The Component</h3>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">admin_panel/components.py</span>
+        <span class="code-block__lang">Python</span>
+      </div>
+      <pre><code><span class="kw">from</span> component_framework.core <span class="kw">import</span> registry
+<span class="kw">from</span> component_framework.adapters.django_model <span class="kw">import</span> DjangoModelComponent
+<span class="kw">from</span> django.contrib.auth <span class="kw">import</span> get_user_model
+
+<span class="cls">User</span> = <span class="fn">get_user_model</span>()
+
+<span class="kw">PAGE_SIZE</span> = <span class="num">25</span>
+
+
+<span class="dec">@registry.register(<span class="str">"user_list"</span>)</span>
+<span class="kw">class</span> <span class="cls">UserListComponent</span>(DjangoModelComponent):
+    <span class="str">"""
+    Searchable, paginated user management table for staff.
+
+    State shape:
+        query      (str):  current search string
+        page       (int):  current 1-based page number
+        users      (list): serialised user rows for the current page
+        total      (int):  total matching user count
+        page_count (int):  total pages
+    """</span>
+
+    template_name = <span class="str">"admin_panel/user_list.html"</span>
+    model = <span class="cls">User</span>
+    state_fields = [<span class="str">"username"</span>, <span class="str">"email"</span>, <span class="str">"is_active"</span>, <span class="str">"date_joined"</span>]
+
+    <span class="kw">def</span> <span class="fn">mount</span>(<span class="kw">self</span>):
+        <span class="kw">self</span>.state.<span class="fn">update</span>({
+            <span class="str">"query"</span>:      <span class="str">""</span>,
+            <span class="str">"page"</span>:       <span class="num">1</span>,
+            <span class="str">"users"</span>:      [],
+            <span class="str">"total"</span>:      <span class="num">0</span>,
+            <span class="str">"page_count"</span>: <span class="num">1</span>,
+        })
+        <span class="kw">self</span>.<span class="fn">_load_page</span>()
+
+    <span class="kw">def</span> <span class="fn">_load_page</span>(<span class="kw">self</span>):
+        <span class="str">"""Run the DB query for the current page and search query."""</span>
+        qs = <span class="cls">User</span>.objects.<span class="fn">order_by</span>(<span class="str">"-date_joined"</span>)
+
+        query = <span class="kw">self</span>.state.<span class="fn">get</span>(<span class="str">"query"</span>, <span class="str">""</span>).<span class="fn">strip</span>()
+        <span class="kw">if</span> query:
+            qs = qs.<span class="fn">filter</span>(
+                username__icontains=query
+            ) | qs.<span class="fn">filter</span>(email__icontains=query)
+
+        total = qs.<span class="fn">count</span>()
+        page  = <span class="kw">self</span>.state[<span class="str">"page"</span>]
+        start = (page - <span class="num">1</span>) * <span class="kw">PAGE_SIZE</span>
+        users = qs[start : start + <span class="kw">PAGE_SIZE</span>].<span class="fn">values</span>(
+            <span class="str">"id"</span>, <span class="str">"username"</span>, <span class="str">"email"</span>,
+            <span class="str">"is_active"</span>, <span class="str">"is_staff"</span>, <span class="str">"date_joined"</span>,
+        )
+
+        <span class="kw">self</span>.state.<span class="fn">update</span>({
+            <span class="str">"users"</span>:      [<span class="fn">dict</span>(u) <span class="kw">for</span> u <span class="kw">in</span> users],
+            <span class="str">"total"</span>:      total,
+            <span class="str">"page_count"</span>: <span class="fn">max</span>(<span class="num">1</span>, -(-total // <span class="kw">PAGE_SIZE</span>)),  <span class="cm"># ceil div</span>
+        })
+
+    <span class="kw">def</span> <span class="fn">on_search</span>(<span class="kw">self</span>, query: <span class="typ">str</span>):
+        <span class="str">"""User typed into the search box — reset to page 1 and reload."""</span>
+        <span class="kw">self</span>.state[<span class="str">"query"</span>] = query
+        <span class="kw">self</span>.state[<span class="str">"page"</span>]  = <span class="num">1</span>
+        <span class="kw">self</span>.<span class="fn">_load_page</span>()
+
+    <span class="kw">def</span> <span class="fn">on_toggle_status</span>(<span class="kw">self</span>, user_id: <span class="typ">int</span>):
+        <span class="str">"""Toggle a user's is_active flag and re-render the row."""</span>
+        user = <span class="cls">User</span>.objects.<span class="fn">get</span>(pk=user_id)
+        user.is_active = <span class="kw">not</span> user.is_active
+        user.<span class="fn">save</span>(update_fields=[<span class="str">"is_active"</span>])
+
+        <span class="cm"># Reflect the change in state without a full page reload</span>
+        <span class="kw">for</span> row <span class="kw">in</span> <span class="kw">self</span>.state[<span class="str">"users"</span>]:
+            <span class="kw">if</span> row[<span class="str">"id"</span>] == user_id:
+                row[<span class="str">"is_active"</span>] = user.is_active
+                <span class="kw">break</span>
+
+    <span class="kw">def</span> <span class="fn">on_change_page</span>(<span class="kw">self</span>, page: <span class="typ">int</span>):
+        <span class="str">"""Navigate to a different page."""</span>
+        <span class="kw">self</span>.state[<span class="str">"page"</span>] = <span class="fn">max</span>(<span class="num">1</span>, <span class="fn">min</span>(page, <span class="kw">self</span>.state[<span class="str">"page_count"</span>]))
+        <span class="kw">self</span>.<span class="fn">_load_page</span>()</code></pre>
+    </div>
+
+    <div class="callout callout--insight">
+      <strong>DjangoModelComponent</strong> binds the component to a Django model and handles JSON serialisation of <code>state_fields</code> automatically. You still write plain ORM queries — the framework never hides them.
+    </div>
+
+    <h3 id="userlist-view">The View</h3>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">admin_panel/views.py</span>
+        <span class="code-block__lang">Python</span>
+      </div>
+      <pre><code><span class="kw">from</span> component_framework.adapters.django_views <span class="kw">import</span> ComponentView
+<span class="kw">from</span> component_framework.core.permissions <span class="kw">import</span> IsStaff
+
+
+<span class="kw">class</span> <span class="cls">UserListView</span>(ComponentView):
+    <span class="str">"""
+    Staff-only endpoint for the user management table.
+
+    - Non-staff users receive JSON 403 — HTMX handles the UI gracefully.
+    - No redirect that would break the HTMX partial-swap flow.
+    """</span>
+
+    component_name = <span class="str">"user_list"</span>
+    permission_classes = [<span class="cls">IsStaff</span>]</code></pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">admin_panel/urls.py</span>
+        <span class="code-block__lang">Python</span>
+      </div>
+      <pre><code><span class="kw">from</span> django.urls <span class="kw">import</span> path
+<span class="kw">from</span> .views <span class="kw">import</span> UserListView, MetricsView, UserEditView
+
+urlpatterns = [
+    path(<span class="str">"components/users/"</span>,     UserListView.<span class="fn">as_view</span>(),   name=<span class="str">"admin_users"</span>),
+    path(<span class="str">"components/metrics/"</span>,   MetricsView.<span class="fn">as_view</span>(),  name=<span class="str">"admin_metrics"</span>),
+    path(<span class="str">"components/user-edit/"</span>, UserEditView.<span class="fn">as_view</span>(), name=<span class="str">"admin_user_edit"</span>),
+]</code></pre>
+    </div>
+
+    <h3 id="userlist-template">The Template</h3>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">admin_panel/templates/admin_panel/user_list.html</span>
+        <span class="code-block__lang">Django Template</span>
+      </div>
+      <pre><code><span class="xml-tag">&lt;div</span> <span class="xml-attr">id=</span><span class="xml-val">"user-list-{{ component_id }}"</span>
+     <span class="xml-attr">hx-target=</span><span class="xml-val">"this"</span>
+     <span class="xml-attr">hx-swap=</span><span class="xml-val">"outerHTML"</span><span class="xml-tag">&gt;</span>
+
+  <span class="xml-cm">{# Search bar — triggers on_search after 400 ms debounce #}</span>
+  <span class="xml-tag">&lt;input</span>
+    <span class="xml-attr">type=</span><span class="xml-val">"search"</span>
+    <span class="xml-attr">name=</span><span class="xml-val">"query"</span>
+    <span class="xml-attr">value=</span><span class="xml-val">"{{ state.query }}"</span>
+    <span class="xml-attr">placeholder=</span><span class="xml-val">"Search users…"</span>
+    <span class="xml-attr">hx-post=</span><span class="xml-val">"{% url 'admin_users' %}"</span>
+    <span class="xml-attr">hx-vals=</span><span class="xml-val">'{"event": "search"}'</span>
+    <span class="xml-attr">hx-trigger=</span><span class="xml-val">"input changed delay:400ms"</span><span class="xml-tag"> /&gt;</span>
+
+  <span class="xml-tag">&lt;p</span> <span class="xml-attr">class=</span><span class="xml-val">"result-count"</span><span class="xml-tag">&gt;</span>{{ state.total }} users<span class="xml-tag">&lt;/p&gt;</span>
+
+  <span class="xml-tag">&lt;table&gt;</span>
+    <span class="xml-tag">&lt;thead&gt;&lt;tr&gt;</span>
+      <span class="xml-tag">&lt;th&gt;</span>Username<span class="xml-tag">&lt;/th&gt;</span>
+      <span class="xml-tag">&lt;th&gt;</span>Email<span class="xml-tag">&lt;/th&gt;</span>
+      <span class="xml-tag">&lt;th&gt;</span>Joined<span class="xml-tag">&lt;/th&gt;</span>
+      <span class="xml-tag">&lt;th&gt;</span>Status<span class="xml-tag">&lt;/th&gt;</span>
+      <span class="xml-tag">&lt;th&gt;</span>Actions<span class="xml-tag">&lt;/th&gt;</span>
+    <span class="xml-tag">&lt;/tr&gt;&lt;/thead&gt;</span>
+    <span class="xml-tag">&lt;tbody&gt;</span>
+    {% for user in state.users %}
+      <span class="xml-tag">&lt;tr&gt;</span>
+        <span class="xml-tag">&lt;td&gt;</span>{{ user.username }}<span class="xml-tag">&lt;/td&gt;</span>
+        <span class="xml-tag">&lt;td&gt;</span>{{ user.email }}<span class="xml-tag">&lt;/td&gt;</span>
+        <span class="xml-tag">&lt;td&gt;</span>{{ user.date_joined|date:"Y-m-d" }}<span class="xml-tag">&lt;/td&gt;</span>
+        <span class="xml-tag">&lt;td&gt;</span>
+          <span class="xml-tag">&lt;span</span> <span class="xml-attr">class=</span><span class="xml-val">"badge {% if user.is_active %}badge--active{% else %}badge--inactive{% endif %}"</span><span class="xml-tag">&gt;</span>
+            {% if user.is_active %}Active{% else %}Inactive{% endif %}
+          <span class="xml-tag">&lt;/span&gt;</span>
+        <span class="xml-tag">&lt;/td&gt;</span>
+        <span class="xml-tag">&lt;td&gt;</span>
+          <span class="xml-cm">{# Toggle button — instant feedback via HTMX #}</span>
+          <span class="xml-tag">&lt;button</span>
+            <span class="xml-attr">hx-post=</span><span class="xml-val">"{% url 'admin_users' %}"</span>
+            <span class="xml-attr">hx-vals=</span><span class="xml-val">'{"event": "toggle_status", "user_id": "{{ user.id }}"}'</span><span class="xml-tag">&gt;</span>
+            {% if user.is_active %}Deactivate{% else %}Activate{% endif %}
+          <span class="xml-tag">&lt;/button&gt;</span>
+        <span class="xml-tag">&lt;/td&gt;</span>
+      <span class="xml-tag">&lt;/tr&gt;</span>
+    {% endfor %}
+    <span class="xml-tag">&lt;/tbody&gt;</span>
+  <span class="xml-tag">&lt;/table&gt;</span>
+
+  <span class="xml-cm">{# Pagination #}</span>
+  <span class="xml-tag">&lt;div</span> <span class="xml-attr">class=</span><span class="xml-val">"pagination"</span><span class="xml-tag">&gt;</span>
+    {% if state.page > 1 %}
+      <span class="xml-tag">&lt;button</span>
+        <span class="xml-attr">hx-post=</span><span class="xml-val">"{% url 'admin_users' %}"</span>
+        <span class="xml-attr">hx-vals=</span><span class="xml-val">'{"event": "change_page", "page": "{{ state.page|add:"-1" }}"}'</span><span class="xml-tag">&gt;</span>
+        ← Prev
+      <span class="xml-tag">&lt;/button&gt;</span>
+    {% endif %}
+    <span class="xml-tag">&lt;span&gt;</span>Page {{ state.page }} of {{ state.page_count }}<span class="xml-tag">&lt;/span&gt;</span>
+    {% if state.page < state.page_count %}
+      <span class="xml-tag">&lt;button</span>
+        <span class="xml-attr">hx-post=</span><span class="xml-val">"{% url 'admin_users' %}"</span>
+        <span class="xml-attr">hx-vals=</span><span class="xml-val">'{"event": "change_page", "page": "{{ state.page|add:"1" }}"}'</span><span class="xml-tag">&gt;</span>
+        Next →
+      <span class="xml-tag">&lt;/button&gt;</span>
+    {% endif %}
+  <span class="xml-tag">&lt;/div&gt;</span>
+
+<span class="xml-tag">&lt;/div&gt;</span></code></pre>
+    </div>
+
+    <!-- AUDIT LOG COMPONENT -->
+    <h2 id="auditlog" data-n="02">AuditLogComponent — Real-Time Feed</h2>
+    <p>Every create, update, and delete across the platform is recorded in an <code>AuditEntry</code> model. The admin panel streams new entries in real time via a Django Channels WebSocket consumer — no polling, no periodic AJAX requests. The initial page load is served from cache to keep the DB query out of the critical path.</p>
+
+    <h3 id="auditlog-component">The Component</h3>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">admin_panel/components.py (continued)</span>
+        <span class="code-block__lang">Python</span>
+      </div>
+      <pre><code><span class="kw">from</span> component_framework.core <span class="kw">import</span> registry
+<span class="kw">from</span> component_framework.core.component <span class="kw">import</span> Component
+<span class="kw">from</span> component_framework.adapters.django_views <span class="kw">import</span> CacheMixin
+<span class="kw">from</span> .models <span class="kw">import</span> AuditEntry
+
+<span class="kw">MAX_ENTRIES</span> = <span class="num">50</span>  <span class="cm"># keep the last 50 entries in state</span>
+
+
+<span class="dec">@registry.register(<span class="str">"audit_log"</span>)</span>
+<span class="kw">class</span> <span class="cls">AuditLogComponent</span>(CacheMixin, Component):
+    <span class="str">"""
+    Real-time audit log feed.
+
+    Initial load is cached for 30 seconds — subsequent pushes arrive via
+    WebSocket and bypass the cache entirely.
+
+    State shape:
+        entries (list): [{id, actor, action, target, timestamp}]
+    """</span>
+
+    template_name = <span class="str">"admin_panel/audit_log.html"</span>
+    cache_ttl     = <span class="num">30</span>  <span class="cm"># seconds — short TTL; WS keeps it live after that</span>
+
+    <span class="kw">def</span> <span class="fn">get_cache_key</span>(<span class="kw">self</span>, name, params, state) -> <span class="typ">str</span>:
+        <span class="kw">return</span> <span class="str">"admin:audit_log:initial"</span>
+
+    <span class="kw">def</span> <span class="fn">mount</span>(<span class="kw">self</span>):
+        entries = (
+            <span class="cls">AuditEntry</span>.objects
+            .<span class="fn">select_related</span>(<span class="str">"actor"</span>)
+            .<span class="fn">order_by</span>(<span class="str">"-timestamp"</span>)[:<span class="kw">MAX_ENTRIES</span>]
+            .<span class="fn">values</span>(<span class="str">"id"</span>, <span class="str">"actor__username"</span>, <span class="str">"action"</span>, <span class="str">"target"</span>, <span class="str">"timestamp"</span>)
+        )
+        <span class="kw">self</span>.state[<span class="str">"entries"</span>] = [<span class="fn">dict</span>(e) <span class="kw">for</span> e <span class="kw">in</span> entries]
+
+    <span class="kw">def</span> <span class="fn">on_new_entry</span>(<span class="kw">self</span>, entry: <span class="typ">dict</span>):
+        <span class="str">"""
+        Called by the WebSocket consumer when a new audit entry is saved.
+
+        Prepend the new entry and trim the list to MAX_ENTRIES so the
+        in-browser state never grows unbounded.
+        """</span>
+        <span class="kw">self</span>.state[<span class="str">"entries"</span>] = [entry] + <span class="kw">self</span>.state[<span class="str">"entries"</span>][:<span class="kw">MAX_ENTRIES</span> - <span class="num">1</span>]</code></pre>
+    </div>
+
+    <h3 id="auditlog-websocket">WebSocket Push</h3>
+    <p>When Django saves an <code>AuditEntry</code>, a post-save signal serialises it and broadcasts the JSON payload to every connected admin via the <code>"admin-audit"</code> channel group. The consumer translates it into an <code>on_new_entry</code> component event and pushes the re-rendered feed back as HTML.</p>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">admin_panel/signals.py</span>
+        <span class="code-block__lang">Python</span>
+      </div>
+      <pre><code><span class="kw">from</span> django.db.models.signals <span class="kw">import</span> post_save
+<span class="kw">from</span> django.dispatch <span class="kw">import</span> receiver
+<span class="kw">from</span> asgiref.sync <span class="kw">import</span> async_to_sync
+<span class="kw">from</span> channels.layers <span class="kw">import</span> get_channel_layer
+<span class="kw">from</span> .models <span class="kw">import</span> AuditEntry
+
+
+<span class="dec">@receiver(post_save, sender=<span class="cls">AuditEntry</span>)</span>
+<span class="kw">def</span> <span class="fn">broadcast_audit_entry</span>(sender, instance, created, **kwargs):
+    <span class="str">"""Broadcast every new audit entry to connected admin consoles."""</span>
+    <span class="kw">if not</span> created:
+        <span class="kw">return</span>
+
+    layer = <span class="fn">get_channel_layer</span>()
+    <span class="fn">async_to_sync</span>(layer.group_send)(
+        <span class="str">"admin-audit"</span>,
+        {
+            <span class="str">"type"</span>:  <span class="str">"audit.entry"</span>,
+            <span class="str">"entry"</span>: {
+                <span class="str">"id"</span>:             instance.pk,
+                <span class="str">"actor__username"</span>: instance.actor.username,
+                <span class="str">"action"</span>:         instance.action,
+                <span class="str">"target"</span>:         instance.target,
+                <span class="str">"timestamp"</span>:      instance.timestamp.<span class="fn">isoformat</span>(),
+            },
+        },
+    )</code></pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">admin_panel/consumers.py  (Django Channels)</span>
+        <span class="code-block__lang">Python</span>
+      </div>
+      <pre><code><span class="kw">from</span> component_framework.core <span class="kw">import</span> ws_manager
+<span class="kw">import</span> json
+
+
+<span class="kw">class</span> <span class="cls">AuditLogConsumer</span>(ws_manager.ComponentConsumer):
+    <span class="str">"""
+    WebSocket consumer that keeps the audit log widget live.
+
+    The parent class handles:
+      - authenticating the connection (scope["user"].is_staff)
+      - dispatching component events from incoming WS messages
+      - pushing rendered HTML back to the browser
+    """</span>
+
+    component_name = <span class="str">"audit_log"</span>
+
+    <span class="kw">async def</span> <span class="fn">websocket_connect</span>(<span class="kw">self</span>, message):
+        user = <span class="kw">self</span>.scope[<span class="str">"user"</span>]
+        <span class="kw">if not</span> (user.is_authenticated <span class="kw">and</span> user.is_staff):
+            <span class="kw">await self</span>.<span class="fn">close</span>()
+            <span class="kw">return</span>
+        <span class="kw">await self</span>.channel_layer.<span class="fn">group_add</span>(<span class="str">"admin-audit"</span>, <span class="kw">self</span>.channel_name)
+        <span class="kw">await super</span>().<span class="fn">websocket_connect</span>(message)
+
+    <span class="kw">async def</span> <span class="fn">audit_entry</span>(<span class="kw">self</span>, event):
+        <span class="str">"""Receive a broadcast from the signal and dispatch as a component event."""</span>
+        <span class="kw">await self</span>.<span class="fn">dispatch_event</span>(
+            event=<span class="str">"new_entry"</span>,
+            payload={<span class="str">"entry"</span>: event[<span class="str">"entry"</span>]},
+        )
+
+    <span class="kw">async def</span> <span class="fn">websocket_disconnect</span>(<span class="kw">self</span>, message):
+        <span class="kw">await self</span>.channel_layer.<span class="fn">group_discard</span>(<span class="str">"admin-audit"</span>, <span class="kw">self</span>.channel_name)
+        <span class="kw">await super</span>().<span class="fn">websocket_disconnect</span>(message)</code></pre>
+    </div>
+
+    <div class="callout callout--note">
+      <strong>What the browser sees:</strong> the audit log widget is rendered server-side on page load (from cache). As new actions occur anywhere in the platform, the WebSocket consumer calls <code>dispatch_event("new_entry", ...)</code>, the component prepends the row, and the consumer pushes a fresh HTML fragment to the browser. No polling. No stale data.
+    </div>
+
+    <!-- METRICS COMPONENT -->
+    <h2 id="metrics" data-n="03">MetricsComponent — KPI Dashboard</h2>
+    <p>Three KPI cards — Monthly Active Users, Monthly Recurring Revenue, and Churn Rate — backed by expensive ORM aggregations. A five-minute cache means the database query only runs on a cache miss. A manual refresh button lets superusers bust the cache when they need fresh numbers.</p>
+
+    <h3 id="metrics-component">The Component</h3>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">admin_panel/components.py (continued)</span>
+        <span class="code-block__lang">Python</span>
+      </div>
+      <pre><code><span class="kw">from</span> django.utils <span class="kw">import</span> timezone
+<span class="kw">from</span> django.db.models <span class="kw">import</span> Sum, Count
+<span class="kw">from</span> .models <span class="kw">import</span> Subscription, UserActivity
+
+
+<span class="dec">@registry.register(<span class="str">"metrics"</span>)</span>
+<span class="kw">class</span> <span class="cls">MetricsComponent</span>(CacheMixin, Component):
+    <span class="str">"""
+    KPI dashboard: MAU, MRR, and churn rate.
+
+    Expensive aggregations are cached for 5 minutes.  The on_refresh event
+    calls self.invalidate_cache() so staff can force fresh numbers without
+    waiting for the TTL to expire.
+
+    State shape:
+        mau        (int):   monthly active users
+        mrr        (str):   monthly recurring revenue (Decimal as string)
+        churn_rate (float): percentage of users who cancelled last 30 days
+        refreshed_at (str): ISO timestamp of last DB read
+    """</span>
+
+    template_name = <span class="str">"admin_panel/metrics.html"</span>
+    cache_ttl     = <span class="num">300</span>  <span class="cm"># 5 minutes</span>
+
+    <span class="kw">def</span> <span class="fn">get_cache_key</span>(<span class="kw">self</span>, name, params, state) -> <span class="typ">str</span>:
+        <span class="kw">return</span> <span class="str">"admin:metrics"</span>
+
+    <span class="kw">def</span> <span class="fn">mount</span>(<span class="kw">self</span>):
+        <span class="kw">self</span>.<span class="fn">_compute_metrics</span>()
+
+    <span class="kw">def</span> <span class="fn">_compute_metrics</span>(<span class="kw">self</span>):
+        <span class="str">"""Run all three ORM aggregations and update state."""</span>
+        now   = timezone.<span class="fn">now</span>()
+        month = now - timezone.<span class="fn">timedelta</span>(days=<span class="num">30</span>)
+
+        <span class="cm"># Monthly Active Users</span>
+        mau = (
+            <span class="cls">UserActivity</span>.objects
+            .<span class="fn">filter</span>(last_seen__gte=month)
+            .<span class="fn">values</span>(<span class="str">"user_id"</span>)
+            .<span class="fn">distinct</span>()
+            .<span class="fn">count</span>()
+        )
+
+        <span class="cm"># Monthly Recurring Revenue</span>
+        mrr = (
+            <span class="cls">Subscription</span>.objects
+            .<span class="fn">filter</span>(status=<span class="str">"active"</span>)
+            .<span class="fn">aggregate</span>(total=<span class="fn">Sum</span>(<span class="str">"monthly_amount"</span>))[<span class="str">"total"</span>]
+            <span class="kw">or</span> <span class="num">0</span>
+        )
+
+        <span class="cm"># Churn Rate (cancellations last 30 days / total subs at month start)</span>
+        total_start = <span class="cls">Subscription</span>.objects.<span class="fn">filter</span>(created__lt=month).<span class="fn">count</span>()
+        churned     = <span class="cls">Subscription</span>.objects.<span class="fn">filter</span>(
+            cancelled_at__gte=month, cancelled_at__lte=now
+        ).<span class="fn">count</span>()
+        churn_rate = <span class="fn">round</span>((churned / total_start * <span class="num">100</span>) <span class="kw">if</span> total_start <span class="kw">else</span> <span class="num">0.0</span>, <span class="num">2</span>)
+
+        <span class="kw">self</span>.state.<span class="fn">update</span>({
+            <span class="str">"mau"</span>:          mau,
+            <span class="str">"mrr"</span>:          <span class="fn">str</span>(mrr),
+            <span class="str">"churn_rate"</span>:   churn_rate,
+            <span class="str">"refreshed_at"</span>: now.<span class="fn">isoformat</span>(),
+        })
+
+    <span class="kw">def</span> <span class="fn">on_refresh</span>(<span class="kw">self</span>):
+        <span class="str">"""Staff clicked the Refresh button — bust the cache and recompute."""</span>
+        <span class="kw">self</span>.<span class="fn">invalidate_cache</span>()
+        <span class="kw">self</span>.<span class="fn">_compute_metrics</span>()</code></pre>
+    </div>
+
+    <h3 id="metrics-caching">How the Cache Works</h3>
+    <p>On the first request, <code>CacheMixin</code> checks the Django cache backend for the key <code>"admin:metrics"</code>. On a miss it calls <code>mount()</code>, stores the resulting state in cache, and renders. On a cache hit it skips <code>mount()</code> entirely and renders directly from the cached state — meaning zero ORM queries for 99% of page loads.</p>
+
+    <p>Event requests (i.e. POST with an <code>event</code> field) <strong>always</strong> bypass the cache and execute normally. That is why <code>on_refresh</code> can call <code>self.invalidate_cache()</code> followed by <code>_compute_metrics()</code> — the cache miss on the next non-event load will pick up fresh data.</p>
+
+    <div class="callout callout--warn">
+      <strong>Cache backend required.</strong> <code>CacheMixin</code> uses <code>django.core.cache.cache</code>. Configure <code>CACHES</code> in <code>settings.py</code> to use Redis or Memcached in production. The default in-memory cache is process-local and will not work correctly with multiple Gunicorn workers.
+    </div>
+
+    <!-- USER EDIT COMPONENT -->
+    <h2 id="useredit" data-n="04">UserEditComponent — Inline Form</h2>
+    <p>When a staff member clicks "Edit" on a user row, an inline form appears in the table — pre-populated from server state. Only superusers may change a user's <code>is_staff</code> or <code>is_superuser</code> role flags. Submitting the form validates via a Pydantic schema, saves to the database, and shows instant feedback via <code>OptimisticMixin</code>.</p>
+
+    <h3 id="useredit-component">The Component</h3>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">admin_panel/components.py (continued)</span>
+        <span class="code-block__lang">Python</span>
+      </div>
+      <pre><code><span class="kw">from</span> pydantic <span class="kw">import</span> BaseModel, EmailStr, field_validator
+<span class="kw">from</span> component_framework.core.form <span class="kw">import</span> FormComponent
+<span class="kw">from</span> component_framework.adapters.django_views <span class="kw">import</span> OptimisticMixin
+
+
+<span class="kw">class</span> <span class="cls">UserEditSchema</span>(BaseModel):
+    <span class="str">"""Pydantic schema for the user-edit form."""</span>
+    username:      <span class="typ">str</span>
+    email:         <span class="typ">EmailStr</span>
+    first_name:    <span class="typ">str</span>
+    last_name:     <span class="typ">str</span>
+    is_active:     <span class="typ">bool</span>
+    <span class="cm"># Role flags — only serialised when the requesting user is a superuser.</span>
+    <span class="cm"># The component strips them for non-superusers before validation.</span>
+    is_staff:      <span class="typ">bool</span> = <span class="kw">False</span>
+    is_superuser:  <span class="typ">bool</span> = <span class="kw">False</span>
+
+    <span class="dec">@field_validator(<span class="str">"username"</span>)</span>
+    <span class="dec">@classmethod</span>
+    <span class="kw">def</span> <span class="fn">username_not_empty</span>(cls, v: <span class="typ">str</span>) -> <span class="typ">str</span>:
+        <span class="kw">if not</span> v.<span class="fn">strip</span>():
+            <span class="kw">raise</span> <span class="cls">ValueError</span>(<span class="str">"Username cannot be blank."</span>)
+        <span class="kw">return</span> v.<span class="fn">strip</span>()
+
+
+<span class="dec">@registry.register(<span class="str">"user_edit"</span>)</span>
+<span class="kw">class</span> <span class="cls">UserEditComponent</span>(OptimisticMixin, FormComponent):
+    <span class="str">"""
+    Inline edit form for a single Django User.
+
+    permission_classes = [IsSuperuser] ensures that:
+      - Staff users can submit the form but role fields are stripped.
+      - Non-staff users receive JSON 403 immediately.
+
+    Optimistic UI shows a "Saving…" state immediately on submit.
+    """</span>
+
+    template_name    = <span class="str">"admin_panel/user_edit.html"</span>
+    schema           = <span class="cls">UserEditSchema</span>
+    <span class="cm"># Note: permission is enforced at the VIEW level (IsSuperuser)</span>
+    <span class="cm"># so only superusers ever reach on_submit with role fields intact.</span>
+
+    <span class="kw">def</span> <span class="fn">mount</span>(<span class="kw">self</span>):
+        user_id = <span class="kw">self</span>.params[<span class="str">"user_id"</span>]
+        user    = <span class="cls">User</span>.objects.<span class="fn">get</span>(pk=user_id)
+        <span class="kw">self</span>.state.<span class="fn">update</span>({
+            <span class="str">"user_id"</span>:     user.pk,
+            <span class="str">"username"</span>:    user.username,
+            <span class="str">"email"</span>:       user.email,
+            <span class="str">"first_name"</span>:  user.first_name,
+            <span class="str">"last_name"</span>:   user.last_name,
+            <span class="str">"is_active"</span>:   user.is_active,
+            <span class="str">"is_staff"</span>:    user.is_staff,
+            <span class="str">"is_superuser"</span>: user.is_superuser,
+            <span class="str">"saved"</span>:       <span class="kw">False</span>,
+            <span class="str">"error"</span>:       <span class="kw">None</span>,
+        })
+
+    <span class="kw">def</span> <span class="fn">on_submit</span>(<span class="kw">self</span>):
+        <span class="str">"""
+        Validate with Pydantic, then save.
+
+        self.validated_data is populated by FormComponent after schema
+        validation.  If validation fails, self.errors is populated and
+        on_submit is not called.
+        """</span>
+        data = <span class="kw">self</span>.validated_data
+        user = <span class="cls">User</span>.objects.<span class="fn">get</span>(pk=<span class="kw">self</span>.state[<span class="str">"user_id"</span>])
+
+        user.username    = data.username
+        user.email       = data.email
+        user.first_name  = data.first_name
+        user.last_name   = data.last_name
+        user.is_active   = data.is_active
+        user.is_staff    = data.is_staff
+        user.is_superuser = data.is_superuser
+        user.<span class="fn">save</span>()
+
+        <span class="kw">self</span>.state[<span class="str">"saved"</span>] = <span class="kw">True</span>
+
+    <span class="cm"># ── Optimistic UI ────────────────────────────────────────────────────</span>
+    <span class="kw">def</span> <span class="fn">get_optimistic_patch</span>(<span class="kw">self</span>, event: <span class="typ">str</span>, payload: <span class="typ">dict</span>) -> <span class="typ">dict</span> | <span class="kw">None</span>:
+        <span class="str">"""Show a 'Saving…' indicator immediately on submit."""</span>
+        <span class="kw">if</span> event == <span class="str">"submit"</span>:
+            <span class="kw">return</span> {<span class="str">"saving"</span>: <span class="kw">True</span>, <span class="str">"error"</span>: <span class="kw">None</span>}
+        <span class="kw">return None</span></code></pre>
+    </div>
+
+    <h3 id="useredit-permissions">Permission Gating</h3>
+    <p>Role changes are dangerous. The <code>UserEditView</code> uses <code>IsSuperuser</code> so that staff cannot promote themselves. A non-superuser who somehow POSTs to this endpoint receives <code>{"error": "Superuser access required"}</code> with HTTP 403 — no redirect, no template rendered, no state mutation.</p>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">admin_panel/views.py (continued)</span>
+        <span class="code-block__lang">Python</span>
+      </div>
+      <pre><code><span class="kw">from</span> component_framework.core.permissions <span class="kw">import</span> IsSuperuser
+
+
+<span class="kw">class</span> <span class="cls">UserEditView</span>(ComponentView):
+    <span class="str">"""
+    Superuser-only endpoint for the inline user-edit form.
+
+    IsStaff users can VIEW the admin panel but cannot POST to this endpoint.
+    Any attempt returns JSON 403 — HTMX shows the error inline without
+    a page reload.
+    """</span>
+
+    component_name    = <span class="str">"user_edit"</span>
+    permission_classes = [<span class="cls">IsSuperuser</span>]
+
+    <span class="kw">def</span> <span class="fn">get_component_params</span>(<span class="kw">self</span>, request, **kwargs):
+        params = <span class="fn">super</span>().<span class="fn">get_component_params</span>(request, **kwargs)
+        params[<span class="str">"user_id"</span>] = <span class="fn">int</span>(request.POST.<span class="fn">get</span>(<span class="str">"user_id"</span>, <span class="num">0</span>))
+        <span class="kw">return</span> params</code></pre>
+    </div>
+
+    <div class="callout callout--insight">
+      <strong>Two permission levels, one admin panel.</strong> Staff (<code>IsStaff</code>) can search users, view metrics, and read the audit log. Only superusers (<code>IsSuperuser</code>) can submit the edit form. The same <code>permission_classes</code> attribute works on FBV decorators, CBV mixins, and component classes — no duplication.
+    </div>
+
+    <!-- REACT vs CFX -->
+    <h2 id="compare" data-n="§">React vs Component Framework</h2>
+    <p>Here is the same real-time user management table in a React stack compared to component-framework. Three separate React concerns (state, effects, WebSocket hook), a Redux slice for the user list, manual CSRF handling, and TypeScript types — versus one Python class with four methods.</p>
+
+    <div class="code-split">
+      <div>
+        <div class="code-split__label" style="color:var(--muted)">// REACT + REDUX</div>
+        <div class="code-block" style="margin-top:0">
+          <div class="code-block__header">
+            <span class="code-block__filename">usersSlice.ts</span>
+            <span class="code-block__lang">TypeScript</span>
+          </div>
+          <pre><code><span class="cm">// 1. Redux slice</span>
+<span class="kw">const</span> usersSlice = <span class="fn">createSlice</span>({
+  name: <span class="str">'users'</span>,
+  initialState: {
+    rows: [], total: <span class="num">0</span>, page: <span class="num">1</span>,
+    query: <span class="str">''</span>, status: <span class="str">'idle'</span>,
+  },
+  reducers: {
+    <span class="fn">setQuery</span>: (state, action) => {
+      state.query  = action.payload;
+      state.page   = <span class="num">1</span>;
+    },
+    <span class="fn">setPage</span>:  (state, action) => {
+      state.page = action.payload;
+    },
+  },
+  extraReducers: (builder) => {
+    builder
+      .<span class="fn">addCase</span>(fetchUsers.pending, s => {
+        s.status = <span class="str">'loading'</span>;
+      })
+      .<span class="fn">addCase</span>(fetchUsers.fulfilled, (s, a) => {
+        s.rows   = a.payload.rows;
+        s.total  = a.payload.total;
+        s.status = <span class="str">'idle'</span>;
+      });
+  },
+});
+
+<span class="cm">// 2. async thunk</span>
+<span class="kw">const</span> <span class="fn">fetchUsers</span> = <span class="fn">createAsyncThunk</span>(
+  <span class="str">'users/fetch'</span>,
+  <span class="kw">async</span> ({ query, page }) => {
+    <span class="kw">const</span> r = <span class="kw">await</span> <span class="fn">fetch</span>(
+      <span class="str">`/api/users/?q=${query}&amp;page=${page}`</span>
+    );
+    <span class="kw">return</span> r.<span class="fn">json</span>();
+  }
+);
+
+<span class="cm">// 3. component with effects</span>
+<span class="kw">function</span> <span class="fn">UserTable</span>() {
+  <span class="kw">const</span> { rows, query, page } =
+    <span class="fn">useSelector</span>(s => s.users);
+  <span class="kw">const</span> dispatch = <span class="fn">useDispatch</span>();
+
+  <span class="fn">useEffect</span>(() => {
+    dispatch(<span class="fn">fetchUsers</span>({ query, page }));
+  }, [query, page]);
+
+  <span class="cm">/* + toggle handler, CSRF token,</span>
+  <span class="cm">     TypeScript interfaces, store     */</span>
+}</code></pre>
+        </div>
+      </div>
+
+      <div>
+        <div class="code-split__label" style="color:var(--green)">// COMPONENT FRAMEWORK</div>
+        <div class="code-block" style="margin-top:0;border-color:var(--border-lit)">
+          <div class="code-block__header">
+            <span class="code-block__filename">admin_panel/components.py</span>
+            <span class="code-block__lang">Python</span>
+          </div>
+          <pre><code><span class="dec">@registry.register(<span class="str">"user_list"</span>)</span>
+<span class="kw">class</span> <span class="cls">UserListComponent</span>(
+        DjangoModelComponent):
+
+    model         = <span class="cls">User</span>
+    template_name = <span class="str">"admin_panel/user_list.html"</span>
+
+    <span class="kw">def</span> <span class="fn">mount</span>(<span class="kw">self</span>):
+        <span class="kw">self</span>.state[<span class="str">"query"</span>] = <span class="str">""</span>
+        <span class="kw">self</span>.state[<span class="str">"page"</span>]  = <span class="num">1</span>
+        <span class="kw">self</span>.<span class="fn">_load_page</span>()
+
+    <span class="kw">def</span> <span class="fn">on_search</span>(<span class="kw">self</span>, query: <span class="typ">str</span>):
+        <span class="kw">self</span>.state[<span class="str">"query"</span>] = query
+        <span class="kw">self</span>.state[<span class="str">"page"</span>]  = <span class="num">1</span>
+        <span class="kw">self</span>.<span class="fn">_load_page</span>()
+
+    <span class="kw">def</span> <span class="fn">on_toggle_status</span>(<span class="kw">self</span>,
+                          user_id: <span class="typ">int</span>):
+        user = <span class="cls">User</span>.objects.<span class="fn">get</span>(pk=user_id)
+        user.is_active = <span class="kw">not</span> user.is_active
+        user.<span class="fn">save</span>(update_fields=[<span class="str">"is_active"</span>])
+        <span class="kw">self</span>.<span class="fn">_load_page</span>()
+
+    <span class="kw">def</span> <span class="fn">on_change_page</span>(<span class="kw">self</span>, page: <span class="typ">int</span>):
+        <span class="kw">self</span>.state[<span class="str">"page"</span>] = page
+        <span class="kw">self</span>.<span class="fn">_load_page</span>()
+
+<span class="cm"># No store. No thunks. No types.
+# pytest covers the rest.</span>
+</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <table class="cmp-table">
+      <thead>
+        <tr>
+          <th>Concern</th>
+          <th class="th-react">React + Redux</th>
+          <th class="th-cfx">Component Framework</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>State location</td>
+          <td class="td-react"><code>useState</code> / Redux store in browser</td>
+          <td><code>self.state</code> dict on the server</td>
+        </tr>
+        <tr>
+          <td>Search debounce</td>
+          <td class="td-react">Custom hook + <code>useEffect</code> + <code>setTimeout</code></td>
+          <td>HTMX <code>hx-trigger="input delay:400ms"</code></td>
+        </tr>
+        <tr>
+          <td>Pagination</td>
+          <td class="td-react">Page state in Redux + re-fetch thunk</td>
+          <td><code>on_change_page()</code> + <code>_load_page()</code></td>
+        </tr>
+        <tr>
+          <td>Real-time feed</td>
+          <td class="td-react">Custom WebSocket hook + dispatch to slice</td>
+          <td><code>ComponentConsumer</code> + <code>on_new_entry()</code></td>
+        </tr>
+        <tr>
+          <td>Permission gating</td>
+          <td class="td-react">Middleware check + <code>useSession()</code> hook</td>
+          <td><code>permission_classes = [IsStaff]</code></td>
+        </tr>
+        <tr>
+          <td>Role gating</td>
+          <td class="td-react">Custom route guard + API-level guard</td>
+          <td><code>permission_classes = [IsSuperuser]</code></td>
+        </tr>
+        <tr>
+          <td>KPI caching</td>
+          <td class="td-react"><code>useMemo</code> + server cache + stale-while-revalidate</td>
+          <td><code>CacheMixin</code> + <code>invalidate_cache()</code></td>
+        </tr>
+        <tr>
+          <td>Optimistic UI</td>
+          <td class="td-react"><code>useOptimistic()</code> + rollback logic</td>
+          <td><code>get_optimistic_patch()</code> → auto rollback</td>
+        </tr>
+        <tr>
+          <td>Build step</td>
+          <td class="td-react">webpack / Vite required</td>
+          <td><span class="win">None</span></td>
+        </tr>
+        <tr>
+          <td>JS payload</td>
+          <td class="td-react">150–400 KB gzipped</td>
+          <td><span class="win">~5 KB</span> (htmx + component-client.js)</td>
+        </tr>
+        <tr>
+          <td>Test tooling</td>
+          <td class="td-react">Jest + RTL + MSW for API mocks</td>
+          <td><span class="win">pytest</span> — pure Python, no browser</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- TESTING -->
+    <h2 id="testing" data-n="§">Testing</h2>
+    <p>Because all four components are pure Python, the full admin panel behaviour — searching, pagination, status toggling, cache hits, cache invalidation, permission checks — is testable without Django test client, without HTMX, and without a running server. <code>ComponentTestCase</code> mounts components in a controlled context.</p>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">admin_panel/tests/test_user_list.py</span>
+        <span class="code-block__lang">Python</span>
+      </div>
+      <pre><code><span class="kw">from</span> django.test <span class="kw">import</span> TestCase
+<span class="kw">from</span> django.contrib.auth <span class="kw">import</span> get_user_model
+<span class="kw">from</span> component_framework.testing <span class="kw">import</span> ComponentTestCase, MockRenderer
+<span class="kw">from</span> admin_panel.components <span class="kw">import</span> UserListComponent
+
+<span class="cls">User</span> = <span class="fn">get_user_model</span>()
+
+
+<span class="kw">class</span> <span class="cls">TestUserListComponent</span>(ComponentTestCase, TestCase):
+
+    <span class="kw">def</span> <span class="fn">setUp</span>(<span class="kw">self</span>):
+        UserListComponent.renderer = <span class="cls">MockRenderer</span>()
+
+        <span class="cm"># Seed the database with test users</span>
+        <span class="cls">User</span>.objects.<span class="fn">create_user</span>(
+            username=<span class="str">"alice"</span>, email=<span class="str">"alice@example.com"</span>, is_active=<span class="kw">True</span>
+        )
+        <span class="cls">User</span>.objects.<span class="fn">create_user</span>(
+            username=<span class="str">"bob"</span>,   email=<span class="str">"bob@example.com"</span>,   is_active=<span class="kw">True</span>
+        )
+        <span class="cls">User</span>.objects.<span class="fn">create_user</span>(
+            username=<span class="str">"carol"</span>, email=<span class="str">"carol@example.com"</span>, is_active=<span class="kw">False</span>
+        )
+
+    <span class="kw">def</span> <span class="fn">test_mount_loads_all_users</span>(<span class="kw">self</span>):
+        component = <span class="kw">self</span>.<span class="fn">make_component</span>(UserListComponent)
+        component.<span class="fn">mount</span>()
+
+        <span class="kw">self</span>.<span class="fn">assertEqual</span>(component.state[<span class="str">"total"</span>], <span class="num">3</span>)
+        <span class="kw">self</span>.<span class="fn">assertEqual</span>(<span class="fn">len</span>(component.state[<span class="str">"users"</span>]), <span class="num">3</span>)
+
+    <span class="kw">def</span> <span class="fn">test_search_filters_results</span>(<span class="kw">self</span>):
+        component = <span class="kw">self</span>.<span class="fn">make_component</span>(UserListComponent)
+        component.<span class="fn">mount</span>()
+        component.<span class="fn">on_search</span>(<span class="str">"alice"</span>)
+
+        <span class="kw">self</span>.<span class="fn">assertEqual</span>(component.state[<span class="str">"total"</span>], <span class="num">1</span>)
+        <span class="kw">self</span>.<span class="fn">assertEqual</span>(component.state[<span class="str">"users"</span>][<span class="num">0</span>][<span class="str">"username"</span>], <span class="str">"alice"</span>)
+
+    <span class="kw">def</span> <span class="fn">test_search_resets_to_page_one</span>(<span class="kw">self</span>):
+        component = <span class="kw">self</span>.<span class="fn">make_component</span>(UserListComponent)
+        component.<span class="fn">mount</span>()
+        component.state[<span class="str">"page"</span>] = <span class="num">3</span>
+        component.<span class="fn">on_search</span>(<span class="str">"bob"</span>)
+
+        <span class="kw">self</span>.<span class="fn">assertEqual</span>(component.state[<span class="str">"page"</span>], <span class="num">1</span>)
+
+    <span class="kw">def</span> <span class="fn">test_toggle_status_updates_state</span>(<span class="kw">self</span>):
+        component = <span class="kw">self</span>.<span class="fn">make_component</span>(UserListComponent)
+        component.<span class="fn">mount</span>()
+
+        alice = <span class="cls">User</span>.objects.<span class="fn">get</span>(username=<span class="str">"alice"</span>)
+        <span class="kw">self</span>.<span class="fn">assertTrue</span>(alice.is_active)
+
+        component.<span class="fn">on_toggle_status</span>(alice.pk)
+
+        alice.<span class="fn">refresh_from_db</span>()
+        <span class="kw">self</span>.<span class="fn">assertFalse</span>(alice.is_active)
+
+    <span class="kw">def</span> <span class="fn">test_toggle_inactive_user_activates(</span><span class="kw">self</span>):
+        component = <span class="kw">self</span>.<span class="fn">make_component</span>(UserListComponent)
+        component.<span class="fn">mount</span>()
+
+        carol = <span class="cls">User</span>.objects.<span class="fn">get</span>(username=<span class="str">"carol"</span>)
+        <span class="kw">self</span>.<span class="fn">assertFalse</span>(carol.is_active)
+
+        component.<span class="fn">on_toggle_status</span>(carol.pk)
+
+        carol.<span class="fn">refresh_from_db</span>()
+        <span class="kw">self</span>.<span class="fn">assertTrue</span>(carol.is_active)</code></pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">admin_panel/tests/test_metrics.py</span>
+        <span class="code-block__lang">Python</span>
+      </div>
+      <pre><code><span class="kw">from</span> unittest.mock <span class="kw">import</span> patch, MagicMock
+<span class="kw">from</span> django.test <span class="kw">import</span> TestCase
+<span class="kw">from</span> component_framework.testing <span class="kw">import</span> ComponentTestCase, MockRenderer
+<span class="kw">from</span> admin_panel.components <span class="kw">import</span> MetricsComponent
+
+
+<span class="kw">class</span> <span class="cls">TestMetricsComponent</span>(ComponentTestCase, TestCase):
+
+    <span class="kw">def</span> <span class="fn">setUp</span>(<span class="kw">self</span>):
+        MetricsComponent.renderer = <span class="cls">MockRenderer</span>()
+
+    <span class="kw">def</span> <span class="fn">test_mount_populates_kpis</span>(<span class="kw">self</span>):
+        <span class="kw">with</span> <span class="fn">patch</span>.<span class="fn">object</span>(
+            MetricsComponent, <span class="str">"_compute_metrics"</span>,
+            <span class="kw">lambda</span> self: self.state.<span class="fn">update</span>({
+                <span class="str">"mau"</span>: <span class="num">1234</span>, <span class="str">"mrr"</span>: <span class="str">"9800.00"</span>, <span class="str">"churn_rate"</span>: <span class="num">2.1</span>,
+            }),
+        ):
+            component = <span class="kw">self</span>.<span class="fn">make_component</span>(MetricsComponent)
+            component.<span class="fn">mount</span>()
+
+        <span class="kw">self</span>.<span class="fn">assertEqual</span>(component.state[<span class="str">"mau"</span>], <span class="num">1234</span>)
+        <span class="kw">self</span>.<span class="fn">assertEqual</span>(component.state[<span class="str">"mrr"</span>], <span class="str">"9800.00"</span>)
+        <span class="kw">self</span>.<span class="fn">assertEqual</span>(component.state[<span class="str">"churn_rate"</span>], <span class="num">2.1</span>)
+
+    <span class="kw">def</span> <span class="fn">test_cache_hit_skips_db</span>(<span class="kw">self</span>):
+        <span class="str">"""
+        When the cache returns a state dict, mount() should not be called.
+        Verify by checking that _compute_metrics is never invoked.
+        """</span>
+        cached_state = {
+            <span class="str">"mau"</span>: <span class="num">999</span>, <span class="str">"mrr"</span>: <span class="str">"5000.00"</span>,
+            <span class="str">"churn_rate"</span>: <span class="num">1.5</span>, <span class="str">"refreshed_at"</span>: <span class="str">"2025-01-01T00:00:00"</span>,
+        }
+        <span class="kw">with</span> <span class="fn">patch</span>(
+            <span class="str">"django.core.cache.cache.get"</span>,
+            <span class="kw">return_value</span>=cached_state,
+        ) <span class="kw">as</span> mock_cache, \
+        <span class="fn">patch</span>.<span class="fn">object</span>(
+            MetricsComponent, <span class="str">"_compute_metrics"</span>
+        ) <span class="kw">as</span> mock_compute:
+            component = <span class="kw">self</span>.<span class="fn">make_component</span>(MetricsComponent)
+            component.<span class="fn">mount</span>()
+
+        mock_compute.<span class="fn">assert_not_called</span>()
+        <span class="kw">self</span>.<span class="fn">assertEqual</span>(component.state[<span class="str">"mau"</span>], <span class="num">999</span>)
+
+    <span class="kw">def</span> <span class="fn">test_refresh_invalidates_cache</span>(<span class="kw">self</span>):
+        <span class="str">"""on_refresh() should bust the cache and recompute."""</span>
+        <span class="kw">with</span> <span class="fn">patch</span>.<span class="fn">object</span>(
+            MetricsComponent, <span class="str">"invalidate_cache"</span>
+        ) <span class="kw">as</span> mock_inv, \
+        <span class="fn">patch</span>.<span class="fn">object</span>(
+            MetricsComponent, <span class="str">"_compute_metrics"</span>
+        ) <span class="kw">as</span> mock_compute:
+            component = <span class="kw">self</span>.<span class="fn">make_component</span>(MetricsComponent)
+            component.<span class="fn">on_refresh</span>()
+
+        mock_inv.<span class="fn">assert_called_once</span>()
+        mock_compute.<span class="fn">assert_called_once</span>()</code></pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">shell</span>
+        <span class="code-block__lang">bash</span>
+      </div>
+      <pre><code>pytest admin_panel/tests/ -v</code></pre>
+    </div>
+
+    <div class="callout callout--insight">
+      <strong>No browser, no HTTP, no HTMX.</strong> Every component test calls Python methods directly. <code>MockRenderer</code> accepts any state and returns an empty string — the test cares about <em>state mutations</em>, not HTML output. Render correctness is covered separately by Django template tests.
+    </div>
+
+    <!-- RUNNING -->
+    <h2 id="running" data-n="§">Running the Example</h2>
+
+    <ol class="run-steps">
+      <li>
+        <div class="step-text">
+          <strong>Clone and install with the Django extra</strong><br>
+          <div class="code-block" style="margin-top:0.6rem">
+            <div class="code-block__header"><span class="code-block__filename">shell</span><span class="code-block__lang">bash</span></div>
+            <pre><code>git clone https://github.com/fsecada01/component-framework
+cd component-framework
+uv sync --extra django</code></pre>
+          </div>
+        </div>
+      </li>
+      <li>
+        <div class="step-text">
+          <strong>Apply migrations</strong><br>
+          <div class="code-block" style="margin-top:0.6rem">
+            <div class="code-block__header"><span class="code-block__filename">shell</span><span class="code-block__lang">bash</span></div>
+            <pre><code>python manage.py migrate</code></pre>
+          </div>
+        </div>
+      </li>
+      <li>
+        <div class="step-text">
+          <strong>Create a superuser account</strong><br>
+          <div class="code-block" style="margin-top:0.6rem">
+            <div class="code-block__header"><span class="code-block__filename">shell</span><span class="code-block__lang">bash</span></div>
+            <pre><code>python manage.py createsuperuser</code></pre>
+          </div>
+        </div>
+      </li>
+      <li>
+        <div class="step-text">
+          <strong>Start Redis</strong> (required for WebSocket channel layer and cache backend)<br>
+          <div class="code-block" style="margin-top:0.6rem">
+            <div class="code-block__header"><span class="code-block__filename">shell</span><span class="code-block__lang">bash</span></div>
+            <pre><code>docker run -p 6379:6379 redis:7-alpine</code></pre>
+          </div>
+        </div>
+      </li>
+      <li>
+        <div class="step-text">
+          <strong>Run the development server</strong><br>
+          <div class="code-block" style="margin-top:0.6rem">
+            <div class="code-block__header"><span class="code-block__filename">shell</span><span class="code-block__lang">bash</span></div>
+            <pre><code>python manage.py runserver
+# → http://localhost:8000/admin-panel/</code></pre>
+          </div>
+        </div>
+      </li>
+    </ol>
+
+    <div class="callout callout--insight">
+      Open <strong>http://localhost:8000/admin-panel/</strong> and log in as your superuser. Search the user table, toggle a user's status, and watch the audit log update in the bottom panel in real time via WebSocket — no page reload. Click "Refresh" on the KPI cards to bust the cache and pull fresh aggregations. Open a second browser tab acting as a different admin and see the audit log sync across both.
+    </div>
+
+    <!-- SUMMARY -->
+    <h2 id="summary" data-n="§">Summary</h2>
+
+    <table class="summary-table">
+      <thead>
+        <tr>
+          <th>Feature</th>
+          <th>Component</th>
+          <th>Framework Primitive</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Real-time feed</td>
+          <td>AuditLogComponent</td>
+          <td><code style="font-family:var(--mono);font-size:11px;color:var(--sky)">ComponentConsumer</code> + <code style="font-family:var(--mono);font-size:11px;color:var(--sky)">on_new_entry()</code> WebSocket dispatch</td>
+        </tr>
+        <tr>
+          <td>User management</td>
+          <td>UserListComponent</td>
+          <td><code style="font-family:var(--mono);font-size:11px;color:var(--sky)">DjangoModelComponent</code> — <code style="font-family:var(--mono);font-size:11px;color:var(--sky)">on_search</code>, <code style="font-family:var(--mono);font-size:11px;color:var(--sky)">on_toggle_status</code>, <code style="font-family:var(--mono);font-size:11px;color:var(--sky)">on_change_page</code></td>
+        </tr>
+        <tr>
+          <td>KPI caching</td>
+          <td>MetricsComponent</td>
+          <td><code style="font-family:var(--mono);font-size:11px;color:var(--sky)">CacheMixin</code> (5 min TTL) + <code style="font-family:var(--mono);font-size:11px;color:var(--sky)">invalidate_cache()</code> on refresh</td>
+        </tr>
+        <tr>
+          <td>Permission gating</td>
+          <td>UserListView / UserEditView</td>
+          <td><code style="font-family:var(--mono);font-size:11px;color:var(--sky)">IsStaff</code> / <code style="font-family:var(--mono);font-size:11px;color:var(--sky)">IsSuperuser</code> — JSON 403, no redirect</td>
+        </tr>
+        <tr>
+          <td>Form validation</td>
+          <td>UserEditComponent</td>
+          <td><code style="font-family:var(--mono);font-size:11px;color:var(--sky)">FormComponent</code> + Pydantic <code style="font-family:var(--mono);font-size:11px;color:var(--sky)">UserEditSchema</code></td>
+        </tr>
+        <tr>
+          <td>Optimistic UI</td>
+          <td>UserEditComponent</td>
+          <td><code style="font-family:var(--mono);font-size:11px;color:var(--sky)">get_optimistic_patch()</code> → "Saving…" badge, auto rollback on error</td>
+        </tr>
+        <tr>
+          <td>Testing</td>
+          <td>All components</td>
+          <td>Pure Python — <code style="font-family:var(--mono);font-size:11px;color:var(--sky)">pytest</code>, <code style="font-family:var(--mono);font-size:11px;color:var(--sky)">MockRenderer</code>, <code style="font-family:var(--mono);font-size:11px;color:var(--sky)">ComponentTestCase</code></td>
+        </tr>
+      </tbody>
+    </table>
+
+  </article>
+</div>
+
+<!-- ── FOOTER ─────────────────────────────────────────────────────────────── -->
+<footer>
+  <span>component-framework — MIT license</span>
+  <span>
+    <a href="https://github.com/fsecada01/component-framework" target="_blank" rel="noopener">GitHub</a>
+    <span class="sep">·</span>
+    <a href="https://pypi.org/project/component-framework/" target="_blank" rel="noopener">PyPI</a>
+    <span class="sep">·</span>
+    built with <a href="https://pdoc.dev" target="_blank" rel="noopener">pdoc</a>
+  </span>
+</footer>
+
+</body>
+</html>

@@ -488,6 +488,46 @@
     footer a { color: var(--dim); text-decoration: none; transition: color 0.15s; }
     footer a:hover { color: var(--green); }
     footer .sep { margin: 0 0.45rem; }
+
+    /* ── NAV DROPDOWN ───────────────────────────────────────────────────────── */
+    .nav-dropdown { position: relative; }
+    .nav-dropdown__label {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: 0.03em;
+      transition: color 0.15s;
+      cursor: default;
+      user-select: none;
+    }
+    .nav-dropdown:hover .nav-dropdown__label { color: var(--green); }
+    .nav-dropdown__label.nav-active { color: var(--green); }
+    .nav-dropdown__menu {
+      display: none;
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      background: var(--panel);
+      border: 1px solid var(--border-lit);
+      border-radius: var(--radius);
+      min-width: 210px;
+      padding: 0.4rem 0;
+      z-index: 300;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.45);
+    }
+    .nav-dropdown:hover .nav-dropdown__menu { display: block; }
+    .nav-dropdown__menu a {
+      display: block;
+      font-family: var(--mono);
+      font-size: 11.5px;
+      color: var(--muted);
+      text-decoration: none;
+      padding: 0.4rem 1rem;
+      letter-spacing: 0.03em;
+      transition: color 0.12s, background 0.12s;
+    }
+    .nav-dropdown__menu a:hover { color: var(--green); background: var(--green-dim); }
+    .nav-dropdown__menu a.nav-active { color: var(--green); }
   </style>
 </head>
 <body>
@@ -499,7 +539,16 @@
   <nav aria-label="Main navigation">
     <ul class="topbar__nav">
       <li><a href="index.html">Home</a></li>
-      <li><a href="ecommerce.html" class="nav-active">Example</a></li>
+      <li class="nav-dropdown">
+        <span class="nav-dropdown__label nav-active">Examples ▾</span>
+        <div class="nav-dropdown__menu">
+          <a href="ecommerce.html" class="nav-active">E-Commerce Live View</a>
+          <a href="admin-panel.html">Admin Panel</a>
+          <a href="customer-support.html">Customer Support</a>
+          <a href="education-lms.html">Education / LMS</a>
+          <a href="financial-dashboard.html">Financial Dashboard</a>
+        </div>
+      </li>
       <li><a href="component_framework.html" class="nav-api">API Ref</a></li>
       <li class="nav-hide"><a href="https://github.com/fsecada01/component-framework" target="_blank" rel="noopener">GitHub ↗</a></li>
     </ul>

@@ -1,0 +1,1228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Education &amp; LMS Live View — component-framework</title>
+  <meta name="description" content="Real-time Learning Management System built with server-side Python components, HTMX, and WebSocket. Live progress tracking, quiz grading, and instructor dashboards — no React, no build step." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* ── TERMINAL MODERN — shared design system ─────────────────────────── */
+    :root {
+      --bg:          #0c1117;
+      --panel:       #161c26;
+      --panel-lit:   #1e2637;
+      --code-bg:     #090e18;
+      --border:      #1e2a3c;
+      --border-lit:  #29394f;
+
+      --green:       #4ade80;
+      --green-dim:   rgba(74,222,128,0.10);
+      --green-glow:  rgba(74,222,128,0.18);
+      --amber:       #fbbf24;
+      --amber-dim:   rgba(251,191,36,0.09);
+      --sky:         #38bdf8;
+      --sky-dim:     rgba(56,189,248,0.09);
+      --violet:      #a78bfa;
+      --rose:        #fb7185;
+
+      --text:        #cbd5e1;
+      --muted:       #64748b;
+      --dim:         #334155;
+      --white:       #f1f5f9;
+
+      --mono:        'IBM Plex Mono', 'Courier New', monospace;
+      --sans:        'Inter', system-ui, -apple-system, sans-serif;
+      --radius:      6px;
+      --radius-sm:   3px;
+      --bar-h:       42px;
+      --toc-w:       220px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 15px;
+      line-height: 1.75;
+      min-height: 100vh;
+    }
+
+    ::-webkit-scrollbar              { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-thumb        { background: var(--border-lit); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover  { background: var(--muted); }
+
+    /* ── TOP BAR ────────────────────────────────────────────────────────── */
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 200;
+      height: var(--bar-h);
+      display: flex;
+      align-items: center;
+      padding: 0 clamp(1rem, 4vw, 2.5rem);
+      background: linear-gradient(to right, #1a2232 0%, var(--panel) 60%);
+      border-bottom: 1px solid var(--border);
+      gap: 1rem;
+    }
+    .topbar__logo {
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--green);
+      text-decoration: none;
+      letter-spacing: 0.02em;
+      flex-shrink: 0;
+    }
+    .topbar__logo::before { content: "> "; color: var(--amber); }
+    .topbar__badge {
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 0.12em;
+      color: var(--amber);
+      border: 1px solid rgba(251,191,36,0.4);
+      background: rgba(251,191,36,0.06);
+      padding: 2px 6px;
+      border-radius: var(--radius-sm);
+    }
+    .topbar__nav {
+      margin-left: auto;
+      display: flex;
+      gap: 1.5rem;
+      list-style: none;
+      align-items: center;
+    }
+    .topbar__nav a {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--muted);
+      text-decoration: none;
+      letter-spacing: 0.03em;
+      transition: color 0.15s;
+    }
+    .topbar__nav a:hover         { color: var(--green); }
+    .topbar__nav a.nav-active    { color: var(--green); }
+    .topbar__nav a.nav-api       { color: var(--sky); }
+    .topbar__nav a.nav-api:hover { color: var(--green); }
+    @media (max-width: 640px) { .topbar__nav .nav-hide { display: none; } }
+
+    /* ── DOC HERO ───────────────────────────────────────────────────────── */
+    .doc-hero {
+      background: linear-gradient(180deg, #111926 0%, var(--bg) 100%);
+      border-bottom: 1px solid var(--border);
+      padding: clamp(2.5rem, 6vw, 4rem) clamp(1.5rem, 6vw, 4rem);
+    }
+    .doc-hero__inner {
+      max-width: 860px;
+      margin: 0 auto;
+    }
+    .doc-hero__eyebrow {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--amber);
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+    .doc-hero__eyebrow::before {
+      content: '';
+      display: block;
+      width: 20px;
+      height: 1px;
+      background: var(--amber);
+      opacity: 0.6;
+    }
+    .doc-hero__title {
+      font-family: var(--mono);
+      font-size: clamp(1.75rem, 4vw, 2.75rem);
+      font-weight: 600;
+      color: var(--white);
+      line-height: 1.1;
+      margin-bottom: 1rem;
+      letter-spacing: -0.02em;
+    }
+    .doc-hero__lead {
+      font-size: 16px;
+      color: var(--muted);
+      max-width: 680px;
+      line-height: 1.8;
+      margin-bottom: 1.75rem;
+    }
+    .doc-hero__tags {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .tag {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      padding: 3px 8px;
+      border-radius: var(--radius-sm);
+      text-transform: uppercase;
+    }
+    .tag--green  { color: var(--green); border: 1px solid rgba(74,222,128,0.3); background: var(--green-dim); }
+    .tag--sky    { color: var(--sky);   border: 1px solid rgba(56,189,248,0.3); background: var(--sky-dim);   }
+    .tag--amber  { color: var(--amber); border: 1px solid rgba(251,191,36,0.3); background: var(--amber-dim); }
+    .tag--violet { color: var(--violet);border: 1px solid rgba(167,139,250,0.3);background: rgba(167,139,250,0.08); }
+
+    /* ── DOC LAYOUT ─────────────────────────────────────────────────────── */
+    .doc-layout {
+      display: flex;
+      align-items: flex-start;
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 0 clamp(1rem, 3vw, 2rem);
+      gap: 3rem;
+    }
+
+    /* ── TOC ─────────────────────────────────────────────────────────────── */
+    .doc-toc {
+      flex-shrink: 0;
+      width: var(--toc-w);
+      position: sticky;
+      top: calc(var(--bar-h) + 1.5rem);
+      align-self: flex-start;
+      padding: 1.5rem 0;
+    }
+    .doc-toc__heading {
+      font-family: var(--mono);
+      font-size: 9px;
+      color: var(--dim);
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      margin-bottom: 0.75rem;
+    }
+    .doc-toc__heading::before { content: "// "; color: var(--amber); }
+    .doc-toc__list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+    .doc-toc__list li a {
+      display: block;
+      font-family: var(--mono);
+      font-size: 11.5px;
+      color: var(--muted);
+      text-decoration: none;
+      padding: 0.3rem 0.75rem;
+      border-left: 2px solid var(--border);
+      transition: color 0.12s, border-color 0.12s, background 0.12s;
+      line-height: 1.4;
+    }
+    .doc-toc__list li a:hover {
+      color: var(--green);
+      border-left-color: var(--green);
+      background: var(--green-dim);
+    }
+    .doc-toc__list li.toc-sub a {
+      font-size: 10.5px;
+      padding-left: 1.25rem;
+      color: var(--dim);
+    }
+    .doc-toc__list li.toc-sub a:hover { color: var(--sky); border-left-color: var(--sky); background: var(--sky-dim); }
+    @media (max-width: 900px) { .doc-toc { display: none; } }
+
+    /* ── CONTENT ────────────────────────────────────────────────────────── */
+    .doc-content {
+      flex: 1;
+      min-width: 0;
+      padding: 2.5rem 0 4rem;
+    }
+
+    .doc-content h2 {
+      font-family: var(--mono);
+      font-size: clamp(1.1rem, 2.5vw, 1.4rem);
+      font-weight: 600;
+      color: var(--white);
+      margin: 3rem 0 0.85rem;
+      padding-top: 1rem;
+      scroll-margin-top: calc(var(--bar-h) + 1rem);
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+    .doc-content h2::before {
+      content: attr(data-n);
+      font-size: 10px;
+      color: var(--amber);
+      border: 1px solid rgba(251,191,36,0.35);
+      background: var(--amber-dim);
+      padding: 1px 6px;
+      border-radius: var(--radius-sm);
+      letter-spacing: 0.1em;
+      flex-shrink: 0;
+    }
+    .doc-content h2:first-of-type { margin-top: 0; }
+
+    .doc-content h3 {
+      font-family: var(--mono);
+      font-size: 13.5px;
+      font-weight: 600;
+      color: var(--sky);
+      margin: 2rem 0 0.65rem;
+      scroll-margin-top: calc(var(--bar-h) + 1rem);
+      letter-spacing: 0.02em;
+    }
+    .doc-content h3::before { content: "→ "; color: var(--dim); }
+
+    .doc-content p {
+      color: var(--text);
+      margin-bottom: 1.1rem;
+      max-width: 72ch;
+    }
+    .doc-content p:last-child { margin-bottom: 0; }
+
+    .doc-content ul {
+      margin: 0.5rem 0 1.1rem 1.25rem;
+      color: var(--muted);
+    }
+    .doc-content ul li { margin-bottom: 0.3rem; }
+    .doc-content ul li strong { color: var(--text); }
+
+    .doc-content strong { color: var(--white); font-weight: 600; }
+
+    .doc-content code {
+      font-family: var(--mono);
+      font-size: 11.5px;
+      color: var(--green);
+      background: var(--green-dim);
+      padding: 0.1em 0.4em;
+      border-radius: var(--radius-sm);
+    }
+
+    /* ── CODE BLOCKS ────────────────────────────────────────────────────── */
+    .code-block {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      margin: 1.25rem 0;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+    .code-block__header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.55rem 1rem;
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+    }
+    .code-block__filename {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .code-block__lang {
+      font-family: var(--mono);
+      font-size: 9px;
+      color: var(--dim);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+    .code-block pre {
+      margin: 0;
+      padding: 1.1rem 1.25rem;
+      overflow-x: auto;
+      font-family: var(--mono);
+      font-size: 12.5px;
+      line-height: 1.7;
+    }
+    .code-block pre code { color: var(--text); background: none; padding: 0; border-radius: 0; font-size: inherit; }
+
+    /* ── SYNTAX TOKENS ──────────────────────────────────────────────────── */
+    .kw  { color: var(--amber); }
+    .fn  { color: var(--sky); }
+    .cls { color: var(--sky); font-weight: 600; }
+    .dec { color: var(--amber); opacity: 0.85; }
+    .str { color: var(--green); }
+    .cm  { color: var(--dim); font-style: italic; }
+    .num { color: var(--green); }
+    .typ { color: var(--violet); }
+    .xml-tag  { color: var(--rose); }
+    .xml-attr { color: var(--amber); opacity: 0.85; }
+    .xml-val  { color: var(--green); }
+    .xml-cm   { color: var(--dim); font-style: italic; }
+
+    /* ── CALLOUT BOXES ──────────────────────────────────────────────────── */
+    .callout {
+      border-left: 3px solid;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      padding: 0.9rem 1.1rem;
+      margin: 1.25rem 0;
+      font-size: 14px;
+      line-height: 1.65;
+    }
+    .callout--insight {
+      border-color: var(--green);
+      background: var(--green-dim);
+      color: var(--text);
+    }
+    .callout--insight strong { color: var(--green); }
+    .callout--note {
+      border-color: var(--sky);
+      background: var(--sky-dim);
+      color: var(--text);
+    }
+    .callout--note strong { color: var(--sky); }
+    .callout--warn {
+      border-color: var(--amber);
+      background: var(--amber-dim);
+      color: var(--text);
+    }
+    .callout--warn strong { color: var(--amber); }
+
+    /* ── ARCHITECTURE BOX ────────────────────────────────────────────────── */
+    .arch-box {
+      background: var(--code-bg);
+      border: 1px solid var(--border-lit);
+      border-radius: var(--radius);
+      padding: 1.25rem 1.5rem;
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height: 1.8;
+      color: var(--muted);
+      white-space: pre;
+      overflow-x: auto;
+      margin: 1.25rem 0;
+    }
+    .arch-box .arch-hl  { color: var(--green); }
+    .arch-box .arch-dim { color: var(--dim); }
+    .arch-box .arch-sky { color: var(--sky); }
+    .arch-box .arch-amb { color: var(--amber); }
+
+    /* ── CODE SPLIT (2-col) ──────────────────────────────────────────────── */
+    .code-split {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.25rem;
+      margin: 1.5rem 0;
+    }
+    @media (max-width: 800px) { .code-split { grid-template-columns: 1fr; } }
+    .code-split__label {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      margin-bottom: 0.6rem;
+    }
+
+    /* ── COMPARISON TABLE ───────────────────────────────────────────────── */
+    .cmp-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin: 1.5rem 0;
+    }
+    .cmp-table th {
+      text-align: left;
+      padding: 0.55rem 0.9rem;
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      border-bottom: 2px solid var(--border-lit);
+    }
+    .cmp-table th:first-child { color: var(--muted); }
+    .cmp-table th.th-react    { color: #61dafb; }
+    .cmp-table th.th-cfx      { color: var(--green); }
+    .cmp-table td {
+      padding: 0.5rem 0.9rem;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+      color: var(--text);
+    }
+    .cmp-table td:first-child  { color: var(--muted); font-family: var(--mono); font-size: 11.5px; }
+    .cmp-table td code         { font-family: var(--mono); font-size: 11px; color: var(--green); background: var(--green-dim); padding: 0.1em 0.4em; border-radius: var(--radius-sm); }
+    .cmp-table td.td-react code { color: var(--sky); background: var(--sky-dim); }
+    .cmp-table tr:hover td     { background: rgba(74,222,128,0.025); }
+    .win { color: var(--green); font-weight: 600; }
+
+    /* ── SUMMARY TABLE ──────────────────────────────────────────────────── */
+    .summary-table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 1.5rem 0; }
+    .summary-table th { text-align: left; padding: 0.5rem 0.85rem; font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; border-bottom: 2px solid var(--border-lit); color: var(--muted); }
+    .summary-table td { padding: 0.5rem 0.85rem; border-bottom: 1px solid var(--border); color: var(--text); font-size: 13px; }
+    .summary-table td:first-child  { color: var(--sky); font-family: var(--mono); font-size: 12px; }
+    .summary-table td:nth-child(2) { color: var(--green); font-family: var(--mono); font-size: 11.5px; }
+    .summary-table tr:hover td { background: rgba(74,222,128,0.02); }
+
+    /* ── STEP INLINE ────────────────────────────────────────────────────── */
+    .run-steps { list-style: none; counter-reset: run-step; display: flex; flex-direction: column; gap: 0.85rem; margin: 1.25rem 0; }
+    .run-steps li { counter-increment: run-step; display: flex; gap: 0.9rem; align-items: flex-start; }
+    .run-steps li::before {
+      content: counter(run-step, decimal-leading-zero);
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--amber);
+      border: 1px solid rgba(251,191,36,0.35);
+      background: var(--amber-dim);
+      padding: 1px 6px;
+      border-radius: var(--radius-sm);
+      flex-shrink: 0;
+      line-height: 1.8;
+    }
+    .run-steps li .step-text { color: var(--muted); font-size: 13.5px; }
+    .run-steps li .step-text code { font-family: var(--mono); font-size: 11px; color: var(--sky); background: var(--sky-dim); padding: 0.1em 0.4em; border-radius: 2px; }
+
+    /* ── FOOTER ─────────────────────────────────────────────────────────── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 1.25rem clamp(1.5rem, 6vw, 4rem);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--dim);
+      background: var(--panel);
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+    footer a { color: var(--dim); text-decoration: none; transition: color 0.15s; }
+    footer a:hover { color: var(--green); }
+    footer .sep { margin: 0 0.45rem; }
+
+    /* ── NAV DROPDOWN ───────────────────────────────────────────────────────── */
+    .nav-dropdown { position: relative; }
+    .nav-dropdown__label {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: 0.03em;
+      transition: color 0.15s;
+      cursor: default;
+      user-select: none;
+    }
+    .nav-dropdown:hover .nav-dropdown__label { color: var(--green); }
+    .nav-dropdown__label.nav-active { color: var(--green); }
+    .nav-dropdown__menu {
+      display: none;
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      background: var(--panel);
+      border: 1px solid var(--border-lit);
+      border-radius: var(--radius);
+      min-width: 210px;
+      padding: 0.4rem 0;
+      z-index: 300;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.45);
+    }
+    .nav-dropdown:hover .nav-dropdown__menu { display: block; }
+    .nav-dropdown__menu a {
+      display: block;
+      font-family: var(--mono);
+      font-size: 11.5px;
+      color: var(--muted);
+      text-decoration: none;
+      padding: 0.4rem 1rem;
+      letter-spacing: 0.03em;
+      transition: color 0.12s, background 0.12s;
+    }
+    .nav-dropdown__menu a:hover { color: var(--green); background: var(--green-dim); }
+    .nav-dropdown__menu a.nav-active { color: var(--green); }
+  </style>
+</head>
+<body>
+
+<!-- ── TOP BAR ──────────────────────────────────────────────────────────── -->
+<header class="topbar">
+  <a href="index.html" class="topbar__logo">component-framework</a>
+  <span class="topbar__badge">BETA</span>
+  <nav aria-label="Main navigation">
+    <ul class="topbar__nav">
+      <li><a href="index.html">Home</a></li>
+      <li class="nav-dropdown">
+        <span class="nav-dropdown__label nav-active">Examples ▾</span>
+        <div class="nav-dropdown__menu">
+          <a href="ecommerce.html">E-Commerce Live View</a>
+          <a href="admin-panel.html">Admin Panel</a>
+          <a href="customer-support.html">Customer Support</a>
+          <a href="education-lms.html" class="nav-active">Education / LMS</a>
+          <a href="financial-dashboard.html">Financial Dashboard</a>
+        </div>
+      </li>
+      <li><a href="component_framework.html" class="nav-api">API Ref</a></li>
+      <li class="nav-hide"><a href="https://github.com/fsecada01/component-framework" target="_blank" rel="noopener">GitHub ↗</a></li>
+    </ul>
+  </nav>
+</header>
+
+<!-- ── DOC HERO ─────────────────────────────────────────────────────────── -->
+<div class="doc-hero">
+  <div class="doc-hero__inner">
+    <p class="doc-hero__eyebrow">Real-time LMS · HTMX · WebSocket · Django</p>
+    <h1 class="doc-hero__title">Education &amp; LMS Live View</h1>
+    <p class="doc-hero__lead">
+      No React. No Redux. No build step.
+      A complete Learning Management System built with server-side Python components —
+      real-time progress tracking, quiz grading, and instructor dashboards, all in plain Python.
+    </p>
+    <div class="doc-hero__tags">
+      <span class="tag tag--green">Progress Tracking</span>
+      <span class="tag tag--sky">Quiz Grading</span>
+      <span class="tag tag--amber">Instructor Dashboard</span>
+      <span class="tag tag--sky">WebSocket Push</span>
+      <span class="tag tag--green">Permissions</span>
+      <span class="tag tag--violet">Pure-Python Tests</span>
+    </div>
+  </div>
+</div>
+
+<!-- ── MAIN ─────────────────────────────────────────────────────────────── -->
+<div class="doc-layout">
+
+  <!-- ── TOC ─────────────────────────────────────────────────────────────── -->
+  <aside class="doc-toc" aria-label="Table of contents">
+    <div class="doc-toc__heading">On this page</div>
+    <ul class="doc-toc__list">
+      <li><a href="#scenario">The Scenario</a></li>
+      <li><a href="#architecture">Architecture</a></li>
+      <li><a href="#progress">CourseProgressComponent</a></li>
+      <li class="toc-sub"><a href="#progress-component">Component</a></li>
+      <li class="toc-sub"><a href="#progress-template">Template</a></li>
+      <li><a href="#quiz">QuizComponent</a></li>
+      <li class="toc-sub"><a href="#quiz-component">Component</a></li>
+      <li class="toc-sub"><a href="#quiz-ratelimit">Rate Limiting</a></li>
+      <li><a href="#instructor">InstructorDashboardComponent</a></li>
+      <li class="toc-sub"><a href="#instructor-ws">WebSocket Updates</a></li>
+      <li><a href="#notifications">Grade Notifications</a></li>
+      <li><a href="#composition">Component Composition</a></li>
+      <li><a href="#testing">Testing</a></li>
+      <li><a href="#summary">Summary</a></li>
+    </ul>
+  </aside>
+
+  <!-- ── CONTENT ──────────────────────────────────────────────────────────── -->
+  <article class="doc-content">
+
+    <!-- SCENARIO -->
+    <h2 id="scenario" data-n="00">The Scenario</h2>
+    <p>An online Python bootcamp needs live progress dashboards, real-time quiz grading, and instructor alerts — all without a JS build chain. Students should see their module completion update the moment they finish a lesson. Instructors need a live table reflecting every student's progress as it happens.</p>
+
+    <p>Four components cover the entire LMS surface:</p>
+
+    <ul>
+      <li><strong>CourseProgressComponent</strong> — tracks module completion per student and emits a WebSocket broadcast whenever a module is marked finished, so instructors see the update immediately.</li>
+      <li><strong>QuizComponent</strong> — handles quiz submission with immediate server-side grading and per-question feedback, rate-limited to prevent exam abuse.</li>
+      <li><strong>InstructorDashboardComponent</strong> — a live table of all enrolled students' progress; subscribes to the course WebSocket channel and patches individual rows in-memory when any student advances.</li>
+      <li><strong>GradeNotificationComponent</strong> — push notifications delivered directly to a student's browser when an instructor posts a grade, using a per-student WebSocket channel.</li>
+    </ul>
+
+    <div class="callout callout--insight">
+      <strong>The component-framework answer:</strong> write Python. State lives on the server. The browser sends events and receives rendered HTML. There is no client-side state machine — the server <em>is</em> the source of truth.
+    </div>
+
+    <!-- ARCHITECTURE -->
+    <h2 id="architecture" data-n="01">Architecture at a Glance</h2>
+    <div class="arch-box"><span class="arch-sky">Browser (HTMX + WebSocket)</span>
+    │
+    ├── <span class="arch-hl">POST /components/quiz/</span>         <span class="arch-dim">→ QuizComponent.on_submit()</span>
+    ├── <span class="arch-hl">POST /components/progress/</span>     <span class="arch-dim">→ CourseProgressComponent.on_complete_module()</span>
+    ├── <span class="arch-hl">GET  /components/instructor/</span>   <span class="arch-dim">→ InstructorDashboardComponent.mount()</span>
+    │
+    └── <span class="arch-sky">ws://…/ws/</span>
+         ├── <span class="arch-amb">broadcast: module_completed</span>  <span class="arch-dim">→ InstructorDashboardComponent (all instructors)</span>
+         └── <span class="arch-amb">broadcast: grade_posted</span>     <span class="arch-dim">→ GradeNotificationComponent (specific student)</span></div>
+
+    <p><strong>Key principle:</strong> the server owns all state. The browser is a dumb renderer that sends events and receives fresh HTML fragments. No synchronisation logic, no client state machine, no Redux.</p>
+
+    <!-- COURSE PROGRESS COMPONENT -->
+    <h2 id="progress" data-n="02">CourseProgressComponent</h2>
+    <p>Tracks which modules a student has completed, calculates overall percentage, and broadcasts a WebSocket message to the instructor channel whenever a module is finished.</p>
+
+    <h3 id="progress-component">The Component</h3>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">lms/components.py</span>
+        <span class="code-block__lang">Python</span>
+      </div>
+      <pre><code><span class="kw">from</span> component_framework.core <span class="kw">import</span> Component, registry, ws_manager
+<span class="kw">from</span> component_framework.core.permissions <span class="kw">import</span> IsAuthenticated
+<span class="kw">from</span> .models <span class="kw">import</span> Progress
+
+
+<span class="dec">@registry.register(<span class="str">"course_progress"</span>)</span>
+<span class="kw">class</span> <span class="cls">CourseProgressComponent</span>(Component):
+    <span class="str">"""
+    Renders per-student module progress and broadcasts completion events
+    to the course instructor channel via WebSocket.
+
+    params:
+        course_id (int): The course being tracked.
+    """</span>
+
+    template_name = <span class="str">"components/course_progress.html"</span>
+    permission_classes = [IsAuthenticated]
+
+    <span class="kw">def</span> <span class="fn">mount</span>(<span class="kw">self</span>):
+        student = <span class="kw">self</span>.request.user
+        <span class="kw">self</span>.state[<span class="str">"course_id"</span>] = <span class="kw">self</span>.params[<span class="str">"course_id"</span>]
+        <span class="kw">self</span>.state[<span class="str">"modules"</span>]   = <span class="kw">self</span>.<span class="fn">_load_modules</span>(student)
+        <span class="kw">self</span>.state[<span class="str">"completed"</span>] = <span class="kw">self</span>.<span class="fn">_load_completed</span>(student)
+        <span class="kw">self</span>.state[<span class="str">"pct"</span>]       = <span class="kw">self</span>.<span class="fn">_calc_pct</span>()
+
+    <span class="kw">async def</span> <span class="fn">on_complete_module</span>(<span class="kw">self</span>, module_id: <span class="typ">int</span>):
+        <span class="str">"""Mark a module complete and notify all instructors."""</span>
+        <span class="kw">if</span> module_id <span class="kw">in</span> <span class="kw">self</span>.state[<span class="str">"completed"</span>]:
+            <span class="kw">return</span>  <span class="cm"># idempotent — already done</span>
+
+        <span class="kw">await</span> Progress.objects.<span class="fn">acreate</span>(
+            user=<span class="kw">self</span>.request.user,
+            module_id=module_id,
+        )
+        <span class="kw">self</span>.state[<span class="str">"completed"</span>].<span class="fn">append</span>(module_id)
+        <span class="kw">self</span>.state[<span class="str">"pct"</span>] = <span class="kw">self</span>.<span class="fn">_calc_pct</span>()
+
+        <span class="cm"># Push live update to every instructor watching this course</span>
+        <span class="kw">await</span> ws_manager.<span class="fn">broadcast</span>(
+            <span class="fn">f</span><span class="str">"instructor-{self.state['course_id']}"</span>,
+            {
+                <span class="str">"event"</span>:   <span class="str">"module_completed"</span>,
+                <span class="str">"student"</span>: <span class="kw">self</span>.request.user.username,
+                <span class="str">"module"</span>:  module_id,
+                <span class="str">"pct"</span>:     <span class="kw">self</span>.state[<span class="str">"pct"</span>],
+            },
+        )
+
+    <span class="kw">def</span> <span class="fn">_load_modules</span>(<span class="kw">self</span>, student) -> <span class="typ">list</span>:
+        <span class="kw">from</span> .models <span class="kw">import</span> Module
+        <span class="kw">return</span> <span class="fn">list</span>(
+            Module.objects
+            .<span class="fn">filter</span>(course_id=<span class="kw">self</span>.params[<span class="str">"course_id"</span>])
+            .<span class="fn">values_list</span>(<span class="str">"id"</span>, flat=<span class="kw">True</span>)
+        )
+
+    <span class="kw">def</span> <span class="fn">_load_completed</span>(<span class="kw">self</span>, student) -> <span class="typ">list</span>:
+        <span class="kw">return</span> <span class="fn">list</span>(
+            Progress.objects
+            .<span class="fn">filter</span>(user=student, module__course_id=<span class="kw">self</span>.params[<span class="str">"course_id"</span>])
+            .<span class="fn">values_list</span>(<span class="str">"module_id"</span>, flat=<span class="kw">True</span>)
+        )
+
+    <span class="kw">def</span> <span class="fn">_calc_pct</span>(<span class="kw">self</span>) -> <span class="typ">int</span>:
+        total = <span class="fn">len</span>(<span class="kw">self</span>.state[<span class="str">"modules"</span>])
+        <span class="kw">return</span> <span class="fn">int</span>(<span class="fn">len</span>(<span class="kw">self</span>.state[<span class="str">"completed"</span>]) / total * <span class="num">100</span>) <span class="kw">if</span> total <span class="kw">else</span> <span class="num">0</span></code></pre>
+    </div>
+
+    <h3 id="progress-template">The Template</h3>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">lms/templates/components/course_progress.html</span>
+        <span class="code-block__lang">Django Template</span>
+      </div>
+      <pre><code><span class="xml-tag">&lt;div</span> <span class="xml-attr">id=</span><span class="xml-val">"course-progress-{{ component_id }}"</span>
+     <span class="xml-attr">hx-target=</span><span class="xml-val">"this"</span>
+     <span class="xml-attr">hx-swap=</span><span class="xml-val">"outerHTML"</span><span class="xml-tag">&gt;</span>
+
+  <span class="xml-tag">&lt;div</span> <span class="xml-attr">class=</span><span class="xml-val">"progress-header"</span><span class="xml-tag">&gt;</span>
+    <span class="xml-tag">&lt;span</span> <span class="xml-attr">class=</span><span class="xml-val">"progress-pct"</span><span class="xml-tag">&gt;</span>{{ state.pct }}% complete<span class="xml-tag">&lt;/span&gt;</span>
+    <span class="xml-tag">&lt;span</span> <span class="xml-attr">class=</span><span class="xml-val">"progress-count"</span><span class="xml-tag">&gt;</span>
+      {{ state.completed|length }} / {{ state.modules|length }} modules
+    <span class="xml-tag">&lt;/span&gt;</span>
+  <span class="xml-tag">&lt;/div&gt;</span>
+
+  <span class="xml-cm">{# Progress bar #}</span>
+  <span class="xml-tag">&lt;div</span> <span class="xml-attr">class=</span><span class="xml-val">"progress-bar"</span><span class="xml-tag">&gt;</span>
+    <span class="xml-tag">&lt;div</span> <span class="xml-attr">class=</span><span class="xml-val">"progress-bar__fill"</span>
+         <span class="xml-attr">style=</span><span class="xml-val">"width: {{ state.pct }}%"</span><span class="xml-tag">&gt;&lt;/div&gt;</span>
+  <span class="xml-tag">&lt;/div&gt;</span>
+
+  <span class="xml-cm">{# Module list — click to mark complete #}</span>
+  <span class="xml-tag">&lt;ul</span> <span class="xml-attr">class=</span><span class="xml-val">"module-list"</span><span class="xml-tag">&gt;</span>
+    {% for mod_id in state.modules %}
+      <span class="xml-tag">&lt;li</span> <span class="xml-attr">class=</span><span class="xml-val">"module-item {% if mod_id in state.completed %}done{% endif %}"</span><span class="xml-tag">&gt;</span>
+        {% if mod_id not in state.completed %}
+          <span class="xml-tag">&lt;button</span>
+            <span class="xml-attr">hx-post=</span><span class="xml-val">"{% url 'course_progress_component' %}"</span>
+            <span class="xml-attr">hx-vals=</span><span class="xml-val">'{"event": "complete_module", "module_id": {{ mod_id }}}'</span><span class="xml-tag">&gt;</span>
+            Mark complete
+          <span class="xml-tag">&lt;/button&gt;</span>
+        {% else %}
+          <span class="xml-tag">&lt;span</span> <span class="xml-attr">class=</span><span class="xml-val">"checkmark"</span><span class="xml-tag">&gt;</span>✓<span class="xml-tag">&lt;/span&gt;</span>
+        {% endif %}
+        Module {{ mod_id }}
+      <span class="xml-tag">&lt;/li&gt;</span>
+    {% endfor %}
+  <span class="xml-tag">&lt;/ul&gt;</span>
+
+<span class="xml-tag">&lt;/div&gt;</span></code></pre>
+    </div>
+
+    <div class="callout callout--insight">
+      <strong>WebSocket broadcast on every completion.</strong> Each call to <code>on_complete_module()</code> writes a <code>Progress</code> row and immediately broadcasts to the <code>instructor-{course_id}</code> channel. Every connected instructor dashboard patches its in-memory student row without a page reload or a polling interval.
+    </div>
+
+    <!-- QUIZ COMPONENT -->
+    <h2 id="quiz" data-n="03">QuizComponent</h2>
+    <p>Handles quiz submission with Pydantic validation, immediate server-side grading, and per-question feedback. Backed by <code>FormComponent</code> so the schema is the single source of truth for both validation and the rendered form.</p>
+
+    <h3 id="quiz-component">The Component</h3>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">lms/components.py (continued)</span>
+        <span class="code-block__lang">Python</span>
+      </div>
+      <pre><code><span class="kw">from</span> pydantic <span class="kw">import</span> BaseModel
+<span class="kw">from</span> component_framework.core.form <span class="kw">import</span> FormComponent
+<span class="kw">from</span> component_framework.core.permissions <span class="kw">import</span> IsAuthenticated
+<span class="kw">from</span> .models <span class="kw">import</span> Quiz, Submission
+<span class="kw">from</span> .permissions <span class="kw">import</span> IsEnrolled
+
+
+<span class="kw">class</span> <span class="cls">QuizAnswersSchema</span>(BaseModel):
+    answers: <span class="typ">dict</span>[<span class="typ">int</span>, <span class="typ">str</span>]   <span class="cm"># question_id → selected answer</span>
+
+
+<span class="dec">@registry.register(<span class="str">"quiz"</span>)</span>
+<span class="kw">class</span> <span class="cls">QuizComponent</span>(FormComponent):
+    <span class="str">"""
+    Server-side quiz grading with per-question feedback.
+
+    permission_classes enforces both authentication and course enrolment.
+    rate_limit prevents students from brute-forcing answers.
+    """</span>
+
+    schema = QuizAnswersSchema
+    template_name = <span class="str">"components/quiz.html"</span>
+    permission_classes = [IsAuthenticated, IsEnrolled]
+    rate_limit = <span class="str">"3/hour"</span>
+
+    <span class="kw">def</span> <span class="fn">mount</span>(<span class="kw">self</span>, quiz_id: <span class="typ">int</span>):
+        <span class="kw">self</span>.state[<span class="str">"quiz"</span>]      = Quiz.objects.<span class="fn">get</span>(pk=quiz_id)
+        <span class="kw">self</span>.state[<span class="str">"submitted"</span>] = <span class="kw">False</span>
+        <span class="kw">self</span>.state[<span class="str">"score"</span>]     = <span class="kw">None</span>
+        <span class="kw">self</span>.state[<span class="str">"feedback"</span>]  = {}
+
+    <span class="kw">def</span> <span class="fn">on_submit</span>(<span class="kw">self</span>):
+        <span class="str">"""Grade the submission and persist it."""</span>
+        answers = <span class="kw">self</span>.validated_data[<span class="str">"answers"</span>]
+        score, feedback = <span class="kw">self</span>.<span class="fn">grade</span>(answers)
+
+        Submission.objects.<span class="fn">create</span>(
+            user=<span class="kw">self</span>.request.user,
+            quiz=<span class="kw">self</span>.state[<span class="str">"quiz"</span>],
+            score=score,
+        )
+        <span class="kw">self</span>.state[<span class="str">"submitted"</span>] = <span class="kw">True</span>
+        <span class="kw">self</span>.state[<span class="str">"score"</span>]     = score
+        <span class="kw">self</span>.state[<span class="str">"feedback"</span>]  = feedback
+
+    <span class="kw">def</span> <span class="fn">grade</span>(<span class="kw">self</span>, answers: <span class="typ">dict</span>) -> <span class="typ">tuple</span>[<span class="typ">int</span>, <span class="typ">dict</span>]:
+        <span class="str">"""
+        Compare submitted answers against the answer key.
+        Returns (score_pct, {question_id: 'correct'|'incorrect'}).
+        """</span>
+        quiz = <span class="kw">self</span>.state[<span class="str">"quiz"</span>]
+        correct = <span class="num">0</span>
+        feedback = {}
+        <span class="kw">for</span> question <span class="kw">in</span> quiz.questions.<span class="fn">all</span>():
+            given = answers.<span class="fn">get</span>(question.pk, <span class="str">""</span>)
+            ok = given == question.correct_answer
+            feedback[question.pk] = <span class="str">"correct"</span> <span class="kw">if</span> ok <span class="kw">else</span> <span class="str">"incorrect"</span>
+            <span class="kw">if</span> ok:
+                correct += <span class="num">1</span>
+        total = quiz.questions.<span class="fn">count</span>()
+        score = <span class="fn">int</span>(correct / total * <span class="num">100</span>) <span class="kw">if</span> total <span class="kw">else</span> <span class="num">0</span>
+        <span class="kw">return</span> score, feedback</code></pre>
+    </div>
+
+    <h3 id="quiz-ratelimit">Rate Limiting Quiz Submissions</h3>
+
+    <div class="callout callout--insight">
+      <strong>rate_limit = "3/hour" prevents exam cheating.</strong> A student who submits more than three times per hour receives HTTP 429 with a <code>Retry-After</code> header. The limit applies per authenticated user, so one student cannot affect another's quota. No API gateway, no custom middleware — one attribute.
+    </div>
+
+    <div class="callout callout--note">
+      <strong>Why FormComponent?</strong> <code>FormComponent</code> runs Pydantic validation before calling <code>on_submit()</code>. If the payload fails the <code>QuizAnswersSchema</code> schema — missing fields, wrong types — the component returns validation errors and never reaches the grading logic. <code>self.validated_data</code> is always type-safe.
+    </div>
+
+    <!-- INSTRUCTOR DASHBOARD -->
+    <h2 id="instructor" data-n="04">InstructorDashboardComponent</h2>
+    <p>Mounts once and shows a table of every enrolled student's current completion percentage. It subscribes to the course WebSocket channel and patches individual rows in-memory when any student advances — no polling, no full-page reload.</p>
+
+    <h3 id="instructor-ws">Component with WebSocket Subscription</h3>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">lms/components.py (continued)</span>
+        <span class="code-block__lang">Python</span>
+      </div>
+      <pre><code><span class="kw">from</span> django.db.models <span class="kw">import</span> Count
+<span class="kw">from</span> component_framework.core.permissions <span class="kw">import</span> IsAuthenticated
+<span class="kw">from</span> .permissions <span class="kw">import</span> IsInstructor
+
+
+<span class="dec">@registry.register(<span class="str">"instructor_dashboard"</span>)</span>
+<span class="kw">class</span> <span class="cls">InstructorDashboardComponent</span>(Component):
+    <span class="str">"""
+    Live instructor view of all student progress for a course.
+
+    WebSocket channel: instructor-{course_id}
+    Patches individual student rows on module_completed events.
+    """</span>
+
+    template_name = <span class="str">"components/instructor_dashboard.html"</span>
+    permission_classes = [IsAuthenticated, IsInstructor]
+    cache_key_prefix = <span class="str">"instructor_dash"</span>
+    cache_ttl = <span class="num">30</span>   <span class="cm"># seconds — event requests bypass automatically</span>
+
+    <span class="kw">def</span> <span class="fn">mount</span>(<span class="kw">self</span>, course_id: <span class="typ">int</span>):
+        <span class="kw">self</span>.state[<span class="str">"course_id"</span>] = course_id
+        <span class="kw">self</span>.state[<span class="str">"students"</span>]  = <span class="kw">self</span>.<span class="fn">_load_all_progress</span>(course_id)
+
+    <span class="kw">async def</span> <span class="fn">on_ws_message</span>(<span class="kw">self</span>, message: <span class="typ">dict</span>):
+        <span class="str">"""
+        Handle WebSocket push from CourseProgressComponent.
+        Patches one student row — no DB query, no full reload.
+        """</span>
+        <span class="kw">if</span> message.<span class="fn">get</span>(<span class="str">"event"</span>) != <span class="str">"module_completed"</span>:
+            <span class="kw">return</span>
+        username = message[<span class="str">"student"</span>]
+        <span class="kw">for</span> student <span class="kw">in</span> <span class="kw">self</span>.state[<span class="str">"students"</span>]:
+            <span class="kw">if</span> student[<span class="str">"username"</span>] == username:
+                student[<span class="str">"pct"</span>] = message[<span class="str">"pct"</span>]
+                <span class="kw">break</span>
+
+    <span class="kw">def</span> <span class="fn">_load_all_progress</span>(<span class="kw">self</span>, course_id: <span class="typ">int</span>) -> <span class="typ">list</span>:
+        <span class="kw">from</span> .models <span class="kw">import</span> Progress, Module
+        total_modules = Module.objects.<span class="fn">filter</span>(course_id=course_id).<span class="fn">count</span>()
+        rows = (
+            Progress.objects
+            .<span class="fn">filter</span>(module__course_id=course_id)
+            .<span class="fn">values</span>(<span class="str">"user__username"</span>)
+            .<span class="fn">annotate</span>(completed=<span class="cls">Count</span>(<span class="str">"module"</span>))
+            .<span class="fn">order_by</span>(<span class="str">"user__username"</span>)
+        )
+        <span class="kw">return</span> [
+            {
+                <span class="str">"username"</span>:  r[<span class="str">"user__username"</span>],
+                <span class="str">"completed"</span>: r[<span class="str">"completed"</span>],
+                <span class="str">"pct"</span>: <span class="fn">int</span>(r[<span class="str">"completed"</span>] / total_modules * <span class="num">100</span>)
+                        <span class="kw">if</span> total_modules <span class="kw">else</span> <span class="num">0</span>,
+            }
+            <span class="kw">for</span> r <span class="kw">in</span> rows
+        ]</code></pre>
+    </div>
+
+    <div class="callout callout--note">
+      <strong>How the WebSocket connection works:</strong> the instructor's browser connects to <code>ws://…/ws/instructor-{course_id}/</code>. The Django Channels consumer joins the <code>instructor-{course_id}</code> group. When any student fires <code>on_complete_module()</code>, the broadcast lands in every connected instructor's consumer, which calls <code>on_ws_message()</code>, patches the in-memory state, and sends a fresh HTML fragment to the browser. The instructor sees the row update in under 50 ms.
+    </div>
+
+    <!-- GRADE NOTIFICATIONS -->
+    <h2 id="notifications" data-n="05">Real-time Grade Notifications</h2>
+    <p>When an instructor posts a score, a WebSocket broadcast delivers the notification directly to that student's browser — no polling, no refresh needed. The broadcast targets a per-student channel so other students are never affected.</p>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">lms/components.py (continued)</span>
+        <span class="code-block__lang">Python</span>
+      </div>
+      <pre><code><span class="kw">from</span> component_framework.adapters.django_model <span class="kw">import</span> DjangoModelComponent
+
+
+<span class="dec">@registry.register(<span class="str">"grade_poster"</span>)</span>
+<span class="kw">class</span> <span class="cls">GradePosterComponent</span>(DjangoModelComponent):
+    <span class="str">"""
+    Instructor tool for posting a score against a quiz Submission.
+    Broadcasts the result directly to the student's WebSocket channel.
+    """</span>
+
+    model = Submission
+    state_fields = [<span class="str">"score"</span>, <span class="str">"feedback"</span>]
+    permission_classes = [IsAuthenticated, IsInstructor]
+
+    <span class="kw">async def</span> <span class="fn">on_post_grade</span>(<span class="kw">self</span>, score: <span class="typ">int</span>, feedback: <span class="typ">str</span>):
+        <span class="str">"""Save the grade and push a notification to the student."""</span>
+        <span class="kw">self</span>.state[<span class="str">"score"</span>]    = score
+        <span class="kw">self</span>.state[<span class="str">"feedback"</span>] = feedback
+        <span class="kw">self</span>.<span class="fn">update_instance_from_state</span>()
+        <span class="kw">await</span> <span class="kw">self</span>.<span class="fn">save_instance</span>()
+
+        <span class="cm"># Push directly to the student who submitted</span>
+        <span class="kw">await</span> ws_manager.<span class="fn">broadcast</span>(
+            <span class="fn">f</span><span class="str">"student-{self.instance.user_id}"</span>,
+            {
+                <span class="str">"event"</span>: <span class="str">"grade_posted"</span>,
+                <span class="str">"quiz"</span>:  <span class="kw">self</span>.instance.quiz.title,
+                <span class="str">"score"</span>: score,
+            },
+        )
+
+
+<span class="dec">@registry.register(<span class="str">"grade_notification"</span>)</span>
+<span class="kw">class</span> <span class="cls">GradeNotificationComponent</span>(Component):
+    <span class="str">"""
+    Student-side notification banner.
+    Subscribes to the student's personal channel and renders
+    incoming grade_posted events as dismissible alerts.
+    """</span>
+
+    template_name = <span class="str">"components/grade_notification.html"</span>
+    permission_classes = [IsAuthenticated]
+
+    <span class="kw">def</span> <span class="fn">mount</span>(<span class="kw">self</span>):
+        <span class="kw">self</span>.state[<span class="str">"notifications"</span>] = []
+
+    <span class="kw">async def</span> <span class="fn">on_ws_message</span>(<span class="kw">self</span>, message: <span class="typ">dict</span>):
+        <span class="kw">if</span> message.<span class="fn">get</span>(<span class="str">"event"</span>) == <span class="str">"grade_posted"</span>:
+            <span class="kw">self</span>.state[<span class="str">"notifications"</span>].<span class="fn">insert</span>(<span class="num">0</span>, {
+                <span class="str">"quiz"</span>:  message[<span class="str">"quiz"</span>],
+                <span class="str">"score"</span>: message[<span class="str">"score"</span>],
+            })
+
+    <span class="kw">def</span> <span class="fn">on_dismiss</span>(<span class="kw">self</span>, index: <span class="typ">int</span>):
+        <span class="kw">try</span>:
+            <span class="kw">del self</span>.state[<span class="str">"notifications"</span>][index]
+        <span class="kw">except</span> <span class="cls">IndexError</span>:
+            <span class="kw">pass</span></code></pre>
+    </div>
+
+    <div class="callout callout--insight">
+      <strong>Targeted channels, not broadcasts.</strong> <code>ws_manager.broadcast("student-{user_id}", …)</code> sends to exactly one student's channel group. Other students — even those in the same course — never receive the message. No filtering logic on the client side is needed.
+    </div>
+
+    <!-- COMPOSITION -->
+    <h2 id="composition" data-n="06">Component Composition</h2>
+    <p>The full student view is assembled from independent components using <code>CompositeComponent</code>. Each sub-component manages its own state; the composite wires them together and renders them in a single template.</p>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">lms/components.py (continued)</span>
+        <span class="code-block__lang">Python</span>
+      </div>
+      <pre><code><span class="kw">from</span> component_framework.core.composition <span class="kw">import</span> CompositeComponent
+
+
+<span class="dec">@registry.register(<span class="str">"student_view"</span>)</span>
+<span class="kw">class</span> <span class="cls">StudentView</span>(CompositeComponent):
+    <span class="str">"""
+    Top-level student page — assembles progress tracker,
+    grade notifications, and the active quiz into one view.
+    """</span>
+
+    template_name = <span class="str">"components/student_view.html"</span>
+
+    components = {
+        <span class="str">"progress"</span>:      <span class="str">"course_progress"</span>,
+        <span class="str">"notifications"</span>: <span class="str">"grade_notification"</span>,
+    }</code></pre>
+    </div>
+
+    <p>The composite template delegates rendering to each child using the <code>{% live_component %}</code> template tag:</p>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">lms/templates/components/student_view.html</span>
+        <span class="code-block__lang">Django Template</span>
+      </div>
+      <pre><code>{% load components %}
+<span class="xml-tag">&lt;div</span> <span class="xml-attr">class=</span><span class="xml-val">"student-layout"</span><span class="xml-tag">&gt;</span>
+
+  <span class="xml-cm">{# Grade notifications — WebSocket, no polling #}</span>
+  {% live_component <span class="xml-val">"grade_notification"</span> %}
+
+  <span class="xml-cm">{# Module progress bar + checklist #}</span>
+  {% live_component <span class="xml-val">"course_progress"</span> course_id=course.id %}
+
+  <span class="xml-cm">{# Active quiz — shown only when one is assigned #}</span>
+  {% if current_quiz %}
+    <span class="xml-tag">&lt;div</span> <span class="xml-attr">id=</span><span class="xml-val">"quiz-area"</span><span class="xml-tag">&gt;</span>
+      {% live_component <span class="xml-val">"quiz"</span> quiz_id=current_quiz.id %}
+    <span class="xml-tag">&lt;/div&gt;</span>
+  {% endif %}
+
+<span class="xml-tag">&lt;/div&gt;</span></code></pre>
+    </div>
+
+    <div class="callout callout--note">
+      <strong>Each component is independently replaceable.</strong> Swapping <code>QuizComponent</code> for a timed variant or adding a <code>VideoComponent</code> slot requires no changes to the other components or the composite template — only a new registration in <code>registry</code>.
+    </div>
+
+    <!-- TESTING -->
+    <h2 id="testing" data-n="07">Testing</h2>
+    <p>Because components are pure Python, the full LMS behaviour is testable without Django, HTMX, or a running server. <code>dispatch_event()</code> mounts the component, fires the event, and returns the updated instance — all in memory.</p>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">lms/tests/test_quiz.py</span>
+        <span class="code-block__lang">Python</span>
+      </div>
+      <pre><code><span class="kw">import</span> pytest
+<span class="kw">from</span> django.contrib.auth.models <span class="kw">import</span> AnonymousUser
+<span class="kw">from</span> component_framework.testing <span class="kw">import</span> (
+    ComponentTestCase,
+    dispatch_event,
+    assert_state,
+    assert_permission_denied,
+)
+<span class="kw">from</span> component_framework.adapters.django_ratelimit <span class="kw">import</span> RateLimitExceeded
+<span class="kw">from</span> lms.components <span class="kw">import</span> QuizComponent
+
+
+<span class="kw">class</span> <span class="cls">TestQuizComponent</span>(ComponentTestCase):
+
+    <span class="kw">def</span> <span class="fn">test_correct_answer_scores_100</span>(<span class="kw">self</span>):
+        component = <span class="fn">dispatch_event</span>(
+            QuizComponent,
+            <span class="str">"submit"</span>,
+            {<span class="str">"answers"</span>: {<span class="num">1</span>: <span class="str">"B"</span>, <span class="num">2</span>: <span class="str">"True"</span>}},
+            quiz_id=<span class="num">1</span>,
+        )
+        <span class="fn">assert_state</span>(component, score=<span class="num">100</span>, submitted=<span class="kw">True</span>)
+
+    <span class="kw">def</span> <span class="fn">test_wrong_answers_score_proportionally</span>(<span class="kw">self</span>):
+        <span class="cm"># Quiz 2 has 4 questions; answer only 2 correctly</span>
+        component = <span class="fn">dispatch_event</span>(
+            QuizComponent,
+            <span class="str">"submit"</span>,
+            {<span class="str">"answers"</span>: {<span class="num">1</span>: <span class="str">"A"</span>, <span class="num">2</span>: <span class="str">"B"</span>, <span class="num">3</span>: <span class="str">"X"</span>, <span class="num">4</span>: <span class="str">"X"</span>}},
+            quiz_id=<span class="num">2</span>,
+        )
+        <span class="fn">assert_state</span>(component, score=<span class="num">50</span>)
+
+    <span class="kw">def</span> <span class="fn">test_rate_limit_blocks_fourth_attempt</span>(<span class="kw">self</span>):
+        <span class="kw">for</span> _ <span class="kw">in</span> <span class="fn">range</span>(<span class="num">3</span>):
+            <span class="fn">dispatch_event</span>(QuizComponent, <span class="str">"submit"</span>, {<span class="str">"answers"</span>: {}}, quiz_id=<span class="num">1</span>)
+        <span class="kw">with</span> pytest.<span class="fn">raises</span>(<span class="cls">RateLimitExceeded</span>):
+            <span class="fn">dispatch_event</span>(QuizComponent, <span class="str">"submit"</span>, {<span class="str">"answers"</span>: {}}, quiz_id=<span class="num">1</span>)
+
+    <span class="kw">def</span> <span class="fn">test_unauthenticated_cannot_submit</span>(<span class="kw">self</span>):
+        <span class="fn">assert_permission_denied</span>(
+            QuizComponent,
+            <span class="str">"submit"</span>,
+            user=<span class="cls">AnonymousUser</span>(),
+        )
+
+    <span class="kw">def</span> <span class="fn">test_feedback_labels_each_question</span>(<span class="kw">self</span>):
+        component = <span class="fn">dispatch_event</span>(
+            QuizComponent,
+            <span class="str">"submit"</span>,
+            {<span class="str">"answers"</span>: {<span class="num">1</span>: <span class="str">"B"</span>, <span class="num">2</span>: <span class="str">"False"</span>}},
+            quiz_id=<span class="num">1</span>,
+        )
+        <span class="kw">assert</span> component.state[<span class="str">"feedback"</span>][<span class="num">1</span>] == <span class="str">"correct"</span>
+        <span class="kw">assert</span> component.state[<span class="str">"feedback"</span>][<span class="num">2</span>] == <span class="str">"incorrect"</span></code></pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">lms/tests/test_progress.py</span>
+        <span class="code-block__lang">Python</span>
+      </div>
+      <pre><code><span class="kw">from</span> component_framework.testing <span class="kw">import</span> ComponentTestCase, dispatch_event
+<span class="kw">from</span> lms.components <span class="kw">import</span> CourseProgressComponent
+
+
+<span class="kw">class</span> <span class="cls">TestCourseProgressComponent</span>(ComponentTestCase):
+
+    <span class="kw">def</span> <span class="fn">test_completion_pct_updates</span>(<span class="kw">self</span>):
+        component = <span class="fn">dispatch_event</span>(
+            CourseProgressComponent,
+            <span class="str">"complete_module"</span>,
+            {<span class="str">"module_id"</span>: <span class="num">1</span>},
+            course_id=<span class="num">1</span>,
+        )
+        <span class="kw">assert</span> <span class="num">1</span> <span class="kw">in</span> component.state[<span class="str">"completed"</span>]
+        <span class="kw">assert</span> component.state[<span class="str">"pct"</span>] > <span class="num">0</span>
+
+    <span class="kw">def</span> <span class="fn">test_completing_same_module_twice_is_idempotent</span>(<span class="kw">self</span>):
+        component = <span class="fn">dispatch_event</span>(
+            CourseProgressComponent,
+            <span class="str">"complete_module"</span>,
+            {<span class="str">"module_id"</span>: <span class="num">1</span>},
+            course_id=<span class="num">1</span>,
+        )
+        before = component.state[<span class="str">"pct"</span>]
+        component.<span class="fn">on_complete_module</span>(<span class="num">1</span>)  <span class="cm"># second call, same module</span>
+        <span class="kw">assert</span> component.state[<span class="str">"pct"</span>] == before
+        <span class="kw">assert</span> component.state[<span class="str">"completed"</span>].<span class="fn">count</span>(<span class="num">1</span>) == <span class="num">1</span></code></pre>
+    </div>
+
+    <div class="callout callout--insight">
+      <strong>Tests run in ~2 ms per component.</strong> No browser, no HTTP stack, no Django test client — just Python objects. The full LMS test suite runs in under one second. <code>assert_state()</code>, <code>assert_permission_denied()</code>, and <code>dispatch_event()</code> are included in <code>component_framework.testing</code> with no extra setup.
+    </div>
+
+    <!-- SUMMARY -->
+    <h2 id="summary" data-n="§">Summary</h2>
+
+    <table class="summary-table">
+      <thead>
+        <tr>
+          <th>Component</th>
+          <th>Lines of Python</th>
+          <th>WebSocket</th>
+          <th>Framework</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>CourseProgressComponent</td>
+          <td>~40</td>
+          <td>broadcast</td>
+          <td>Django</td>
+        </tr>
+        <tr>
+          <td>QuizComponent</td>
+          <td>~35</td>
+          <td>—</td>
+          <td>Django</td>
+        </tr>
+        <tr>
+          <td>InstructorDashboardComponent</td>
+          <td>~45</td>
+          <td>subscribe</td>
+          <td>Django</td>
+        </tr>
+        <tr>
+          <td>GradePosterComponent</td>
+          <td>~25</td>
+          <td>broadcast</td>
+          <td>Django</td>
+        </tr>
+        <tr>
+          <td>GradeNotificationComponent</td>
+          <td>~20</td>
+          <td>subscribe</td>
+          <td>Django</td>
+        </tr>
+        <tr>
+          <td>StudentView (composite)</td>
+          <td>~10</td>
+          <td>—</td>
+          <td>Django</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout callout--insight">
+      <strong>Total: ~175 lines of Python for a full real-time LMS.</strong> No JavaScript state management, no bundler, no REST API surface. Server state, WebSocket broadcast, Pydantic validation, permission classes, rate limiting, and a composable component tree — all in plain Python, all testable without a browser.
+    </div>
+
+  </article>
+</div>
+
+<!-- ── FOOTER ─────────────────────────────────────────────────────────────── -->
+<footer>
+  <span>component-framework — MIT license</span>
+  <span>
+    <a href="https://github.com/fsecada01/component-framework" target="_blank" rel="noopener">GitHub</a>
+    <span class="sep">·</span>
+    <a href="https://pypi.org/project/component-framework/" target="_blank" rel="noopener">PyPI</a>
+    <span class="sep">·</span>
+    built with <a href="https://pdoc.dev" target="_blank" rel="noopener">pdoc</a>
+  </span>
+</footer>
+
+</body>
+</html>
