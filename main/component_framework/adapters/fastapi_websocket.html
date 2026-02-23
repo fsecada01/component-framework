@@ -93,89 +93,94 @@
 </span><span id="L-3"><a href="#L-3"><span class="linenos"> 3</span></a><span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
 </span><span id="L-4"><a href="#L-4"><span class="linenos"> 4</span></a><span class="kn">from</span><span class="w"> </span><span class="nn">uuid</span><span class="w"> </span><span class="kn">import</span> <span class="n">uuid4</span>
 </span><span id="L-5"><a href="#L-5"><span class="linenos"> 5</span></a>
-</span><span id="L-6"><a href="#L-6"><span class="linenos"> 6</span></a><span class="kn">from</span><span class="w"> </span><span class="nn">fastapi</span><span class="w"> </span><span class="kn">import</span> <span class="n">WebSocket</span><span class="p">,</span> <span class="n">WebSocketDisconnect</span>
-</span><span id="L-7"><a href="#L-7"><span class="linenos"> 7</span></a>
-</span><span id="L-8"><a href="#L-8"><span class="linenos"> 8</span></a><span class="kn">from</span><span class="w"> </span><span class="nn">..core.websocket</span><span class="w"> </span><span class="kn">import</span> <span class="n">WebSocketConnection</span><span class="p">,</span> <span class="n">ws_manager</span>
-</span><span id="L-9"><a href="#L-9"><span class="linenos"> 9</span></a>
-</span><span id="L-10"><a href="#L-10"><span class="linenos">10</span></a><span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
-</span><span id="L-11"><a href="#L-11"><span class="linenos">11</span></a>
+</span><span id="L-6"><a href="#L-6"><span class="linenos"> 6</span></a><span class="k">try</span><span class="p">:</span>
+</span><span id="L-7"><a href="#L-7"><span class="linenos"> 7</span></a>    <span class="kn">from</span><span class="w"> </span><span class="nn">fastapi</span><span class="w"> </span><span class="kn">import</span> <span class="n">WebSocket</span><span class="p">,</span> <span class="n">WebSocketDisconnect</span>
+</span><span id="L-8"><a href="#L-8"><span class="linenos"> 8</span></a><span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+</span><span id="L-9"><a href="#L-9"><span class="linenos"> 9</span></a>    <span class="kn">from</span><span class="w"> </span><span class="nn">.</span><span class="w"> </span><span class="kn">import</span> <span class="n">_require_extra</span>
+</span><span id="L-10"><a href="#L-10"><span class="linenos">10</span></a>
+</span><span id="L-11"><a href="#L-11"><span class="linenos">11</span></a>    <span class="k">raise</span> <span class="n">_require_extra</span><span class="p">(</span><span class="s2">&quot;fastapi&quot;</span><span class="p">,</span> <span class="s2">&quot;fastapi&quot;</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
 </span><span id="L-12"><a href="#L-12"><span class="linenos">12</span></a>
-</span><span id="L-13"><a href="#L-13"><span class="linenos">13</span></a><span class="k">class</span><span class="w"> </span><span class="nc">FastAPIWebSocketConnection</span><span class="p">(</span><span class="n">WebSocketConnection</span><span class="p">):</span>
-</span><span id="L-14"><a href="#L-14"><span class="linenos">14</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;FastAPI WebSocket connection wrapper.&quot;&quot;&quot;</span>
-</span><span id="L-15"><a href="#L-15"><span class="linenos">15</span></a>
-</span><span id="L-16"><a href="#L-16"><span class="linenos">16</span></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">websocket</span><span class="p">:</span> <span class="n">WebSocket</span><span class="p">):</span>
-</span><span id="L-17"><a href="#L-17"><span class="linenos">17</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">websocket</span> <span class="o">=</span> <span class="n">websocket</span>
-</span><span id="L-18"><a href="#L-18"><span class="linenos">18</span></a>
-</span><span id="L-19"><a href="#L-19"><span class="linenos">19</span></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
-</span><span id="L-20"><a href="#L-20"><span class="linenos">20</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Send JSON data to client.&quot;&quot;&quot;</span>
-</span><span id="L-21"><a href="#L-21"><span class="linenos">21</span></a>        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">websocket</span><span class="o">.</span><span class="n">send_json</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
-</span><span id="L-22"><a href="#L-22"><span class="linenos">22</span></a>
-</span><span id="L-23"><a href="#L-23"><span class="linenos">23</span></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">receive</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
-</span><span id="L-24"><a href="#L-24"><span class="linenos">24</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Receive JSON data from client.&quot;&quot;&quot;</span>
-</span><span id="L-25"><a href="#L-25"><span class="linenos">25</span></a>        <span class="k">return</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">websocket</span><span class="o">.</span><span class="n">receive_json</span><span class="p">()</span>
-</span><span id="L-26"><a href="#L-26"><span class="linenos">26</span></a>
-</span><span id="L-27"><a href="#L-27"><span class="linenos">27</span></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-</span><span id="L-28"><a href="#L-28"><span class="linenos">28</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Close WebSocket connection.&quot;&quot;&quot;</span>
-</span><span id="L-29"><a href="#L-29"><span class="linenos">29</span></a>        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">websocket</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
-</span><span id="L-30"><a href="#L-30"><span class="linenos">30</span></a>
+</span><span id="L-13"><a href="#L-13"><span class="linenos">13</span></a><span class="kn">from</span><span class="w"> </span><span class="nn">..core.websocket</span><span class="w"> </span><span class="kn">import</span> <span class="n">WebSocketConnection</span><span class="p">,</span> <span class="n">ws_manager</span>
+</span><span id="L-14"><a href="#L-14"><span class="linenos">14</span></a>
+</span><span id="L-15"><a href="#L-15"><span class="linenos">15</span></a><span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+</span><span id="L-16"><a href="#L-16"><span class="linenos">16</span></a>
+</span><span id="L-17"><a href="#L-17"><span class="linenos">17</span></a>
+</span><span id="L-18"><a href="#L-18"><span class="linenos">18</span></a><span class="k">class</span><span class="w"> </span><span class="nc">FastAPIWebSocketConnection</span><span class="p">(</span><span class="n">WebSocketConnection</span><span class="p">):</span>
+</span><span id="L-19"><a href="#L-19"><span class="linenos">19</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;FastAPI WebSocket connection wrapper.&quot;&quot;&quot;</span>
+</span><span id="L-20"><a href="#L-20"><span class="linenos">20</span></a>
+</span><span id="L-21"><a href="#L-21"><span class="linenos">21</span></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">websocket</span><span class="p">:</span> <span class="n">WebSocket</span><span class="p">):</span>
+</span><span id="L-22"><a href="#L-22"><span class="linenos">22</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">websocket</span> <span class="o">=</span> <span class="n">websocket</span>
+</span><span id="L-23"><a href="#L-23"><span class="linenos">23</span></a>
+</span><span id="L-24"><a href="#L-24"><span class="linenos">24</span></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
+</span><span id="L-25"><a href="#L-25"><span class="linenos">25</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Send JSON data to client.&quot;&quot;&quot;</span>
+</span><span id="L-26"><a href="#L-26"><span class="linenos">26</span></a>        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">websocket</span><span class="o">.</span><span class="n">send_json</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+</span><span id="L-27"><a href="#L-27"><span class="linenos">27</span></a>
+</span><span id="L-28"><a href="#L-28"><span class="linenos">28</span></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">receive</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+</span><span id="L-29"><a href="#L-29"><span class="linenos">29</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Receive JSON data from client.&quot;&quot;&quot;</span>
+</span><span id="L-30"><a href="#L-30"><span class="linenos">30</span></a>        <span class="k">return</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">websocket</span><span class="o">.</span><span class="n">receive_json</span><span class="p">()</span>
 </span><span id="L-31"><a href="#L-31"><span class="linenos">31</span></a>
-</span><span id="L-32"><a href="#L-32"><span class="linenos">32</span></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">component_websocket_endpoint</span><span class="p">(</span><span class="n">websocket</span><span class="p">:</span> <span class="n">WebSocket</span><span class="p">):</span>
-</span><span id="L-33"><a href="#L-33"><span class="linenos">33</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-</span><span id="L-34"><a href="#L-34"><span class="linenos">34</span></a><span class="sd">    FastAPI WebSocket endpoint for components.</span>
+</span><span id="L-32"><a href="#L-32"><span class="linenos">32</span></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span><span id="L-33"><a href="#L-33"><span class="linenos">33</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Close WebSocket connection.&quot;&quot;&quot;</span>
+</span><span id="L-34"><a href="#L-34"><span class="linenos">34</span></a>        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">websocket</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
 </span><span id="L-35"><a href="#L-35"><span class="linenos">35</span></a>
-</span><span id="L-36"><a href="#L-36"><span class="linenos">36</span></a><span class="sd">    Usage in FastAPI app:</span>
-</span><span id="L-37"><a href="#L-37"><span class="linenos">37</span></a><span class="sd">        from fastapi import FastAPI</span>
-</span><span id="L-38"><a href="#L-38"><span class="linenos">38</span></a><span class="sd">        from component_framework.adapters.fastapi_websocket import component_websocket_endpoint</span>
-</span><span id="L-39"><a href="#L-39"><span class="linenos">39</span></a>
-</span><span id="L-40"><a href="#L-40"><span class="linenos">40</span></a><span class="sd">        app = FastAPI()</span>
-</span><span id="L-41"><a href="#L-41"><span class="linenos">41</span></a>
-</span><span id="L-42"><a href="#L-42"><span class="linenos">42</span></a><span class="sd">        @app.websocket(&quot;/ws&quot;)</span>
-</span><span id="L-43"><a href="#L-43"><span class="linenos">43</span></a><span class="sd">        async def websocket_route(websocket: WebSocket):</span>
-</span><span id="L-44"><a href="#L-44"><span class="linenos">44</span></a><span class="sd">            await component_websocket_endpoint(websocket)</span>
-</span><span id="L-45"><a href="#L-45"><span class="linenos">45</span></a><span class="sd">    &quot;&quot;&quot;</span>
-</span><span id="L-46"><a href="#L-46"><span class="linenos">46</span></a>    <span class="c1"># Accept connection</span>
-</span><span id="L-47"><a href="#L-47"><span class="linenos">47</span></a>    <span class="k">await</span> <span class="n">websocket</span><span class="o">.</span><span class="n">accept</span><span class="p">()</span>
-</span><span id="L-48"><a href="#L-48"><span class="linenos">48</span></a>
-</span><span id="L-49"><a href="#L-49"><span class="linenos">49</span></a>    <span class="c1"># Generate connection ID</span>
-</span><span id="L-50"><a href="#L-50"><span class="linenos">50</span></a>    <span class="n">connection_id</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">uuid4</span><span class="p">())</span>
-</span><span id="L-51"><a href="#L-51"><span class="linenos">51</span></a>    <span class="n">connection</span> <span class="o">=</span> <span class="n">FastAPIWebSocketConnection</span><span class="p">(</span><span class="n">websocket</span><span class="p">)</span>
-</span><span id="L-52"><a href="#L-52"><span class="linenos">52</span></a>
-</span><span id="L-53"><a href="#L-53"><span class="linenos">53</span></a>    <span class="c1"># Register with manager</span>
-</span><span id="L-54"><a href="#L-54"><span class="linenos">54</span></a>    <span class="k">await</span> <span class="n">ws_manager</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">connection</span><span class="p">,</span> <span class="n">connection_id</span><span class="p">)</span>
-</span><span id="L-55"><a href="#L-55"><span class="linenos">55</span></a>
-</span><span id="L-56"><a href="#L-56"><span class="linenos">56</span></a>    <span class="k">try</span><span class="p">:</span>
-</span><span id="L-57"><a href="#L-57"><span class="linenos">57</span></a>        <span class="c1"># Send connection confirmation</span>
-</span><span id="L-58"><a href="#L-58"><span class="linenos">58</span></a>        <span class="k">await</span> <span class="n">connection</span><span class="o">.</span><span class="n">send</span><span class="p">({</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;connected&quot;</span><span class="p">,</span> <span class="s2">&quot;connection_id&quot;</span><span class="p">:</span> <span class="n">connection_id</span><span class="p">})</span>
-</span><span id="L-59"><a href="#L-59"><span class="linenos">59</span></a>
-</span><span id="L-60"><a href="#L-60"><span class="linenos">60</span></a>        <span class="c1"># Message loop</span>
-</span><span id="L-61"><a href="#L-61"><span class="linenos">61</span></a>        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
-</span><span id="L-62"><a href="#L-62"><span class="linenos">62</span></a>            <span class="c1"># Receive message</span>
-</span><span id="L-63"><a href="#L-63"><span class="linenos">63</span></a>            <span class="n">data</span> <span class="o">=</span> <span class="k">await</span> <span class="n">connection</span><span class="o">.</span><span class="n">receive</span><span class="p">()</span>
+</span><span id="L-36"><a href="#L-36"><span class="linenos">36</span></a>
+</span><span id="L-37"><a href="#L-37"><span class="linenos">37</span></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">component_websocket_endpoint</span><span class="p">(</span><span class="n">websocket</span><span class="p">:</span> <span class="n">WebSocket</span><span class="p">):</span>
+</span><span id="L-38"><a href="#L-38"><span class="linenos">38</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="L-39"><a href="#L-39"><span class="linenos">39</span></a><span class="sd">    FastAPI WebSocket endpoint for components.</span>
+</span><span id="L-40"><a href="#L-40"><span class="linenos">40</span></a>
+</span><span id="L-41"><a href="#L-41"><span class="linenos">41</span></a><span class="sd">    Usage in FastAPI app:</span>
+</span><span id="L-42"><a href="#L-42"><span class="linenos">42</span></a><span class="sd">        from fastapi import FastAPI</span>
+</span><span id="L-43"><a href="#L-43"><span class="linenos">43</span></a><span class="sd">        from component_framework.adapters.fastapi_websocket import component_websocket_endpoint</span>
+</span><span id="L-44"><a href="#L-44"><span class="linenos">44</span></a>
+</span><span id="L-45"><a href="#L-45"><span class="linenos">45</span></a><span class="sd">        app = FastAPI()</span>
+</span><span id="L-46"><a href="#L-46"><span class="linenos">46</span></a>
+</span><span id="L-47"><a href="#L-47"><span class="linenos">47</span></a><span class="sd">        @app.websocket(&quot;/ws&quot;)</span>
+</span><span id="L-48"><a href="#L-48"><span class="linenos">48</span></a><span class="sd">        async def websocket_route(websocket: WebSocket):</span>
+</span><span id="L-49"><a href="#L-49"><span class="linenos">49</span></a><span class="sd">            await component_websocket_endpoint(websocket)</span>
+</span><span id="L-50"><a href="#L-50"><span class="linenos">50</span></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="L-51"><a href="#L-51"><span class="linenos">51</span></a>    <span class="c1"># Accept connection</span>
+</span><span id="L-52"><a href="#L-52"><span class="linenos">52</span></a>    <span class="k">await</span> <span class="n">websocket</span><span class="o">.</span><span class="n">accept</span><span class="p">()</span>
+</span><span id="L-53"><a href="#L-53"><span class="linenos">53</span></a>
+</span><span id="L-54"><a href="#L-54"><span class="linenos">54</span></a>    <span class="c1"># Generate connection ID</span>
+</span><span id="L-55"><a href="#L-55"><span class="linenos">55</span></a>    <span class="n">connection_id</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">uuid4</span><span class="p">())</span>
+</span><span id="L-56"><a href="#L-56"><span class="linenos">56</span></a>    <span class="n">connection</span> <span class="o">=</span> <span class="n">FastAPIWebSocketConnection</span><span class="p">(</span><span class="n">websocket</span><span class="p">)</span>
+</span><span id="L-57"><a href="#L-57"><span class="linenos">57</span></a>
+</span><span id="L-58"><a href="#L-58"><span class="linenos">58</span></a>    <span class="c1"># Register with manager</span>
+</span><span id="L-59"><a href="#L-59"><span class="linenos">59</span></a>    <span class="k">await</span> <span class="n">ws_manager</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">connection</span><span class="p">,</span> <span class="n">connection_id</span><span class="p">)</span>
+</span><span id="L-60"><a href="#L-60"><span class="linenos">60</span></a>
+</span><span id="L-61"><a href="#L-61"><span class="linenos">61</span></a>    <span class="k">try</span><span class="p">:</span>
+</span><span id="L-62"><a href="#L-62"><span class="linenos">62</span></a>        <span class="c1"># Send connection confirmation</span>
+</span><span id="L-63"><a href="#L-63"><span class="linenos">63</span></a>        <span class="k">await</span> <span class="n">connection</span><span class="o">.</span><span class="n">send</span><span class="p">({</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;connected&quot;</span><span class="p">,</span> <span class="s2">&quot;connection_id&quot;</span><span class="p">:</span> <span class="n">connection_id</span><span class="p">})</span>
 </span><span id="L-64"><a href="#L-64"><span class="linenos">64</span></a>
-</span><span id="L-65"><a href="#L-65"><span class="linenos">65</span></a>            <span class="c1"># Handle message</span>
-</span><span id="L-66"><a href="#L-66"><span class="linenos">66</span></a>            <span class="k">await</span> <span class="n">ws_manager</span><span class="o">.</span><span class="n">handle_message</span><span class="p">(</span><span class="n">connection</span><span class="p">,</span> <span class="n">connection_id</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
-</span><span id="L-67"><a href="#L-67"><span class="linenos">67</span></a>
-</span><span id="L-68"><a href="#L-68"><span class="linenos">68</span></a>    <span class="k">except</span> <span class="n">WebSocketDisconnect</span><span class="p">:</span>
-</span><span id="L-69"><a href="#L-69"><span class="linenos">69</span></a>        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;WebSocket disconnected: </span><span class="si">{</span><span class="n">connection_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-</span><span id="L-70"><a href="#L-70"><span class="linenos">70</span></a>    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-</span><span id="L-71"><a href="#L-71"><span class="linenos">71</span></a>        <span class="n">logger</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;WebSocket error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-</span><span id="L-72"><a href="#L-72"><span class="linenos">72</span></a>    <span class="k">finally</span><span class="p">:</span>
-</span><span id="L-73"><a href="#L-73"><span class="linenos">73</span></a>        <span class="k">await</span> <span class="n">ws_manager</span><span class="o">.</span><span class="n">disconnect</span><span class="p">(</span><span class="n">connection_id</span><span class="p">)</span>
-</span><span id="L-74"><a href="#L-74"><span class="linenos">74</span></a>
-</span><span id="L-75"><a href="#L-75"><span class="linenos">75</span></a>
-</span><span id="L-76"><a href="#L-76"><span class="linenos">76</span></a><span class="k">def</span><span class="w"> </span><span class="nf">create_websocket_route</span><span class="p">(</span><span class="n">app</span><span class="p">):</span>
-</span><span id="L-77"><a href="#L-77"><span class="linenos">77</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-</span><span id="L-78"><a href="#L-78"><span class="linenos">78</span></a><span class="sd">    Add WebSocket route to FastAPI app.</span>
+</span><span id="L-65"><a href="#L-65"><span class="linenos">65</span></a>        <span class="c1"># Message loop</span>
+</span><span id="L-66"><a href="#L-66"><span class="linenos">66</span></a>        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+</span><span id="L-67"><a href="#L-67"><span class="linenos">67</span></a>            <span class="c1"># Receive message</span>
+</span><span id="L-68"><a href="#L-68"><span class="linenos">68</span></a>            <span class="n">data</span> <span class="o">=</span> <span class="k">await</span> <span class="n">connection</span><span class="o">.</span><span class="n">receive</span><span class="p">()</span>
+</span><span id="L-69"><a href="#L-69"><span class="linenos">69</span></a>
+</span><span id="L-70"><a href="#L-70"><span class="linenos">70</span></a>            <span class="c1"># Handle message</span>
+</span><span id="L-71"><a href="#L-71"><span class="linenos">71</span></a>            <span class="k">await</span> <span class="n">ws_manager</span><span class="o">.</span><span class="n">handle_message</span><span class="p">(</span><span class="n">connection</span><span class="p">,</span> <span class="n">connection_id</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+</span><span id="L-72"><a href="#L-72"><span class="linenos">72</span></a>
+</span><span id="L-73"><a href="#L-73"><span class="linenos">73</span></a>    <span class="k">except</span> <span class="n">WebSocketDisconnect</span><span class="p">:</span>
+</span><span id="L-74"><a href="#L-74"><span class="linenos">74</span></a>        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;WebSocket disconnected: </span><span class="si">{</span><span class="n">connection_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span id="L-75"><a href="#L-75"><span class="linenos">75</span></a>    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+</span><span id="L-76"><a href="#L-76"><span class="linenos">76</span></a>        <span class="n">logger</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;WebSocket error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span id="L-77"><a href="#L-77"><span class="linenos">77</span></a>    <span class="k">finally</span><span class="p">:</span>
+</span><span id="L-78"><a href="#L-78"><span class="linenos">78</span></a>        <span class="k">await</span> <span class="n">ws_manager</span><span class="o">.</span><span class="n">disconnect</span><span class="p">(</span><span class="n">connection_id</span><span class="p">)</span>
 </span><span id="L-79"><a href="#L-79"><span class="linenos">79</span></a>
-</span><span id="L-80"><a href="#L-80"><span class="linenos">80</span></a><span class="sd">    Usage:</span>
-</span><span id="L-81"><a href="#L-81"><span class="linenos">81</span></a><span class="sd">        from fastapi import FastAPI</span>
-</span><span id="L-82"><a href="#L-82"><span class="linenos">82</span></a><span class="sd">        app = FastAPI()</span>
-</span><span id="L-83"><a href="#L-83"><span class="linenos">83</span></a><span class="sd">        create_websocket_route(app)</span>
-</span><span id="L-84"><a href="#L-84"><span class="linenos">84</span></a><span class="sd">    &quot;&quot;&quot;</span>
-</span><span id="L-85"><a href="#L-85"><span class="linenos">85</span></a>
-</span><span id="L-86"><a href="#L-86"><span class="linenos">86</span></a>    <span class="nd">@app</span><span class="o">.</span><span class="n">websocket</span><span class="p">(</span><span class="s2">&quot;/ws&quot;</span><span class="p">)</span>
-</span><span id="L-87"><a href="#L-87"><span class="linenos">87</span></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">websocket_route</span><span class="p">(</span><span class="n">websocket</span><span class="p">:</span> <span class="n">WebSocket</span><span class="p">):</span>
-</span><span id="L-88"><a href="#L-88"><span class="linenos">88</span></a>        <span class="k">await</span> <span class="n">component_websocket_endpoint</span><span class="p">(</span><span class="n">websocket</span><span class="p">)</span>
+</span><span id="L-80"><a href="#L-80"><span class="linenos">80</span></a>
+</span><span id="L-81"><a href="#L-81"><span class="linenos">81</span></a><span class="k">def</span><span class="w"> </span><span class="nf">create_websocket_route</span><span class="p">(</span><span class="n">app</span><span class="p">):</span>
+</span><span id="L-82"><a href="#L-82"><span class="linenos">82</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="L-83"><a href="#L-83"><span class="linenos">83</span></a><span class="sd">    Add WebSocket route to FastAPI app.</span>
+</span><span id="L-84"><a href="#L-84"><span class="linenos">84</span></a>
+</span><span id="L-85"><a href="#L-85"><span class="linenos">85</span></a><span class="sd">    Usage:</span>
+</span><span id="L-86"><a href="#L-86"><span class="linenos">86</span></a><span class="sd">        from fastapi import FastAPI</span>
+</span><span id="L-87"><a href="#L-87"><span class="linenos">87</span></a><span class="sd">        app = FastAPI()</span>
+</span><span id="L-88"><a href="#L-88"><span class="linenos">88</span></a><span class="sd">        create_websocket_route(app)</span>
+</span><span id="L-89"><a href="#L-89"><span class="linenos">89</span></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="L-90"><a href="#L-90"><span class="linenos">90</span></a>
+</span><span id="L-91"><a href="#L-91"><span class="linenos">91</span></a>    <span class="nd">@app</span><span class="o">.</span><span class="n">websocket</span><span class="p">(</span><span class="s2">&quot;/ws&quot;</span><span class="p">)</span>
+</span><span id="L-92"><a href="#L-92"><span class="linenos">92</span></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">websocket_route</span><span class="p">(</span><span class="n">websocket</span><span class="p">:</span> <span class="n">WebSocket</span><span class="p">):</span>
+</span><span id="L-93"><a href="#L-93"><span class="linenos">93</span></a>        <span class="k">await</span> <span class="n">component_websocket_endpoint</span><span class="p">(</span><span class="n">websocket</span><span class="p">)</span>
 </span></pre></div>
 
 
@@ -203,23 +208,23 @@
 
     </div>
     <a class="headerlink" href="#FastAPIWebSocketConnection"></a>
-            <div class="pdoc-code codehilite"><pre><span></span><span id="FastAPIWebSocketConnection-14"><a href="#FastAPIWebSocketConnection-14"><span class="linenos">14</span></a><span class="k">class</span><span class="w"> </span><span class="nc">FastAPIWebSocketConnection</span><span class="p">(</span><span class="n">WebSocketConnection</span><span class="p">):</span>
-</span><span id="FastAPIWebSocketConnection-15"><a href="#FastAPIWebSocketConnection-15"><span class="linenos">15</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;FastAPI WebSocket connection wrapper.&quot;&quot;&quot;</span>
-</span><span id="FastAPIWebSocketConnection-16"><a href="#FastAPIWebSocketConnection-16"><span class="linenos">16</span></a>
-</span><span id="FastAPIWebSocketConnection-17"><a href="#FastAPIWebSocketConnection-17"><span class="linenos">17</span></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">websocket</span><span class="p">:</span> <span class="n">WebSocket</span><span class="p">):</span>
-</span><span id="FastAPIWebSocketConnection-18"><a href="#FastAPIWebSocketConnection-18"><span class="linenos">18</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">websocket</span> <span class="o">=</span> <span class="n">websocket</span>
-</span><span id="FastAPIWebSocketConnection-19"><a href="#FastAPIWebSocketConnection-19"><span class="linenos">19</span></a>
-</span><span id="FastAPIWebSocketConnection-20"><a href="#FastAPIWebSocketConnection-20"><span class="linenos">20</span></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
-</span><span id="FastAPIWebSocketConnection-21"><a href="#FastAPIWebSocketConnection-21"><span class="linenos">21</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Send JSON data to client.&quot;&quot;&quot;</span>
-</span><span id="FastAPIWebSocketConnection-22"><a href="#FastAPIWebSocketConnection-22"><span class="linenos">22</span></a>        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">websocket</span><span class="o">.</span><span class="n">send_json</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
-</span><span id="FastAPIWebSocketConnection-23"><a href="#FastAPIWebSocketConnection-23"><span class="linenos">23</span></a>
-</span><span id="FastAPIWebSocketConnection-24"><a href="#FastAPIWebSocketConnection-24"><span class="linenos">24</span></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">receive</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
-</span><span id="FastAPIWebSocketConnection-25"><a href="#FastAPIWebSocketConnection-25"><span class="linenos">25</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Receive JSON data from client.&quot;&quot;&quot;</span>
-</span><span id="FastAPIWebSocketConnection-26"><a href="#FastAPIWebSocketConnection-26"><span class="linenos">26</span></a>        <span class="k">return</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">websocket</span><span class="o">.</span><span class="n">receive_json</span><span class="p">()</span>
-</span><span id="FastAPIWebSocketConnection-27"><a href="#FastAPIWebSocketConnection-27"><span class="linenos">27</span></a>
-</span><span id="FastAPIWebSocketConnection-28"><a href="#FastAPIWebSocketConnection-28"><span class="linenos">28</span></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-</span><span id="FastAPIWebSocketConnection-29"><a href="#FastAPIWebSocketConnection-29"><span class="linenos">29</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Close WebSocket connection.&quot;&quot;&quot;</span>
-</span><span id="FastAPIWebSocketConnection-30"><a href="#FastAPIWebSocketConnection-30"><span class="linenos">30</span></a>        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">websocket</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+            <div class="pdoc-code codehilite"><pre><span></span><span id="FastAPIWebSocketConnection-19"><a href="#FastAPIWebSocketConnection-19"><span class="linenos">19</span></a><span class="k">class</span><span class="w"> </span><span class="nc">FastAPIWebSocketConnection</span><span class="p">(</span><span class="n">WebSocketConnection</span><span class="p">):</span>
+</span><span id="FastAPIWebSocketConnection-20"><a href="#FastAPIWebSocketConnection-20"><span class="linenos">20</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;FastAPI WebSocket connection wrapper.&quot;&quot;&quot;</span>
+</span><span id="FastAPIWebSocketConnection-21"><a href="#FastAPIWebSocketConnection-21"><span class="linenos">21</span></a>
+</span><span id="FastAPIWebSocketConnection-22"><a href="#FastAPIWebSocketConnection-22"><span class="linenos">22</span></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">websocket</span><span class="p">:</span> <span class="n">WebSocket</span><span class="p">):</span>
+</span><span id="FastAPIWebSocketConnection-23"><a href="#FastAPIWebSocketConnection-23"><span class="linenos">23</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">websocket</span> <span class="o">=</span> <span class="n">websocket</span>
+</span><span id="FastAPIWebSocketConnection-24"><a href="#FastAPIWebSocketConnection-24"><span class="linenos">24</span></a>
+</span><span id="FastAPIWebSocketConnection-25"><a href="#FastAPIWebSocketConnection-25"><span class="linenos">25</span></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
+</span><span id="FastAPIWebSocketConnection-26"><a href="#FastAPIWebSocketConnection-26"><span class="linenos">26</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Send JSON data to client.&quot;&quot;&quot;</span>
+</span><span id="FastAPIWebSocketConnection-27"><a href="#FastAPIWebSocketConnection-27"><span class="linenos">27</span></a>        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">websocket</span><span class="o">.</span><span class="n">send_json</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+</span><span id="FastAPIWebSocketConnection-28"><a href="#FastAPIWebSocketConnection-28"><span class="linenos">28</span></a>
+</span><span id="FastAPIWebSocketConnection-29"><a href="#FastAPIWebSocketConnection-29"><span class="linenos">29</span></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">receive</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+</span><span id="FastAPIWebSocketConnection-30"><a href="#FastAPIWebSocketConnection-30"><span class="linenos">30</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Receive JSON data from client.&quot;&quot;&quot;</span>
+</span><span id="FastAPIWebSocketConnection-31"><a href="#FastAPIWebSocketConnection-31"><span class="linenos">31</span></a>        <span class="k">return</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">websocket</span><span class="o">.</span><span class="n">receive_json</span><span class="p">()</span>
+</span><span id="FastAPIWebSocketConnection-32"><a href="#FastAPIWebSocketConnection-32"><span class="linenos">32</span></a>
+</span><span id="FastAPIWebSocketConnection-33"><a href="#FastAPIWebSocketConnection-33"><span class="linenos">33</span></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span><span id="FastAPIWebSocketConnection-34"><a href="#FastAPIWebSocketConnection-34"><span class="linenos">34</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Close WebSocket connection.&quot;&quot;&quot;</span>
+</span><span id="FastAPIWebSocketConnection-35"><a href="#FastAPIWebSocketConnection-35"><span class="linenos">35</span></a>        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">websocket</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
 </span></pre></div>
 
 
@@ -237,8 +242,8 @@
 
     </div>
     <a class="headerlink" href="#FastAPIWebSocketConnection.__init__"></a>
-            <div class="pdoc-code codehilite"><pre><span></span><span id="FastAPIWebSocketConnection.__init__-17"><a href="#FastAPIWebSocketConnection.__init__-17"><span class="linenos">17</span></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">websocket</span><span class="p">:</span> <span class="n">WebSocket</span><span class="p">):</span>
-</span><span id="FastAPIWebSocketConnection.__init__-18"><a href="#FastAPIWebSocketConnection.__init__-18"><span class="linenos">18</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">websocket</span> <span class="o">=</span> <span class="n">websocket</span>
+            <div class="pdoc-code codehilite"><pre><span></span><span id="FastAPIWebSocketConnection.__init__-22"><a href="#FastAPIWebSocketConnection.__init__-22"><span class="linenos">22</span></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">websocket</span><span class="p">:</span> <span class="n">WebSocket</span><span class="p">):</span>
+</span><span id="FastAPIWebSocketConnection.__init__-23"><a href="#FastAPIWebSocketConnection.__init__-23"><span class="linenos">23</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">websocket</span> <span class="o">=</span> <span class="n">websocket</span>
 </span></pre></div>
 
 
@@ -267,9 +272,9 @@
 
     </div>
     <a class="headerlink" href="#FastAPIWebSocketConnection.send"></a>
-            <div class="pdoc-code codehilite"><pre><span></span><span id="FastAPIWebSocketConnection.send-20"><a href="#FastAPIWebSocketConnection.send-20"><span class="linenos">20</span></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
-</span><span id="FastAPIWebSocketConnection.send-21"><a href="#FastAPIWebSocketConnection.send-21"><span class="linenos">21</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Send JSON data to client.&quot;&quot;&quot;</span>
-</span><span id="FastAPIWebSocketConnection.send-22"><a href="#FastAPIWebSocketConnection.send-22"><span class="linenos">22</span></a>        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">websocket</span><span class="o">.</span><span class="n">send_json</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+            <div class="pdoc-code codehilite"><pre><span></span><span id="FastAPIWebSocketConnection.send-25"><a href="#FastAPIWebSocketConnection.send-25"><span class="linenos">25</span></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
+</span><span id="FastAPIWebSocketConnection.send-26"><a href="#FastAPIWebSocketConnection.send-26"><span class="linenos">26</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Send JSON data to client.&quot;&quot;&quot;</span>
+</span><span id="FastAPIWebSocketConnection.send-27"><a href="#FastAPIWebSocketConnection.send-27"><span class="linenos">27</span></a>        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">websocket</span><span class="o">.</span><span class="n">send_json</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
 </span></pre></div>
 
 
@@ -289,9 +294,9 @@
 
     </div>
     <a class="headerlink" href="#FastAPIWebSocketConnection.receive"></a>
-            <div class="pdoc-code codehilite"><pre><span></span><span id="FastAPIWebSocketConnection.receive-24"><a href="#FastAPIWebSocketConnection.receive-24"><span class="linenos">24</span></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">receive</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
-</span><span id="FastAPIWebSocketConnection.receive-25"><a href="#FastAPIWebSocketConnection.receive-25"><span class="linenos">25</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Receive JSON data from client.&quot;&quot;&quot;</span>
-</span><span id="FastAPIWebSocketConnection.receive-26"><a href="#FastAPIWebSocketConnection.receive-26"><span class="linenos">26</span></a>        <span class="k">return</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">websocket</span><span class="o">.</span><span class="n">receive_json</span><span class="p">()</span>
+            <div class="pdoc-code codehilite"><pre><span></span><span id="FastAPIWebSocketConnection.receive-29"><a href="#FastAPIWebSocketConnection.receive-29"><span class="linenos">29</span></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">receive</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+</span><span id="FastAPIWebSocketConnection.receive-30"><a href="#FastAPIWebSocketConnection.receive-30"><span class="linenos">30</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Receive JSON data from client.&quot;&quot;&quot;</span>
+</span><span id="FastAPIWebSocketConnection.receive-31"><a href="#FastAPIWebSocketConnection.receive-31"><span class="linenos">31</span></a>        <span class="k">return</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">websocket</span><span class="o">.</span><span class="n">receive_json</span><span class="p">()</span>
 </span></pre></div>
 
 
@@ -311,9 +316,9 @@
 
     </div>
     <a class="headerlink" href="#FastAPIWebSocketConnection.close"></a>
-            <div class="pdoc-code codehilite"><pre><span></span><span id="FastAPIWebSocketConnection.close-28"><a href="#FastAPIWebSocketConnection.close-28"><span class="linenos">28</span></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-</span><span id="FastAPIWebSocketConnection.close-29"><a href="#FastAPIWebSocketConnection.close-29"><span class="linenos">29</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Close WebSocket connection.&quot;&quot;&quot;</span>
-</span><span id="FastAPIWebSocketConnection.close-30"><a href="#FastAPIWebSocketConnection.close-30"><span class="linenos">30</span></a>        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">websocket</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+            <div class="pdoc-code codehilite"><pre><span></span><span id="FastAPIWebSocketConnection.close-33"><a href="#FastAPIWebSocketConnection.close-33"><span class="linenos">33</span></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span><span id="FastAPIWebSocketConnection.close-34"><a href="#FastAPIWebSocketConnection.close-34"><span class="linenos">34</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Close WebSocket connection.&quot;&quot;&quot;</span>
+</span><span id="FastAPIWebSocketConnection.close-35"><a href="#FastAPIWebSocketConnection.close-35"><span class="linenos">35</span></a>        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">websocket</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
 </span></pre></div>
 
 
@@ -334,48 +339,48 @@
 
     </div>
     <a class="headerlink" href="#component_websocket_endpoint"></a>
-            <div class="pdoc-code codehilite"><pre><span></span><span id="component_websocket_endpoint-33"><a href="#component_websocket_endpoint-33"><span class="linenos">33</span></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">component_websocket_endpoint</span><span class="p">(</span><span class="n">websocket</span><span class="p">:</span> <span class="n">WebSocket</span><span class="p">):</span>
-</span><span id="component_websocket_endpoint-34"><a href="#component_websocket_endpoint-34"><span class="linenos">34</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-</span><span id="component_websocket_endpoint-35"><a href="#component_websocket_endpoint-35"><span class="linenos">35</span></a><span class="sd">    FastAPI WebSocket endpoint for components.</span>
-</span><span id="component_websocket_endpoint-36"><a href="#component_websocket_endpoint-36"><span class="linenos">36</span></a>
-</span><span id="component_websocket_endpoint-37"><a href="#component_websocket_endpoint-37"><span class="linenos">37</span></a><span class="sd">    Usage in FastAPI app:</span>
-</span><span id="component_websocket_endpoint-38"><a href="#component_websocket_endpoint-38"><span class="linenos">38</span></a><span class="sd">        from fastapi import FastAPI</span>
-</span><span id="component_websocket_endpoint-39"><a href="#component_websocket_endpoint-39"><span class="linenos">39</span></a><span class="sd">        from component_framework.adapters.fastapi_websocket import component_websocket_endpoint</span>
-</span><span id="component_websocket_endpoint-40"><a href="#component_websocket_endpoint-40"><span class="linenos">40</span></a>
-</span><span id="component_websocket_endpoint-41"><a href="#component_websocket_endpoint-41"><span class="linenos">41</span></a><span class="sd">        app = FastAPI()</span>
-</span><span id="component_websocket_endpoint-42"><a href="#component_websocket_endpoint-42"><span class="linenos">42</span></a>
-</span><span id="component_websocket_endpoint-43"><a href="#component_websocket_endpoint-43"><span class="linenos">43</span></a><span class="sd">        @app.websocket(&quot;/ws&quot;)</span>
-</span><span id="component_websocket_endpoint-44"><a href="#component_websocket_endpoint-44"><span class="linenos">44</span></a><span class="sd">        async def websocket_route(websocket: WebSocket):</span>
-</span><span id="component_websocket_endpoint-45"><a href="#component_websocket_endpoint-45"><span class="linenos">45</span></a><span class="sd">            await component_websocket_endpoint(websocket)</span>
-</span><span id="component_websocket_endpoint-46"><a href="#component_websocket_endpoint-46"><span class="linenos">46</span></a><span class="sd">    &quot;&quot;&quot;</span>
-</span><span id="component_websocket_endpoint-47"><a href="#component_websocket_endpoint-47"><span class="linenos">47</span></a>    <span class="c1"># Accept connection</span>
-</span><span id="component_websocket_endpoint-48"><a href="#component_websocket_endpoint-48"><span class="linenos">48</span></a>    <span class="k">await</span> <span class="n">websocket</span><span class="o">.</span><span class="n">accept</span><span class="p">()</span>
-</span><span id="component_websocket_endpoint-49"><a href="#component_websocket_endpoint-49"><span class="linenos">49</span></a>
-</span><span id="component_websocket_endpoint-50"><a href="#component_websocket_endpoint-50"><span class="linenos">50</span></a>    <span class="c1"># Generate connection ID</span>
-</span><span id="component_websocket_endpoint-51"><a href="#component_websocket_endpoint-51"><span class="linenos">51</span></a>    <span class="n">connection_id</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">uuid4</span><span class="p">())</span>
-</span><span id="component_websocket_endpoint-52"><a href="#component_websocket_endpoint-52"><span class="linenos">52</span></a>    <span class="n">connection</span> <span class="o">=</span> <span class="n">FastAPIWebSocketConnection</span><span class="p">(</span><span class="n">websocket</span><span class="p">)</span>
-</span><span id="component_websocket_endpoint-53"><a href="#component_websocket_endpoint-53"><span class="linenos">53</span></a>
-</span><span id="component_websocket_endpoint-54"><a href="#component_websocket_endpoint-54"><span class="linenos">54</span></a>    <span class="c1"># Register with manager</span>
-</span><span id="component_websocket_endpoint-55"><a href="#component_websocket_endpoint-55"><span class="linenos">55</span></a>    <span class="k">await</span> <span class="n">ws_manager</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">connection</span><span class="p">,</span> <span class="n">connection_id</span><span class="p">)</span>
-</span><span id="component_websocket_endpoint-56"><a href="#component_websocket_endpoint-56"><span class="linenos">56</span></a>
-</span><span id="component_websocket_endpoint-57"><a href="#component_websocket_endpoint-57"><span class="linenos">57</span></a>    <span class="k">try</span><span class="p">:</span>
-</span><span id="component_websocket_endpoint-58"><a href="#component_websocket_endpoint-58"><span class="linenos">58</span></a>        <span class="c1"># Send connection confirmation</span>
-</span><span id="component_websocket_endpoint-59"><a href="#component_websocket_endpoint-59"><span class="linenos">59</span></a>        <span class="k">await</span> <span class="n">connection</span><span class="o">.</span><span class="n">send</span><span class="p">({</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;connected&quot;</span><span class="p">,</span> <span class="s2">&quot;connection_id&quot;</span><span class="p">:</span> <span class="n">connection_id</span><span class="p">})</span>
-</span><span id="component_websocket_endpoint-60"><a href="#component_websocket_endpoint-60"><span class="linenos">60</span></a>
-</span><span id="component_websocket_endpoint-61"><a href="#component_websocket_endpoint-61"><span class="linenos">61</span></a>        <span class="c1"># Message loop</span>
-</span><span id="component_websocket_endpoint-62"><a href="#component_websocket_endpoint-62"><span class="linenos">62</span></a>        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
-</span><span id="component_websocket_endpoint-63"><a href="#component_websocket_endpoint-63"><span class="linenos">63</span></a>            <span class="c1"># Receive message</span>
-</span><span id="component_websocket_endpoint-64"><a href="#component_websocket_endpoint-64"><span class="linenos">64</span></a>            <span class="n">data</span> <span class="o">=</span> <span class="k">await</span> <span class="n">connection</span><span class="o">.</span><span class="n">receive</span><span class="p">()</span>
+            <div class="pdoc-code codehilite"><pre><span></span><span id="component_websocket_endpoint-38"><a href="#component_websocket_endpoint-38"><span class="linenos">38</span></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">component_websocket_endpoint</span><span class="p">(</span><span class="n">websocket</span><span class="p">:</span> <span class="n">WebSocket</span><span class="p">):</span>
+</span><span id="component_websocket_endpoint-39"><a href="#component_websocket_endpoint-39"><span class="linenos">39</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="component_websocket_endpoint-40"><a href="#component_websocket_endpoint-40"><span class="linenos">40</span></a><span class="sd">    FastAPI WebSocket endpoint for components.</span>
+</span><span id="component_websocket_endpoint-41"><a href="#component_websocket_endpoint-41"><span class="linenos">41</span></a>
+</span><span id="component_websocket_endpoint-42"><a href="#component_websocket_endpoint-42"><span class="linenos">42</span></a><span class="sd">    Usage in FastAPI app:</span>
+</span><span id="component_websocket_endpoint-43"><a href="#component_websocket_endpoint-43"><span class="linenos">43</span></a><span class="sd">        from fastapi import FastAPI</span>
+</span><span id="component_websocket_endpoint-44"><a href="#component_websocket_endpoint-44"><span class="linenos">44</span></a><span class="sd">        from component_framework.adapters.fastapi_websocket import component_websocket_endpoint</span>
+</span><span id="component_websocket_endpoint-45"><a href="#component_websocket_endpoint-45"><span class="linenos">45</span></a>
+</span><span id="component_websocket_endpoint-46"><a href="#component_websocket_endpoint-46"><span class="linenos">46</span></a><span class="sd">        app = FastAPI()</span>
+</span><span id="component_websocket_endpoint-47"><a href="#component_websocket_endpoint-47"><span class="linenos">47</span></a>
+</span><span id="component_websocket_endpoint-48"><a href="#component_websocket_endpoint-48"><span class="linenos">48</span></a><span class="sd">        @app.websocket(&quot;/ws&quot;)</span>
+</span><span id="component_websocket_endpoint-49"><a href="#component_websocket_endpoint-49"><span class="linenos">49</span></a><span class="sd">        async def websocket_route(websocket: WebSocket):</span>
+</span><span id="component_websocket_endpoint-50"><a href="#component_websocket_endpoint-50"><span class="linenos">50</span></a><span class="sd">            await component_websocket_endpoint(websocket)</span>
+</span><span id="component_websocket_endpoint-51"><a href="#component_websocket_endpoint-51"><span class="linenos">51</span></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="component_websocket_endpoint-52"><a href="#component_websocket_endpoint-52"><span class="linenos">52</span></a>    <span class="c1"># Accept connection</span>
+</span><span id="component_websocket_endpoint-53"><a href="#component_websocket_endpoint-53"><span class="linenos">53</span></a>    <span class="k">await</span> <span class="n">websocket</span><span class="o">.</span><span class="n">accept</span><span class="p">()</span>
+</span><span id="component_websocket_endpoint-54"><a href="#component_websocket_endpoint-54"><span class="linenos">54</span></a>
+</span><span id="component_websocket_endpoint-55"><a href="#component_websocket_endpoint-55"><span class="linenos">55</span></a>    <span class="c1"># Generate connection ID</span>
+</span><span id="component_websocket_endpoint-56"><a href="#component_websocket_endpoint-56"><span class="linenos">56</span></a>    <span class="n">connection_id</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">uuid4</span><span class="p">())</span>
+</span><span id="component_websocket_endpoint-57"><a href="#component_websocket_endpoint-57"><span class="linenos">57</span></a>    <span class="n">connection</span> <span class="o">=</span> <span class="n">FastAPIWebSocketConnection</span><span class="p">(</span><span class="n">websocket</span><span class="p">)</span>
+</span><span id="component_websocket_endpoint-58"><a href="#component_websocket_endpoint-58"><span class="linenos">58</span></a>
+</span><span id="component_websocket_endpoint-59"><a href="#component_websocket_endpoint-59"><span class="linenos">59</span></a>    <span class="c1"># Register with manager</span>
+</span><span id="component_websocket_endpoint-60"><a href="#component_websocket_endpoint-60"><span class="linenos">60</span></a>    <span class="k">await</span> <span class="n">ws_manager</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">connection</span><span class="p">,</span> <span class="n">connection_id</span><span class="p">)</span>
+</span><span id="component_websocket_endpoint-61"><a href="#component_websocket_endpoint-61"><span class="linenos">61</span></a>
+</span><span id="component_websocket_endpoint-62"><a href="#component_websocket_endpoint-62"><span class="linenos">62</span></a>    <span class="k">try</span><span class="p">:</span>
+</span><span id="component_websocket_endpoint-63"><a href="#component_websocket_endpoint-63"><span class="linenos">63</span></a>        <span class="c1"># Send connection confirmation</span>
+</span><span id="component_websocket_endpoint-64"><a href="#component_websocket_endpoint-64"><span class="linenos">64</span></a>        <span class="k">await</span> <span class="n">connection</span><span class="o">.</span><span class="n">send</span><span class="p">({</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;connected&quot;</span><span class="p">,</span> <span class="s2">&quot;connection_id&quot;</span><span class="p">:</span> <span class="n">connection_id</span><span class="p">})</span>
 </span><span id="component_websocket_endpoint-65"><a href="#component_websocket_endpoint-65"><span class="linenos">65</span></a>
-</span><span id="component_websocket_endpoint-66"><a href="#component_websocket_endpoint-66"><span class="linenos">66</span></a>            <span class="c1"># Handle message</span>
-</span><span id="component_websocket_endpoint-67"><a href="#component_websocket_endpoint-67"><span class="linenos">67</span></a>            <span class="k">await</span> <span class="n">ws_manager</span><span class="o">.</span><span class="n">handle_message</span><span class="p">(</span><span class="n">connection</span><span class="p">,</span> <span class="n">connection_id</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
-</span><span id="component_websocket_endpoint-68"><a href="#component_websocket_endpoint-68"><span class="linenos">68</span></a>
-</span><span id="component_websocket_endpoint-69"><a href="#component_websocket_endpoint-69"><span class="linenos">69</span></a>    <span class="k">except</span> <span class="n">WebSocketDisconnect</span><span class="p">:</span>
-</span><span id="component_websocket_endpoint-70"><a href="#component_websocket_endpoint-70"><span class="linenos">70</span></a>        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;WebSocket disconnected: </span><span class="si">{</span><span class="n">connection_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-</span><span id="component_websocket_endpoint-71"><a href="#component_websocket_endpoint-71"><span class="linenos">71</span></a>    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-</span><span id="component_websocket_endpoint-72"><a href="#component_websocket_endpoint-72"><span class="linenos">72</span></a>        <span class="n">logger</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;WebSocket error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-</span><span id="component_websocket_endpoint-73"><a href="#component_websocket_endpoint-73"><span class="linenos">73</span></a>    <span class="k">finally</span><span class="p">:</span>
-</span><span id="component_websocket_endpoint-74"><a href="#component_websocket_endpoint-74"><span class="linenos">74</span></a>        <span class="k">await</span> <span class="n">ws_manager</span><span class="o">.</span><span class="n">disconnect</span><span class="p">(</span><span class="n">connection_id</span><span class="p">)</span>
+</span><span id="component_websocket_endpoint-66"><a href="#component_websocket_endpoint-66"><span class="linenos">66</span></a>        <span class="c1"># Message loop</span>
+</span><span id="component_websocket_endpoint-67"><a href="#component_websocket_endpoint-67"><span class="linenos">67</span></a>        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+</span><span id="component_websocket_endpoint-68"><a href="#component_websocket_endpoint-68"><span class="linenos">68</span></a>            <span class="c1"># Receive message</span>
+</span><span id="component_websocket_endpoint-69"><a href="#component_websocket_endpoint-69"><span class="linenos">69</span></a>            <span class="n">data</span> <span class="o">=</span> <span class="k">await</span> <span class="n">connection</span><span class="o">.</span><span class="n">receive</span><span class="p">()</span>
+</span><span id="component_websocket_endpoint-70"><a href="#component_websocket_endpoint-70"><span class="linenos">70</span></a>
+</span><span id="component_websocket_endpoint-71"><a href="#component_websocket_endpoint-71"><span class="linenos">71</span></a>            <span class="c1"># Handle message</span>
+</span><span id="component_websocket_endpoint-72"><a href="#component_websocket_endpoint-72"><span class="linenos">72</span></a>            <span class="k">await</span> <span class="n">ws_manager</span><span class="o">.</span><span class="n">handle_message</span><span class="p">(</span><span class="n">connection</span><span class="p">,</span> <span class="n">connection_id</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+</span><span id="component_websocket_endpoint-73"><a href="#component_websocket_endpoint-73"><span class="linenos">73</span></a>
+</span><span id="component_websocket_endpoint-74"><a href="#component_websocket_endpoint-74"><span class="linenos">74</span></a>    <span class="k">except</span> <span class="n">WebSocketDisconnect</span><span class="p">:</span>
+</span><span id="component_websocket_endpoint-75"><a href="#component_websocket_endpoint-75"><span class="linenos">75</span></a>        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;WebSocket disconnected: </span><span class="si">{</span><span class="n">connection_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span id="component_websocket_endpoint-76"><a href="#component_websocket_endpoint-76"><span class="linenos">76</span></a>    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+</span><span id="component_websocket_endpoint-77"><a href="#component_websocket_endpoint-77"><span class="linenos">77</span></a>        <span class="n">logger</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;WebSocket error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span id="component_websocket_endpoint-78"><a href="#component_websocket_endpoint-78"><span class="linenos">78</span></a>    <span class="k">finally</span><span class="p">:</span>
+</span><span id="component_websocket_endpoint-79"><a href="#component_websocket_endpoint-79"><span class="linenos">79</span></a>        <span class="k">await</span> <span class="n">ws_manager</span><span class="o">.</span><span class="n">disconnect</span><span class="p">(</span><span class="n">connection_id</span><span class="p">)</span>
 </span></pre></div>
 
 
@@ -408,19 +413,19 @@
 
     </div>
     <a class="headerlink" href="#create_websocket_route"></a>
-            <div class="pdoc-code codehilite"><pre><span></span><span id="create_websocket_route-77"><a href="#create_websocket_route-77"><span class="linenos">77</span></a><span class="k">def</span><span class="w"> </span><span class="nf">create_websocket_route</span><span class="p">(</span><span class="n">app</span><span class="p">):</span>
-</span><span id="create_websocket_route-78"><a href="#create_websocket_route-78"><span class="linenos">78</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-</span><span id="create_websocket_route-79"><a href="#create_websocket_route-79"><span class="linenos">79</span></a><span class="sd">    Add WebSocket route to FastAPI app.</span>
-</span><span id="create_websocket_route-80"><a href="#create_websocket_route-80"><span class="linenos">80</span></a>
-</span><span id="create_websocket_route-81"><a href="#create_websocket_route-81"><span class="linenos">81</span></a><span class="sd">    Usage:</span>
-</span><span id="create_websocket_route-82"><a href="#create_websocket_route-82"><span class="linenos">82</span></a><span class="sd">        from fastapi import FastAPI</span>
-</span><span id="create_websocket_route-83"><a href="#create_websocket_route-83"><span class="linenos">83</span></a><span class="sd">        app = FastAPI()</span>
-</span><span id="create_websocket_route-84"><a href="#create_websocket_route-84"><span class="linenos">84</span></a><span class="sd">        create_websocket_route(app)</span>
-</span><span id="create_websocket_route-85"><a href="#create_websocket_route-85"><span class="linenos">85</span></a><span class="sd">    &quot;&quot;&quot;</span>
-</span><span id="create_websocket_route-86"><a href="#create_websocket_route-86"><span class="linenos">86</span></a>
-</span><span id="create_websocket_route-87"><a href="#create_websocket_route-87"><span class="linenos">87</span></a>    <span class="nd">@app</span><span class="o">.</span><span class="n">websocket</span><span class="p">(</span><span class="s2">&quot;/ws&quot;</span><span class="p">)</span>
-</span><span id="create_websocket_route-88"><a href="#create_websocket_route-88"><span class="linenos">88</span></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">websocket_route</span><span class="p">(</span><span class="n">websocket</span><span class="p">:</span> <span class="n">WebSocket</span><span class="p">):</span>
-</span><span id="create_websocket_route-89"><a href="#create_websocket_route-89"><span class="linenos">89</span></a>        <span class="k">await</span> <span class="n">component_websocket_endpoint</span><span class="p">(</span><span class="n">websocket</span><span class="p">)</span>
+            <div class="pdoc-code codehilite"><pre><span></span><span id="create_websocket_route-82"><a href="#create_websocket_route-82"><span class="linenos">82</span></a><span class="k">def</span><span class="w"> </span><span class="nf">create_websocket_route</span><span class="p">(</span><span class="n">app</span><span class="p">):</span>
+</span><span id="create_websocket_route-83"><a href="#create_websocket_route-83"><span class="linenos">83</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="create_websocket_route-84"><a href="#create_websocket_route-84"><span class="linenos">84</span></a><span class="sd">    Add WebSocket route to FastAPI app.</span>
+</span><span id="create_websocket_route-85"><a href="#create_websocket_route-85"><span class="linenos">85</span></a>
+</span><span id="create_websocket_route-86"><a href="#create_websocket_route-86"><span class="linenos">86</span></a><span class="sd">    Usage:</span>
+</span><span id="create_websocket_route-87"><a href="#create_websocket_route-87"><span class="linenos">87</span></a><span class="sd">        from fastapi import FastAPI</span>
+</span><span id="create_websocket_route-88"><a href="#create_websocket_route-88"><span class="linenos">88</span></a><span class="sd">        app = FastAPI()</span>
+</span><span id="create_websocket_route-89"><a href="#create_websocket_route-89"><span class="linenos">89</span></a><span class="sd">        create_websocket_route(app)</span>
+</span><span id="create_websocket_route-90"><a href="#create_websocket_route-90"><span class="linenos">90</span></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="create_websocket_route-91"><a href="#create_websocket_route-91"><span class="linenos">91</span></a>
+</span><span id="create_websocket_route-92"><a href="#create_websocket_route-92"><span class="linenos">92</span></a>    <span class="nd">@app</span><span class="o">.</span><span class="n">websocket</span><span class="p">(</span><span class="s2">&quot;/ws&quot;</span><span class="p">)</span>
+</span><span id="create_websocket_route-93"><a href="#create_websocket_route-93"><span class="linenos">93</span></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">websocket_route</span><span class="p">(</span><span class="n">websocket</span><span class="p">:</span> <span class="n">WebSocket</span><span class="p">):</span>
+</span><span id="create_websocket_route-94"><a href="#create_websocket_route-94"><span class="linenos">94</span></a>        <span class="k">await</span> <span class="n">component_websocket_endpoint</span><span class="p">(</span><span class="n">websocket</span><span class="p">)</span>
 </span></pre></div>
 
 
