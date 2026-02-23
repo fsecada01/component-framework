@@ -59,7 +59,9 @@ def _reload_adapter(module_path: str, blocked_package: str):
     module-attribute patching done by other fixtures.
     """
     # Save original adapter module(s) before evicting them
-    saved = {k: v for k, v in sys.modules.items() if k == module_path or k.startswith(f"{module_path}.")}
+    saved = {
+        k: v for k, v in sys.modules.items() if k == module_path or k.startswith(f"{module_path}.")
+    }
 
     # Evict so the import machinery re-executes the module body
     for key in saved:
