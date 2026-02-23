@@ -516,6 +516,14 @@
       box-shadow: 0 8px 32px rgba(0,0,0,0.45);
     }
     .nav-dropdown:hover .nav-dropdown__menu { display: block; }
+    .nav-dropdown::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: -1rem;
+      right: -1rem;
+      height: 10px;
+    }
     .nav-dropdown__menu a {
       display: block;
       font-family: var(--mono);
