@@ -144,7 +144,7 @@ git clone https://github.com/fsecada01/component-framework.git
 cd component-framework
 
 # Install with uv (recommended)
-uv pip install -e ".[dev,django,websockets]"
+uv pip install -e ".[dev]"
 ```
 
 ### FastAPI Example
@@ -340,7 +340,7 @@ component-framework/
 │   ├── fastapi_example.py           # FastAPI demo
 │   └── django_example/              # Complete Django app
 │
-├── tests/                           # 19 test modules
+├── tests/                           # 20 test modules
 │   ├── test_component.py            # Core component tests
 │   ├── test_form.py                 # Form validation tests
 │   ├── test_registry.py             # Registry tests
@@ -358,7 +358,8 @@ component-framework/
 │   ├── test_testing_utils.py        # Testing utility tests (Beta)
 │   ├── test_caching.py              # Cache mixin tests (Beta)
 │   ├── test_ratelimit.py            # Rate limit tests (Beta)
-│   └── test_optimistic.py           # Optimistic UI tests (Beta)
+│   ├── test_optimistic.py           # Optimistic UI tests (Beta)
+│   └── test_optional_extras.py      # Optional extras isolation tests
 │
 ├── docs/                            # Documentation
 │   ├── make.py                      # pdoc build script
@@ -409,7 +410,7 @@ CI runs against Python 3.11, 3.12, 3.13, and 3.14 on every push and pull request
 just install                # Install all deps (just: https://github.com/casey/just)
 
 # Or manually
-uv pip install -e ".[dev,django,websockets]"
+uv pip install -e ".[dev]"
 
 just pre-commit-install     # Install ruff + ty pre-commit hooks
 ```
@@ -487,6 +488,7 @@ just claude-prompt PROMPT_FILE=prompts/WORKFLOW.md
 - [x] Component composition (slots, composite)
 - [x] Testing utilities (`ComponentTestCase`)
 - [x] Versioned API documentation (GitHub Pages + pdoc)
+- [x] Optional extras — FastAPI/Uvicorn/JinjaX no longer mandatory (`[fastapi]`, `[django]`, `[all]`)
 
 ### 1.0 (Planned)
 - [ ] Stable, frozen public API
@@ -510,15 +512,13 @@ Current benchmarks (local development):
 ## Requirements
 
 - Python 3.11+
-- FastAPI 0.109+ (FastAPI adapter)
-- Django 4.2+ (Django adapter)
-- Pydantic 2.0+
+- Pydantic 2.0+ *(only mandatory runtime dependency)*
 
-Optional:
-- Django Channels 4.0+ (WebSocket)
-- channels-redis 4.1+ (WebSocket scaling)
-- django-cotton 0.9+ (Cotton integration)
-- Jinjax 0.41+ (Jinjax rendering)
+Optional extras:
+- `[fastapi]` — FastAPI 0.109+, Uvicorn, JinjaX 0.41+
+- `[django]` — Django 4.2+, Django Channels 4.0+, channels-redis 4.1+, django-cotton 0.9+
+- `[websockets]` — websockets 12.0+
+- `[all]` — all of the above
 
 ---
 

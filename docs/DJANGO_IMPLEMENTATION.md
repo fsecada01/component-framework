@@ -300,7 +300,7 @@ class CustomerList(Component):
 ### 1. Install Dependencies
 
 ```bash
-uv pip install -e ".[django,websockets,dev]"
+uv pip install -e ".[django,websockets,dev-base]"
 ```
 
 ### 2. Run Django Example

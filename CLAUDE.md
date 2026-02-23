@@ -1,4 +1,4 @@
-# Component Framework - AI Development Context
+﻿# Component Framework - AI Development Context
 
 This file provides context for AI assistants working on this project.
 
@@ -6,7 +6,7 @@ This file provides context for AI assistants working on this project.
 
 **Component Framework** is a Python library for building server-side components with LiveView-style interactivity. It provides a framework-agnostic core with adapters for FastAPI and Django.
 
-**Status:** Beta (0.2.0-beta)
+**Status:** Beta (0.3.0-beta)
 **Language:** Python 3.11+
 **License:** MIT
 
