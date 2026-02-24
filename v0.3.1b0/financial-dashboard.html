@@ -1,0 +1,1109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Financial Trading Dashboard — component-framework</title>
+  <meta name="description" content="Real-time financial trading dashboard built with server-side Python components, HTMX, and WebSocket. Live portfolio tracking, order management, and risk metrics — no React, no build step." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* ── TERMINAL MODERN — shared design system ─────────────────────────── */
+    :root {
+      --bg:          #0c1117;
+      --panel:       #161c26;
+      --panel-lit:   #1e2637;
+      --code-bg:     #090e18;
+      --border:      #1e2a3c;
+      --border-lit:  #29394f;
+
+      --green:       #4ade80;
+      --green-dim:   rgba(74,222,128,0.10);
+      --green-glow:  rgba(74,222,128,0.18);
+      --amber:       #fbbf24;
+      --amber-dim:   rgba(251,191,36,0.09);
+      --sky:         #38bdf8;
+      --sky-dim:     rgba(56,189,248,0.09);
+      --violet:      #a78bfa;
+      --rose:        #fb7185;
+
+      --text:        #cbd5e1;
+      --muted:       #64748b;
+      --dim:         #334155;
+      --white:       #f1f5f9;
+
+      --mono:        'IBM Plex Mono', 'Courier New', monospace;
+      --sans:        'Inter', system-ui, -apple-system, sans-serif;
+      --radius:      6px;
+      --radius-sm:   3px;
+      --bar-h:       42px;
+      --toc-w:       220px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 15px;
+      line-height: 1.75;
+      min-height: 100vh;
+    }
+
+    ::-webkit-scrollbar              { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-thumb        { background: var(--border-lit); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover  { background: var(--muted); }
+
+    /* ── TOP BAR ────────────────────────────────────────────────────────── */
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 200;
+      height: var(--bar-h);
+      display: flex;
+      align-items: center;
+      padding: 0 clamp(1rem, 4vw, 2.5rem);
+      background: linear-gradient(to right, #1a2232 0%, var(--panel) 60%);
+      border-bottom: 1px solid var(--border);
+      gap: 1rem;
+    }
+    .topbar__logo {
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--green);
+      text-decoration: none;
+      letter-spacing: 0.02em;
+      flex-shrink: 0;
+    }
+    .topbar__logo::before { content: "> "; color: var(--amber); }
+    .topbar__badge {
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 0.12em;
+      color: var(--amber);
+      border: 1px solid rgba(251,191,36,0.4);
+      background: rgba(251,191,36,0.06);
+      padding: 2px 6px;
+      border-radius: var(--radius-sm);
+    }
+    .topbar__nav {
+      margin-left: auto;
+      display: flex;
+      gap: 1.5rem;
+      list-style: none;
+      align-items: center;
+    }
+    .topbar__nav a {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--muted);
+      text-decoration: none;
+      letter-spacing: 0.03em;
+      transition: color 0.15s;
+    }
+    .topbar__nav a:hover         { color: var(--green); }
+    .topbar__nav a.nav-active    { color: var(--green); }
+    .topbar__nav a.nav-api       { color: var(--sky); }
+    .topbar__nav a.nav-api:hover { color: var(--green); }
+    @media (max-width: 640px) { .topbar__nav .nav-hide { display: none; } }
+
+    /* ── DOC HERO ───────────────────────────────────────────────────────── */
+    .doc-hero {
+      background: linear-gradient(180deg, #111926 0%, var(--bg) 100%);
+      border-bottom: 1px solid var(--border);
+      padding: clamp(2.5rem, 6vw, 4rem) clamp(1.5rem, 6vw, 4rem);
+    }
+    .doc-hero__inner {
+      max-width: 860px;
+      margin: 0 auto;
+    }
+    .doc-hero__eyebrow {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--amber);
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+    .doc-hero__eyebrow::before {
+      content: '';
+      display: block;
+      width: 20px;
+      height: 1px;
+      background: var(--amber);
+      opacity: 0.6;
+    }
+    .doc-hero__title {
+      font-family: var(--mono);
+      font-size: clamp(1.75rem, 4vw, 2.75rem);
+      font-weight: 600;
+      color: var(--white);
+      line-height: 1.1;
+      margin-bottom: 1rem;
+      letter-spacing: -0.02em;
+    }
+    .doc-hero__lead {
+      font-size: 16px;
+      color: var(--muted);
+      max-width: 680px;
+      line-height: 1.8;
+      margin-bottom: 1.75rem;
+    }
+    .doc-hero__tags {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .tag {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      padding: 3px 8px;
+      border-radius: var(--radius-sm);
+      text-transform: uppercase;
+    }
+    .tag--green  { color: var(--green); border: 1px solid rgba(74,222,128,0.3); background: var(--green-dim); }
+    .tag--sky    { color: var(--sky);   border: 1px solid rgba(56,189,248,0.3); background: var(--sky-dim);   }
+    .tag--amber  { color: var(--amber); border: 1px solid rgba(251,191,36,0.3); background: var(--amber-dim); }
+    .tag--violet { color: var(--violet);border: 1px solid rgba(167,139,250,0.3);background: rgba(167,139,250,0.08); }
+
+    /* ── DOC LAYOUT ─────────────────────────────────────────────────────── */
+    .doc-layout {
+      display: flex;
+      align-items: flex-start;
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 0 clamp(1rem, 3vw, 2rem);
+      gap: 3rem;
+    }
+
+    /* ── TOC ─────────────────────────────────────────────────────────────── */
+    .doc-toc {
+      flex-shrink: 0;
+      width: var(--toc-w);
+      position: sticky;
+      top: calc(var(--bar-h) + 1.5rem);
+      align-self: flex-start;
+      padding: 1.5rem 0;
+    }
+    .doc-toc__heading {
+      font-family: var(--mono);
+      font-size: 9px;
+      color: var(--dim);
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      margin-bottom: 0.75rem;
+    }
+    .doc-toc__heading::before { content: "// "; color: var(--amber); }
+    .doc-toc__list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+    .doc-toc__list li a {
+      display: block;
+      font-family: var(--mono);
+      font-size: 11.5px;
+      color: var(--muted);
+      text-decoration: none;
+      padding: 0.3rem 0.75rem;
+      border-left: 2px solid var(--border);
+      transition: color 0.12s, border-color 0.12s, background 0.12s;
+      line-height: 1.4;
+    }
+    .doc-toc__list li a:hover {
+      color: var(--green);
+      border-left-color: var(--green);
+      background: var(--green-dim);
+    }
+    .doc-toc__list li.toc-sub a {
+      font-size: 10.5px;
+      padding-left: 1.25rem;
+      color: var(--dim);
+    }
+    .doc-toc__list li.toc-sub a:hover { color: var(--sky); border-left-color: var(--sky); background: var(--sky-dim); }
+    @media (max-width: 900px) { .doc-toc { display: none; } }
+
+    /* ── CONTENT ────────────────────────────────────────────────────────── */
+    .doc-content {
+      flex: 1;
+      min-width: 0;
+      padding: 2.5rem 0 4rem;
+    }
+
+    .doc-content h2 {
+      font-family: var(--mono);
+      font-size: clamp(1.1rem, 2.5vw, 1.4rem);
+      font-weight: 600;
+      color: var(--white);
+      margin: 3rem 0 0.85rem;
+      padding-top: 1rem;
+      scroll-margin-top: calc(var(--bar-h) + 1rem);
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+    .doc-content h2::before {
+      content: attr(data-n);
+      font-size: 10px;
+      color: var(--amber);
+      border: 1px solid rgba(251,191,36,0.35);
+      background: var(--amber-dim);
+      padding: 1px 6px;
+      border-radius: var(--radius-sm);
+      letter-spacing: 0.1em;
+      flex-shrink: 0;
+    }
+    .doc-content h2:first-of-type { margin-top: 0; }
+
+    .doc-content h3 {
+      font-family: var(--mono);
+      font-size: 13.5px;
+      font-weight: 600;
+      color: var(--sky);
+      margin: 2rem 0 0.65rem;
+      scroll-margin-top: calc(var(--bar-h) + 1rem);
+      letter-spacing: 0.02em;
+    }
+    .doc-content h3::before { content: "→ "; color: var(--dim); }
+
+    .doc-content p {
+      color: var(--text);
+      margin-bottom: 1.1rem;
+      max-width: 72ch;
+    }
+    .doc-content p:last-child { margin-bottom: 0; }
+
+    .doc-content ul {
+      margin: 0.5rem 0 1.1rem 1.25rem;
+      color: var(--muted);
+    }
+    .doc-content ul li { margin-bottom: 0.3rem; }
+    .doc-content ul li strong { color: var(--text); }
+
+    .doc-content strong { color: var(--white); font-weight: 600; }
+
+    .doc-content code {
+      font-family: var(--mono);
+      font-size: 11.5px;
+      color: var(--green);
+      background: var(--green-dim);
+      padding: 0.1em 0.4em;
+      border-radius: var(--radius-sm);
+    }
+
+    /* ── CODE BLOCKS ────────────────────────────────────────────────────── */
+    .code-block {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      margin: 1.25rem 0;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+    .code-block__header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.55rem 1rem;
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+    }
+    .code-block__filename {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .code-block__lang {
+      font-family: var(--mono);
+      font-size: 9px;
+      color: var(--dim);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+    .code-block pre {
+      margin: 0;
+      padding: 1.1rem 1.25rem;
+      overflow-x: auto;
+      font-family: var(--mono);
+      font-size: 12.5px;
+      line-height: 1.7;
+    }
+    .code-block pre code { color: var(--text); background: none; padding: 0; border-radius: 0; font-size: inherit; }
+
+    /* ── SYNTAX TOKENS ──────────────────────────────────────────────────── */
+    .kw  { color: var(--amber); }
+    .fn  { color: var(--sky); }
+    .cls { color: var(--sky); font-weight: 600; }
+    .dec { color: var(--amber); opacity: 0.85; }
+    .str { color: var(--green); }
+    .cm  { color: var(--dim); font-style: italic; }
+    .num { color: var(--green); }
+    .typ { color: var(--violet); }
+    .xml-tag  { color: var(--rose); }
+    .xml-attr { color: var(--amber); opacity: 0.85; }
+    .xml-val  { color: var(--green); }
+    .xml-cm   { color: var(--dim); font-style: italic; }
+
+    /* ── CALLOUT BOXES ──────────────────────────────────────────────────── */
+    .callout {
+      border-left: 3px solid;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      padding: 0.9rem 1.1rem;
+      margin: 1.25rem 0;
+      font-size: 14px;
+      line-height: 1.65;
+    }
+    .callout--insight {
+      border-color: var(--green);
+      background: var(--green-dim);
+      color: var(--text);
+    }
+    .callout--insight strong { color: var(--green); }
+    .callout--note {
+      border-color: var(--sky);
+      background: var(--sky-dim);
+      color: var(--text);
+    }
+    .callout--note strong { color: var(--sky); }
+    .callout--warn {
+      border-color: var(--amber);
+      background: var(--amber-dim);
+      color: var(--text);
+    }
+    .callout--warn strong { color: var(--amber); }
+
+    /* ── ARCHITECTURE BOX ────────────────────────────────────────────────── */
+    .arch-box {
+      background: var(--code-bg);
+      border: 1px solid var(--border-lit);
+      border-radius: var(--radius);
+      padding: 1.25rem 1.5rem;
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height: 1.8;
+      color: var(--muted);
+      white-space: pre;
+      overflow-x: auto;
+      margin: 1.25rem 0;
+    }
+    .arch-box .arch-hl  { color: var(--green); }
+    .arch-box .arch-dim { color: var(--dim); }
+    .arch-box .arch-sky { color: var(--sky); }
+    .arch-box .arch-amb { color: var(--amber); }
+
+    /* ── CODE SPLIT (2-col) ──────────────────────────────────────────────── */
+    .code-split {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.25rem;
+      margin: 1.5rem 0;
+    }
+    @media (max-width: 800px) { .code-split { grid-template-columns: 1fr; } }
+    .code-split__label {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      margin-bottom: 0.6rem;
+    }
+
+    /* ── COMPARISON TABLE ───────────────────────────────────────────────── */
+    .cmp-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin: 1.5rem 0;
+    }
+    .cmp-table th {
+      text-align: left;
+      padding: 0.55rem 0.9rem;
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      border-bottom: 2px solid var(--border-lit);
+    }
+    .cmp-table th:first-child { color: var(--muted); }
+    .cmp-table th.th-react    { color: #61dafb; }
+    .cmp-table th.th-cfx      { color: var(--green); }
+    .cmp-table td {
+      padding: 0.5rem 0.9rem;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+      color: var(--text);
+    }
+    .cmp-table td:first-child  { color: var(--muted); font-family: var(--mono); font-size: 11.5px; }
+    .cmp-table td code         { font-family: var(--mono); font-size: 11px; color: var(--green); background: var(--green-dim); padding: 0.1em 0.4em; border-radius: var(--radius-sm); }
+    .cmp-table td.td-react code { color: var(--sky); background: var(--sky-dim); }
+    .cmp-table tr:hover td     { background: rgba(74,222,128,0.025); }
+    .win { color: var(--green); font-weight: 600; }
+
+    /* ── SUMMARY TABLE ──────────────────────────────────────────────────── */
+    .summary-table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 1.5rem 0; }
+    .summary-table th { text-align: left; padding: 0.5rem 0.85rem; font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; border-bottom: 2px solid var(--border-lit); color: var(--muted); }
+    .summary-table td { padding: 0.5rem 0.85rem; border-bottom: 1px solid var(--border); color: var(--text); font-size: 13px; }
+    .summary-table td:first-child  { color: var(--sky); font-family: var(--mono); font-size: 12px; }
+    .summary-table td:nth-child(2) { color: var(--green); font-family: var(--mono); font-size: 11.5px; }
+    .summary-table tr:hover td { background: rgba(74,222,128,0.02); }
+
+    /* ── STEP INLINE ────────────────────────────────────────────────────── */
+    .run-steps { list-style: none; counter-reset: run-step; display: flex; flex-direction: column; gap: 0.85rem; margin: 1.25rem 0; }
+    .run-steps li { counter-increment: run-step; display: flex; gap: 0.9rem; align-items: flex-start; }
+    .run-steps li::before {
+      content: counter(run-step, decimal-leading-zero);
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--amber);
+      border: 1px solid rgba(251,191,36,0.35);
+      background: var(--amber-dim);
+      padding: 1px 6px;
+      border-radius: var(--radius-sm);
+      flex-shrink: 0;
+      line-height: 1.8;
+    }
+    .run-steps li .step-text { color: var(--muted); font-size: 13.5px; }
+    .run-steps li .step-text code { font-family: var(--mono); font-size: 11px; color: var(--sky); background: var(--sky-dim); padding: 0.1em 0.4em; border-radius: 2px; }
+
+    /* ── FOOTER ─────────────────────────────────────────────────────────── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 1.25rem clamp(1.5rem, 6vw, 4rem);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--dim);
+      background: var(--panel);
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+    footer a { color: var(--dim); text-decoration: none; transition: color 0.15s; }
+    footer a:hover { color: var(--green); }
+    footer .sep { margin: 0 0.45rem; }
+
+    /* ── NAV DROPDOWN ───────────────────────────────────────────────────────── */
+    .nav-dropdown { position: relative; }
+    .nav-dropdown__label {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: 0.03em;
+      transition: color 0.15s;
+      cursor: default;
+      user-select: none;
+    }
+    .nav-dropdown:hover .nav-dropdown__label { color: var(--green); }
+    .nav-dropdown__label.nav-active { color: var(--green); }
+    .nav-dropdown__menu {
+      display: none;
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      background: var(--panel);
+      border: 1px solid var(--border-lit);
+      border-radius: var(--radius);
+      min-width: 210px;
+      padding: 0.4rem 0;
+      z-index: 300;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.45);
+    }
+    .nav-dropdown:hover .nav-dropdown__menu { display: block; }
+    .nav-dropdown::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: -1rem;
+      right: -1rem;
+      height: 10px;
+    }
+    .nav-dropdown__menu a {
+      display: block;
+      font-family: var(--mono);
+      font-size: 11.5px;
+      color: var(--muted);
+      text-decoration: none;
+      padding: 0.4rem 1rem;
+      letter-spacing: 0.03em;
+      transition: color 0.12s, background 0.12s;
+    }
+    .nav-dropdown__menu a:hover { color: var(--green); background: var(--green-dim); }
+    .nav-dropdown__menu a.nav-active { color: var(--green); }
+  </style>
+</head>
+<body>
+
+<!-- ── TOP BAR ──────────────────────────────────────────────────────────── -->
+<header class="topbar">
+  <a href="index.html" class="topbar__logo">component-framework</a>
+  <span class="topbar__badge">BETA</span>
+  <nav aria-label="Main navigation">
+    <ul class="topbar__nav">
+      <li><a href="index.html">Home</a></li>
+      <li class="nav-dropdown">
+        <span class="nav-dropdown__label nav-active">Examples ▾</span>
+        <div class="nav-dropdown__menu">
+          <a href="ecommerce.html">E-Commerce Live View</a>
+          <a href="admin-panel.html">Admin Panel</a>
+          <a href="customer-support.html">Customer Support</a>
+          <a href="education-lms.html">Education / LMS</a>
+          <a href="financial-dashboard.html" class="nav-active">Financial Dashboard</a>
+        </div>
+      </li>
+      <li><a href="component_framework.html" class="nav-api">API Ref</a></li>
+      <li class="nav-hide"><a href="https://github.com/fsecada01/component-framework" target="_blank" rel="noopener">GitHub ↗</a></li>
+    </ul>
+  </nav>
+</header>
+
+<!-- ── DOC HERO ─────────────────────────────────────────────────────────── -->
+<div class="doc-hero">
+  <div class="doc-hero__inner">
+    <p class="doc-hero__eyebrow">Real-time Trading · HTMX · WebSocket · Django</p>
+    <h1 class="doc-hero__title">Financial Trading Dashboard</h1>
+    <p class="doc-hero__lead">
+      No React. No Redux. No build step.
+      A live trading dashboard with real-time portfolio value, order management, and risk metrics —
+      built entirely with server-side Python components, HTMX, and WebSocket.
+    </p>
+    <div class="doc-hero__tags">
+      <span class="tag tag--green">Live Price Feeds</span>
+      <span class="tag tag--sky">Portfolio Tracking</span>
+      <span class="tag tag--amber">Order Management</span>
+      <span class="tag tag--sky">WebSocket Push</span>
+      <span class="tag tag--green">Rate Limiting</span>
+      <span class="tag tag--violet">Pure-Python Tests</span>
+    </div>
+  </div>
+</div>
+
+<!-- ── MAIN ─────────────────────────────────────────────────────────────── -->
+<div class="doc-layout">
+
+  <!-- ── TOC ─────────────────────────────────────────────────────────────── -->
+  <aside class="doc-toc" aria-label="Table of contents">
+    <div class="doc-toc__heading">On this page</div>
+    <ul class="doc-toc__list">
+      <li><a href="#scenario">The Scenario</a></li>
+      <li><a href="#architecture">Architecture</a></li>
+      <li><a href="#portfolio">PortfolioComponent</a></li>
+      <li><a href="#orders">OrderComponent</a></li>
+      <li class="toc-sub"><a href="#orders-optimistic">Optimistic UI</a></li>
+      <li class="toc-sub"><a href="#orders-ratelimit">Rate Limiting</a></li>
+      <li><a href="#watchlist">WatchlistComponent</a></li>
+      <li><a href="#risk">RiskMetricsComponent</a></li>
+      <li><a href="#feed">Background Price Feed</a></li>
+      <li><a href="#testing">Testing</a></li>
+      <li><a href="#summary">Summary</a></li>
+    </ul>
+  </aside>
+
+  <!-- ── CONTENT ──────────────────────────────────────────────────────────── -->
+  <article class="doc-content">
+
+    <!-- SCENARIO -->
+    <h2 id="scenario" data-n="00">The Scenario</h2>
+    <p>A retail trading platform needs real-time portfolio P&amp;L, live price feeds, and order execution — without a JS SPA build chain. Four server-side components handle the entire dashboard:</p>
+
+    <ul>
+      <li><strong>PortfolioComponent</strong> — displays positions, P&amp;L, and total value; updates via WebSocket whenever prices change.</li>
+      <li><strong>WatchlistComponent</strong> — live list of securities with bid/ask/last prices; WebSocket subscription per symbol.</li>
+      <li><strong>OrderComponent</strong> — handles buy/sell order submission with server-side validation and optimistic UI so the button responds instantly.</li>
+      <li><strong>RiskMetricsComponent</strong> — margin usage, exposure by sector, and real-time alerts whenever account limits are breached.</li>
+    </ul>
+
+    <div class="callout callout--insight">
+      <strong>The component-framework answer:</strong> write Python.
+      The server owns all positions, P&amp;L calculations, and risk computations. The browser sends events and receives rendered HTML — there is no client-side state machine to maintain or keep in sync.
+    </div>
+
+    <!-- ARCHITECTURE -->
+    <h2 id="architecture" data-n="01">Architecture</h2>
+    <div class="arch-box"><span class="arch-sky">Browser (HTMX + WebSocket)</span>
+    │
+    ├── <span class="arch-hl">POST /components/order/</span>        <span class="arch-dim">→ OrderComponent.on_place_order()</span>
+    ├── <span class="arch-hl">POST /components/watchlist/</span>    <span class="arch-dim">→ WatchlistComponent.on_add_symbol()</span>
+    ├── <span class="arch-hl">GET  /components/portfolio/</span>    <span class="arch-dim">→ PortfolioComponent.mount()</span>
+    │
+    └── <span class="arch-sky">ws://…/ws/</span>
+         ├── <span class="arch-amb">subscribe: "prices"</span>      <span class="arch-dim">→ WatchlistComponent + PortfolioComponent</span>
+         ├── <span class="arch-amb">broadcast: order_fill</span>    <span class="arch-dim">→ PortfolioComponent (position update)</span>
+         └── <span class="arch-amb">broadcast: risk_breach</span>   <span class="arch-dim">→ RiskMetricsComponent (alert)</span>
+
+<span class="arch-hl">Price Feed Worker</span> <span class="arch-dim">(Celery / background task)</span>
+    └── <span class="arch-dim">Every 250ms: broadcast price ticks →</span> <span class="arch-sky">ws_manager.broadcast("prices", {...})</span></div>
+
+    <p><strong>Key insight:</strong> the server controls all state and all financial computations. The browser renders whatever it receives. There is no client-side P&amp;L arithmetic, no local price cache, and no synchronisation logic anywhere in the JavaScript layer.</p>
+
+    <!-- PORTFOLIO COMPONENT -->
+    <h2 id="portfolio" data-n="02">PortfolioComponent</h2>
+    <p>Loads the authenticated user's open positions from the database on mount, then updates P&amp;L in real time as WebSocket price ticks arrive — without polling.</p>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">trading/components.py</span>
+        <span class="code-block__lang">Python</span>
+      </div>
+      <pre><code><span class="dec">@registry.register(<span class="str">"portfolio"</span>)</span>
+<span class="kw">class</span> <span class="cls">PortfolioComponent</span>(Component):
+    template_name = <span class="str">"components/portfolio.html"</span>
+    permission_classes = [IsAuthenticated]
+    cache_key_prefix = <span class="str">"portfolio"</span>
+    cache_ttl = <span class="num">5</span>  <span class="cm"># seconds — avoid DB hammering on tick storms</span>
+
+    <span class="kw">def</span> <span class="fn">mount</span>(<span class="kw">self</span>):
+        user = <span class="kw">self</span>.request.user
+        positions = Position.objects.<span class="fn">filter</span>(
+            account__user=user, quantity__gt=<span class="num">0</span>
+        ).<span class="fn">select_related</span>(<span class="str">"symbol"</span>)
+        <span class="kw">self</span>.state[<span class="str">"positions"</span>] = [
+            {<span class="str">"symbol"</span>: p.symbol.ticker,
+             <span class="str">"qty"</span>:    p.quantity,
+             <span class="str">"avg_cost"</span>: <span class="fn">float</span>(p.avg_cost),
+             <span class="str">"last"</span>:   <span class="fn">float</span>(p.symbol.last_price),
+             <span class="str">"pnl"</span>:    <span class="fn">float</span>((p.symbol.last_price - p.avg_cost) * p.quantity)}
+            <span class="kw">for</span> p <span class="kw">in</span> positions
+        ]
+        <span class="kw">self</span>.state[<span class="str">"total_value"</span>] = <span class="fn">sum</span>(
+            p[<span class="str">"last"</span>] * p[<span class="str">"qty"</span>] <span class="kw">for</span> p <span class="kw">in</span> <span class="kw">self</span>.state[<span class="str">"positions"</span>]
+        )
+
+    <span class="kw">async def</span> <span class="fn">on_ws_message</span>(<span class="kw">self</span>, message: <span class="typ">dict</span>):
+        <span class="kw">if</span> message.<span class="fn">get</span>(<span class="str">"event"</span>) == <span class="str">"price_tick"</span>:
+            ticks = message[<span class="str">"prices"</span>]  <span class="cm"># {ticker: last_price}</span>
+            <span class="kw">for</span> pos <span class="kw">in</span> <span class="kw">self</span>.state[<span class="str">"positions"</span>]:
+                <span class="kw">if</span> pos[<span class="str">"symbol"</span>] <span class="kw">in</span> ticks:
+                    pos[<span class="str">"last"</span>] = ticks[pos[<span class="str">"symbol"</span>]]
+                    pos[<span class="str">"pnl"</span>]  = (pos[<span class="str">"last"</span>] - pos[<span class="str">"avg_cost"</span>]) * pos[<span class="str">"qty"</span>]
+            <span class="kw">self</span>.state[<span class="str">"total_value"</span>] = <span class="fn">sum</span>(
+                p[<span class="str">"last"</span>] * p[<span class="str">"qty"</span>] <span class="kw">for</span> p <span class="kw">in</span> <span class="kw">self</span>.state[<span class="str">"positions"</span>]
+            )</code></pre>
+    </div>
+
+    <p>The template renders a positions table with color-coded P&amp;L — green for gains, rose for losses — and a total value row at the foot of the table.</p>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">components/portfolio.html</span>
+        <span class="code-block__lang">Django Template</span>
+      </div>
+      <pre><code><span class="xml-tag">&lt;div</span> <span class="xml-attr">id=</span><span class="xml-val">"portfolio-{{ component_id }}"</span> <span class="xml-attr">hx-target=</span><span class="xml-val">"this"</span> <span class="xml-attr">hx-swap=</span><span class="xml-val">"outerHTML"</span><span class="xml-tag">&gt;</span>
+  <span class="xml-tag">&lt;table</span> <span class="xml-attr">class=</span><span class="xml-val">"positions-table"</span><span class="xml-tag">&gt;</span>
+    <span class="xml-tag">&lt;thead&gt;&lt;tr&gt;</span>
+      <span class="xml-tag">&lt;th&gt;</span>Symbol<span class="xml-tag">&lt;/th&gt;&lt;th&gt;</span>Qty<span class="xml-tag">&lt;/th&gt;&lt;th&gt;</span>Avg Cost<span class="xml-tag">&lt;/th&gt;&lt;th&gt;</span>Last<span class="xml-tag">&lt;/th&gt;&lt;th&gt;</span>P&amp;amp;L<span class="xml-tag">&lt;/th&gt;</span>
+    <span class="xml-tag">&lt;/tr&gt;&lt;/thead&gt;</span>
+    <span class="xml-tag">&lt;tbody&gt;</span>
+      {% for pos in state.positions %}
+      <span class="xml-tag">&lt;tr&gt;</span>
+        <span class="xml-tag">&lt;td</span> <span class="xml-attr">class=</span><span class="xml-val">"ticker"</span><span class="xml-tag">&gt;</span>{{ pos.symbol }}<span class="xml-tag">&lt;/td&gt;</span>
+        <span class="xml-tag">&lt;td&gt;</span>{{ pos.qty }}<span class="xml-tag">&lt;/td&gt;</span>
+        <span class="xml-tag">&lt;td&gt;</span>{{ pos.avg_cost|floatformat:2 }}<span class="xml-tag">&lt;/td&gt;</span>
+        <span class="xml-tag">&lt;td&gt;</span>{{ pos.last|floatformat:2 }}<span class="xml-tag">&lt;/td&gt;</span>
+        <span class="xml-tag">&lt;td</span> <span class="xml-attr">class=</span><span class="xml-val">"{% if pos.pnl >= 0 %}pnl-pos{% else %}pnl-neg{% endif %}"</span><span class="xml-tag">&gt;</span>
+          {{ pos.pnl|floatformat:2 }}
+        <span class="xml-tag">&lt;/td&gt;</span>
+      <span class="xml-tag">&lt;/tr&gt;</span>
+      {% endfor %}
+    <span class="xml-tag">&lt;/tbody&gt;</span>
+    <span class="xml-tag">&lt;tfoot&gt;&lt;tr&gt;</span>
+      <span class="xml-tag">&lt;td</span> <span class="xml-attr">colspan=</span><span class="xml-val">"4"</span><span class="xml-tag">&gt;</span>Total Value<span class="xml-tag">&lt;/td&gt;</span>
+      <span class="xml-tag">&lt;td</span> <span class="xml-attr">class=</span><span class="xml-val">"total-value"</span><span class="xml-tag">&gt;</span>{{ state.total_value|floatformat:2 }}<span class="xml-tag">&lt;/td&gt;</span>
+    <span class="xml-tag">&lt;/tr&gt;&lt;/tfoot&gt;</span>
+  <span class="xml-tag">&lt;/table&gt;</span>
+<span class="xml-tag">&lt;/div&gt;</span></code></pre>
+    </div>
+
+    <!-- ORDER COMPONENT -->
+    <h2 id="orders" data-n="03">OrderComponent with Optimistic UI</h2>
+    <p>Handles buy and sell order submission. Pydantic validates the payload before any database write. Optimistic UI gives instant button feedback while the order travels to the exchange routing layer.</p>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">trading/components.py (continued)</span>
+        <span class="code-block__lang">Python</span>
+      </div>
+      <pre><code><span class="kw">from</span> typing <span class="kw">import</span> Annotated, Literal
+<span class="kw">from</span> pydantic <span class="kw">import</span> BaseModel, Field
+
+
+<span class="kw">class</span> <span class="cls">OrderSchema</span>(BaseModel):
+    symbol:     <span class="typ">str</span>
+    side:       Literal[<span class="str">"buy"</span>, <span class="str">"sell"</span>]
+    quantity:   Annotated[<span class="typ">int</span>, Field(gt=<span class="num">0</span>, le=<span class="num">10_000</span>)]
+    order_type: Literal[<span class="str">"market"</span>, <span class="str">"limit"</span>] = <span class="str">"market"</span>
+    limit_price: <span class="typ">float</span> | <span class="kw">None</span> = <span class="kw">None</span>
+
+
+<span class="dec">@registry.register(<span class="str">"order"</span>)</span>
+<span class="kw">class</span> <span class="cls">OrderComponent</span>(FormComponent):
+    schema = <span class="cls">OrderSchema</span>
+    template_name = <span class="str">"components/order.html"</span>
+    permission_classes = [IsAuthenticated, HasTradingPermission]
+    rate_limit = <span class="str">"60/minute"</span>  <span class="cm"># comply with exchange rules</span>
+
+    <span class="kw">def</span> <span class="fn">get_optimistic_patch</span>(<span class="kw">self</span>, event: <span class="typ">str</span>, payload: <span class="typ">dict</span>) -> <span class="typ">dict</span>:
+        <span class="cm"># Instant UI feedback before server round-trip completes</span>
+        <span class="kw">if</span> event == <span class="str">"submit"</span>:
+            <span class="kw">return</span> {<span class="str">"status"</span>: <span class="str">"pending"</span>, <span class="str">"message"</span>: <span class="str">"Sending order…"</span>}
+        <span class="kw">return</span> {}
+
+    <span class="kw">def</span> <span class="fn">on_submit</span>(<span class="kw">self</span>):
+        order = Order.objects.<span class="fn">create</span>(
+            account=<span class="kw">self</span>.request.user.account,
+            symbol=<span class="kw">self</span>.validated_data[<span class="str">"symbol"</span>],
+            side=<span class="kw">self</span>.validated_data[<span class="str">"side"</span>],
+            quantity=<span class="kw">self</span>.validated_data[<span class="str">"quantity"</span>],
+            order_type=<span class="kw">self</span>.validated_data[<span class="str">"order_type"</span>],
+            limit_price=<span class="kw">self</span>.validated_data.<span class="fn">get</span>(<span class="str">"limit_price"</span>),
+        )
+        <span class="kw">self</span>.state[<span class="str">"status"</span>]   = <span class="str">"submitted"</span>
+        <span class="kw">self</span>.state[<span class="str">"order_id"</span>] = order.pk
+        <span class="kw">self</span>.state[<span class="str">"message"</span>]  = <span class="fn">f</span><span class="str">"Order #{order.pk} submitted"</span></code></pre>
+    </div>
+
+    <div class="callout callout--warn" id="orders-ratelimit">
+      <strong>Rate limiting:</strong> <code>rate_limit = "60/minute"</code> prevents accidental order storms and satisfies typical exchange throttle requirements. Requests beyond the limit receive HTTP 429 with a <code>Retry-After</code> header; the client rolls back any optimistic state automatically.
+    </div>
+
+    <div class="callout callout--note" id="orders-optimistic">
+      <strong>Optimistic UI:</strong> <code>get_optimistic_patch()</code> returns <code>{"status": "pending", "message": "Sending order…"}</code> instantly — before the server confirms — exactly like native trading apps. If the server returns a validation error, the client rolls back to the pre-patch state automatically.
+    </div>
+
+    <!-- WATCHLIST COMPONENT -->
+    <h2 id="watchlist" data-n="04">WatchlistComponent with Live Prices</h2>
+    <p>Renders a tight bid/ask/last data table that flashes price cells on change. Users can add symbols interactively; WebSocket ticks keep every row current.</p>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">trading/components.py (continued)</span>
+        <span class="code-block__lang">Python</span>
+      </div>
+      <pre><code><span class="dec">@registry.register(<span class="str">"watchlist"</span>)</span>
+<span class="kw">class</span> <span class="cls">WatchlistComponent</span>(Component):
+    template_name = <span class="str">"components/watchlist.html"</span>
+    permission_classes = [IsAuthenticated]
+
+    <span class="kw">def</span> <span class="fn">mount</span>(<span class="kw">self</span>):
+        items = WatchlistItem.objects.<span class="fn">filter</span>(
+            user=<span class="kw">self</span>.request.user
+        ).<span class="fn">select_related</span>(<span class="str">"symbol"</span>).<span class="fn">order_by</span>(<span class="str">"rank"</span>)
+        <span class="kw">self</span>.state[<span class="str">"items"</span>] = [
+            {<span class="str">"ticker"</span>:  i.symbol.ticker,
+             <span class="str">"name"</span>:    i.symbol.name,
+             <span class="str">"last"</span>:    <span class="fn">float</span>(i.symbol.last_price),
+             <span class="str">"bid"</span>:     <span class="fn">float</span>(i.symbol.bid),
+             <span class="str">"ask"</span>:     <span class="fn">float</span>(i.symbol.ask),
+             <span class="str">"chg_pct"</span>: <span class="fn">float</span>(i.symbol.change_pct)}
+            <span class="kw">for</span> i <span class="kw">in</span> items
+        ]
+
+    <span class="kw">def</span> <span class="fn">on_add_symbol</span>(<span class="kw">self</span>, ticker: <span class="typ">str</span>):
+        symbol = Symbol.objects.<span class="fn">get</span>(ticker=ticker.<span class="fn">upper</span>())
+        WatchlistItem.objects.<span class="fn">get_or_create</span>(
+            user=<span class="kw">self</span>.request.user, symbol=symbol,
+            defaults={<span class="str">"rank"</span>: <span class="fn">len</span>(<span class="kw">self</span>.state[<span class="str">"items"</span>])}
+        )
+        <span class="kw">self</span>.state[<span class="str">"items"</span>].<span class="fn">append</span>({
+            <span class="str">"ticker"</span>:  symbol.ticker,
+            <span class="str">"name"</span>:    symbol.name,
+            <span class="str">"last"</span>:    <span class="fn">float</span>(symbol.last_price),
+            <span class="str">"bid"</span>:     <span class="fn">float</span>(symbol.bid),
+            <span class="str">"ask"</span>:     <span class="fn">float</span>(symbol.ask),
+            <span class="str">"chg_pct"</span>: <span class="fn">float</span>(symbol.change_pct),
+        })
+
+    <span class="kw">async def</span> <span class="fn">on_ws_message</span>(<span class="kw">self</span>, message: <span class="typ">dict</span>):
+        <span class="kw">if</span> message.<span class="fn">get</span>(<span class="str">"event"</span>) == <span class="str">"price_tick"</span>:
+            ticks = message[<span class="str">"prices"</span>]
+            <span class="kw">for</span> item <span class="kw">in</span> <span class="kw">self</span>.state[<span class="str">"items"</span>]:
+                <span class="kw">if</span> item[<span class="str">"ticker"</span>] <span class="kw">in</span> ticks:
+                    item[<span class="str">"last"</span>] = ticks[item[<span class="str">"ticker"</span>]]</code></pre>
+    </div>
+
+    <p>The template renders a compact data table with flashing price cells. A CSS transition on the <code>last</code> cell triggers a brief highlight whenever the value changes — no JavaScript animation library required.</p>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">components/watchlist.html</span>
+        <span class="code-block__lang">Django Template</span>
+      </div>
+      <pre><code><span class="xml-tag">&lt;div</span> <span class="xml-attr">id=</span><span class="xml-val">"watchlist-{{ component_id }}"</span><span class="xml-tag">&gt;</span>
+  <span class="xml-tag">&lt;form</span>
+    <span class="xml-attr">hx-post=</span><span class="xml-val">"{% url 'watchlist_component' %}"</span>
+    <span class="xml-attr">hx-vals=</span><span class="xml-val">'{"event": "add_symbol"}'</span>
+    <span class="xml-attr">hx-target=</span><span class="xml-val">"#watchlist-{{ component_id }}"</span>
+    <span class="xml-attr">hx-swap=</span><span class="xml-val">"outerHTML"</span><span class="xml-tag">&gt;</span>
+    <span class="xml-tag">&lt;input</span> <span class="xml-attr">name=</span><span class="xml-val">"ticker"</span> <span class="xml-attr">placeholder=</span><span class="xml-val">"Add symbol…"</span> <span class="xml-attr">autocomplete=</span><span class="xml-val">"off"</span> <span class="xml-tag">/&gt;</span>
+    <span class="xml-tag">&lt;button</span> <span class="xml-attr">type=</span><span class="xml-val">"submit"</span><span class="xml-tag">&gt;</span>+<span class="xml-tag">&lt;/button&gt;</span>
+  <span class="xml-tag">&lt;/form&gt;</span>
+  <span class="xml-tag">&lt;table</span> <span class="xml-attr">class=</span><span class="xml-val">"watchlist-table"</span><span class="xml-tag">&gt;</span>
+    <span class="xml-tag">&lt;thead&gt;&lt;tr&gt;</span>
+      <span class="xml-tag">&lt;th&gt;</span>Ticker<span class="xml-tag">&lt;/th&gt;&lt;th&gt;</span>Bid<span class="xml-tag">&lt;/th&gt;&lt;th&gt;</span>Ask<span class="xml-tag">&lt;/th&gt;&lt;th&gt;</span>Last<span class="xml-tag">&lt;/th&gt;&lt;th&gt;</span>Chg%<span class="xml-tag">&lt;/th&gt;</span>
+    <span class="xml-tag">&lt;/tr&gt;&lt;/thead&gt;</span>
+    <span class="xml-tag">&lt;tbody&gt;</span>
+      {% for item in state.items %}
+      <span class="xml-tag">&lt;tr&gt;</span>
+        <span class="xml-tag">&lt;td</span> <span class="xml-attr">class=</span><span class="xml-val">"ticker"</span><span class="xml-tag">&gt;</span>{{ item.ticker }}<span class="xml-tag">&lt;/td&gt;</span>
+        <span class="xml-tag">&lt;td&gt;</span>{{ item.bid|floatformat:2 }}<span class="xml-tag">&lt;/td&gt;</span>
+        <span class="xml-tag">&lt;td&gt;</span>{{ item.ask|floatformat:2 }}<span class="xml-tag">&lt;/td&gt;</span>
+        <span class="xml-tag">&lt;td</span> <span class="xml-attr">class=</span><span class="xml-val">"last-price"</span><span class="xml-tag">&gt;</span>{{ item.last|floatformat:2 }}<span class="xml-tag">&lt;/td&gt;</span>
+        <span class="xml-tag">&lt;td</span> <span class="xml-attr">class=</span><span class="xml-val">"{% if item.chg_pct >= 0 %}chg-pos{% else %}chg-neg{% endif %}"</span><span class="xml-tag">&gt;</span>
+          {{ item.chg_pct|floatformat:2 }}%
+        <span class="xml-tag">&lt;/td&gt;</span>
+      <span class="xml-tag">&lt;/tr&gt;</span>
+      {% endfor %}
+    <span class="xml-tag">&lt;/tbody&gt;</span>
+  <span class="xml-tag">&lt;/table&gt;</span>
+<span class="xml-tag">&lt;/div&gt;</span></code></pre>
+    </div>
+
+    <!-- RISK METRICS COMPONENT -->
+    <h2 id="risk" data-n="05">RiskMetricsComponent</h2>
+    <p>Displays margin utilisation, sector exposure, and a live alert feed. The component subscribes to a per-account WebSocket channel; the background worker broadcasts a <code>risk_breach</code> event whenever utilisation exceeds a threshold.</p>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">trading/components.py (continued)</span>
+        <span class="code-block__lang">Python</span>
+      </div>
+      <pre><code><span class="dec">@registry.register(<span class="str">"risk_metrics"</span>)</span>
+<span class="kw">class</span> <span class="cls">RiskMetricsComponent</span>(Component):
+    template_name = <span class="str">"components/risk_metrics.html"</span>
+    permission_classes = [IsAuthenticated]
+    cache_key_prefix = <span class="str">"risk"</span>
+    cache_ttl = <span class="num">10</span>
+
+    <span class="kw">def</span> <span class="fn">mount</span>(<span class="kw">self</span>):
+        account = <span class="kw">self</span>.request.user.account
+        <span class="kw">self</span>.state[<span class="str">"margin_used"</span>]     = <span class="fn">float</span>(account.margin_used)
+        <span class="kw">self</span>.state[<span class="str">"margin_limit"</span>]    = <span class="fn">float</span>(account.margin_limit)
+        <span class="kw">self</span>.state[<span class="str">"utilisation_pct"</span>] = <span class="kw">self</span>.<span class="fn">_pct</span>(account)
+        <span class="kw">self</span>.state[<span class="str">"alerts"</span>]          = []
+        <span class="kw">self</span>.state[<span class="str">"sector_exposure"</span>]  = <span class="kw">self</span>.<span class="fn">_sector_breakdown</span>()
+
+    <span class="kw">def</span> <span class="fn">_pct</span>(<span class="kw">self</span>, account) -> <span class="typ">float</span>:
+        <span class="kw">if</span> account.margin_limit == <span class="num">0</span>:
+            <span class="kw">return</span> <span class="num">0.0</span>
+        <span class="kw">return</span> <span class="fn">round</span>(<span class="fn">float</span>(account.margin_used / account.margin_limit * <span class="num">100</span>), <span class="num">1</span>)
+
+    <span class="kw">async def</span> <span class="fn">on_ws_message</span>(<span class="kw">self</span>, message: <span class="typ">dict</span>):
+        <span class="kw">if</span> message.<span class="fn">get</span>(<span class="str">"event"</span>) == <span class="str">"risk_breach"</span>:
+            <span class="kw">self</span>.state[<span class="str">"alerts"</span>].<span class="fn">append</span>({
+                <span class="str">"level"</span>: message[<span class="str">"level"</span>],  <span class="cm"># "warn" | "critical"</span>
+                <span class="str">"text"</span>:  message[<span class="str">"text"</span>],
+                <span class="str">"ts"</span>:    message[<span class="str">"ts"</span>],
+            })</code></pre>
+    </div>
+
+    <p>The template renders a margin gauge (an HTML progress bar) and a scrollable alert feed below it.</p>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">components/risk_metrics.html</span>
+        <span class="code-block__lang">Django Template</span>
+      </div>
+      <pre><code><span class="xml-tag">&lt;div</span> <span class="xml-attr">id=</span><span class="xml-val">"risk-{{ component_id }}"</span><span class="xml-tag">&gt;</span>
+  <span class="xml-tag">&lt;h3&gt;</span>Margin Utilisation<span class="xml-tag">&lt;/h3&gt;</span>
+  <span class="xml-tag">&lt;div</span> <span class="xml-attr">class=</span><span class="xml-val">"gauge"</span><span class="xml-tag">&gt;</span>
+    <span class="xml-tag">&lt;div</span>
+      <span class="xml-attr">class=</span><span class="xml-val">"gauge__fill {% if state.utilisation_pct >= 95 %}gauge--critical{% elif state.utilisation_pct >= 80 %}gauge--warn{% endif %}"</span>
+      <span class="xml-attr">style=</span><span class="xml-val">"width: {{ state.utilisation_pct }}%"</span><span class="xml-tag">&gt;</span>
+    <span class="xml-tag">&lt;/div&gt;</span>
+  <span class="xml-tag">&lt;/div&gt;</span>
+  <span class="xml-tag">&lt;p&gt;</span>{{ state.margin_used|floatformat:0 }} / {{ state.margin_limit|floatformat:0 }}
+     ({{ state.utilisation_pct }}%)<span class="xml-tag">&lt;/p&gt;</span>
+
+  {% if state.alerts %}
+  <span class="xml-tag">&lt;ul</span> <span class="xml-attr">class=</span><span class="xml-val">"alert-feed"</span><span class="xml-tag">&gt;</span>
+    {% for alert in state.alerts %}
+    <span class="xml-tag">&lt;li</span> <span class="xml-attr">class=</span><span class="xml-val">"alert alert--{{ alert.level }}"</span><span class="xml-tag">&gt;</span>
+      <span class="xml-tag">&lt;span</span> <span class="xml-attr">class=</span><span class="xml-val">"alert__ts"</span><span class="xml-tag">&gt;</span>{{ alert.ts }}<span class="xml-tag">&lt;/span&gt;</span>
+      {{ alert.text }}
+    <span class="xml-tag">&lt;/li&gt;</span>
+    {% endfor %}
+  <span class="xml-tag">&lt;/ul&gt;</span>
+  {% endif %}
+<span class="xml-tag">&lt;/div&gt;</span></code></pre>
+    </div>
+
+    <div class="callout callout--warn">
+      <strong>Push, not poll:</strong> when margin utilisation exceeds 80%, <code>ws_manager</code> broadcasts a <code>risk_breach</code> event to the account's private channel. The component appends a critical alert row without any polling loop. The browser receives the update within one WebSocket frame.
+    </div>
+
+    <!-- BACKGROUND PRICE FEED -->
+    <h2 id="feed" data-n="06">Background Price Feed</h2>
+    <p>A Celery periodic task fetches the latest market data and pushes it into the WebSocket manager every 250 ms. No component polls — the push model means the browser is only updated when data actually changes.</p>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">trading/tasks.py</span>
+        <span class="code-block__lang">Python</span>
+      </div>
+      <pre><code><span class="kw">from</span> datetime <span class="kw">import</span> datetime
+<span class="kw">from</span> celery <span class="kw">import</span> shared_task
+<span class="kw">from</span> component_framework.core <span class="kw">import</span> ws_manager
+<span class="kw">from</span> .models <span class="kw">import</span> Symbol, Account
+
+
+<span class="dec">@shared_task</span>
+<span class="kw">async def</span> <span class="fn">broadcast_price_ticks</span>():
+    <span class="str">"""Fetch latest prices and push to all subscribed components."""</span>
+    tickers = Symbol.objects.<span class="fn">values_list</span>(<span class="str">"ticker"</span>, flat=<span class="kw">True</span>)
+    prices = <span class="kw">await</span> <span class="fn">fetch_prices</span>(tickers)  <span class="cm"># external market data API</span>
+
+    <span class="kw">await</span> ws_manager.<span class="fn">broadcast</span>(<span class="str">"prices"</span>, {
+        <span class="str">"event"</span>:  <span class="str">"price_tick"</span>,
+        <span class="str">"prices"</span>: prices,  <span class="cm"># {AAPL: 189.34, MSFT: 415.22, …}</span>
+    })
+
+    <span class="cm"># Check per-account risk limits and alert when breached</span>
+    <span class="kw">for</span> account <span class="kw">in</span> Account.objects.<span class="fn">annotate_utilisation</span>():
+        <span class="kw">if</span> account.utilisation_pct > <span class="num">80</span>:
+            level = <span class="str">"warn"</span> <span class="kw">if</span> account.utilisation_pct < <span class="num">95</span> <span class="kw">else</span> <span class="str">"critical"</span>
+            <span class="kw">await</span> ws_manager.<span class="fn">broadcast</span>(<span class="fn">f</span><span class="str">"risk-{account.user_id}"</span>, {
+                <span class="str">"event"</span>: <span class="str">"risk_breach"</span>,
+                <span class="str">"level"</span>: level,
+                <span class="str">"text"</span>:  <span class="fn">f</span><span class="str">"Margin at {account.utilisation_pct:.1f}%"</span>,
+                <span class="str">"ts"</span>:    datetime.<span class="fn">utcnow</span>().<span class="fn">isoformat</span>(),
+            })</code></pre>
+    </div>
+
+    <div class="callout callout--insight">
+      <strong>Push, not poll:</strong> no component polls a database or an API on a timer. The background task pushes ticks at 250 ms; components re-render only the rows that changed. Under a tick storm the <code>cache_ttl</code> guard on <code>PortfolioComponent</code> prevents redundant DB reads.
+    </div>
+
+    <!-- TESTING -->
+    <h2 id="testing" data-n="07">Testing</h2>
+    <p>Every component is pure Python. The test suite runs at unit-test speed — no broker connections, no market data subscriptions, no running Django server.</p>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">trading/tests/test_components.py</span>
+        <span class="code-block__lang">Python</span>
+      </div>
+      <pre><code><span class="kw">import</span> asyncio
+<span class="kw">from</span> django.contrib.auth.models <span class="kw">import</span> AnonymousUser
+<span class="kw">from</span> component_framework.testing <span class="kw">import</span> (
+    ComponentTestCase, dispatch_event, assert_state, assert_permission_denied
+)
+<span class="kw">from</span> trading.components <span class="kw">import</span> OrderComponent, PortfolioComponent
+
+
+<span class="kw">class</span> <span class="cls">TestOrderComponent</span>(ComponentTestCase):
+
+    <span class="kw">def</span> <span class="fn">test_valid_market_order_is_submitted</span>(<span class="kw">self</span>):
+        component = <span class="fn">dispatch_event</span>(
+            OrderComponent, <span class="str">"submit"</span>,
+            {<span class="str">"symbol"</span>: <span class="str">"AAPL"</span>, <span class="str">"side"</span>: <span class="str">"buy"</span>,
+             <span class="str">"quantity"</span>: <span class="num">10</span>, <span class="str">"order_type"</span>: <span class="str">"market"</span>},
+        )
+        <span class="kw">assert</span> component.state[<span class="str">"status"</span>] == <span class="str">"submitted"</span>
+        <span class="kw">assert</span> Order.objects.<span class="fn">filter</span>(symbol=<span class="str">"AAPL"</span>).<span class="fn">count</span>() == <span class="num">1</span>
+
+    <span class="kw">def</span> <span class="fn">test_quantity_zero_is_rejected</span>(<span class="kw">self</span>):
+        component = <span class="fn">dispatch_event</span>(
+            OrderComponent, <span class="str">"submit"</span>,
+            {<span class="str">"symbol"</span>: <span class="str">"AAPL"</span>, <span class="str">"side"</span>: <span class="str">"buy"</span>,
+             <span class="str">"quantity"</span>: <span class="num">0</span>, <span class="str">"order_type"</span>: <span class="str">"market"</span>},
+        )
+        <span class="kw">assert</span> <span class="str">"quantity"</span> <span class="kw">in</span> component.state[<span class="str">"errors"</span>]
+
+    <span class="kw">def</span> <span class="fn">test_unauthenticated_cannot_place_order</span>(<span class="kw">self</span>):
+        <span class="fn">assert_permission_denied</span>(
+            OrderComponent, <span class="str">"submit"</span>, user=<span class="cls">AnonymousUser</span>()
+        )
+
+    <span class="kw">def</span> <span class="fn">test_optimistic_patch_shows_pending</span>(<span class="kw">self</span>):
+        component = <span class="cls">OrderComponent</span>()
+        patch = component.<span class="fn">get_optimistic_patch</span>(<span class="str">"submit"</span>, {})
+        <span class="kw">assert</span> patch[<span class="str">"status"</span>] == <span class="str">"pending"</span>
+
+    <span class="kw">def</span> <span class="fn">test_price_tick_updates_portfolio_pnl</span>(<span class="kw">self</span>):
+        component = <span class="cls">PortfolioComponent</span>()
+        component.state = {
+            <span class="str">"positions"</span>: [{
+                <span class="str">"symbol"</span>: <span class="str">"AAPL"</span>, <span class="str">"qty"</span>: <span class="num">10</span>,
+                <span class="str">"avg_cost"</span>: <span class="num">180.0</span>, <span class="str">"last"</span>: <span class="num">180.0</span>, <span class="str">"pnl"</span>: <span class="num">0</span>,
+            }],
+            <span class="str">"total_value"</span>: <span class="num">1800</span>,
+        }
+        asyncio.<span class="fn">run</span>(component.<span class="fn">on_ws_message</span>({
+            <span class="str">"event"</span>:  <span class="str">"price_tick"</span>,
+            <span class="str">"prices"</span>: {<span class="str">"AAPL"</span>: <span class="num">195.0</span>},
+        }))
+        <span class="kw">assert</span> component.state[<span class="str">"positions"</span>][<span class="num">0</span>][<span class="str">"pnl"</span>] == <span class="num">150.0</span>
+        <span class="kw">assert</span> component.state[<span class="str">"total_value"</span>] == <span class="num">1950.0</span></code></pre>
+    </div>
+
+    <div class="callout callout--insight">
+      <strong>Unit-test speed:</strong> all component logic is pure Python — tests run without broker connections or market data subscriptions. The WebSocket message handler is a plain <code>async def</code> called with <code>asyncio.run()</code>; no mock servers or test channels are needed.
+    </div>
+
+    <!-- SUMMARY -->
+    <h2 id="summary" data-n="§">Summary</h2>
+
+    <table class="summary-table">
+      <thead>
+        <tr>
+          <th>Component</th>
+          <th>Key Feature</th>
+          <th>WebSocket</th>
+          <th>Rate-Limited</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>PortfolioComponent</td>
+          <td>Real-time P&amp;L</td>
+          <td style="color:var(--green)">✓ subscribe</td>
+          <td style="color:var(--dim)">—</td>
+        </tr>
+        <tr>
+          <td>WatchlistComponent</td>
+          <td>Live bid/ask</td>
+          <td style="color:var(--green)">✓ subscribe</td>
+          <td style="color:var(--dim)">—</td>
+        </tr>
+        <tr>
+          <td>OrderComponent</td>
+          <td>Optimistic UI</td>
+          <td style="color:var(--dim)">—</td>
+          <td style="color:var(--amber)">✓ 60/min</td>
+        </tr>
+        <tr>
+          <td>RiskMetricsComponent</td>
+          <td>Margin alerts</td>
+          <td style="color:var(--green)">✓ subscribe</td>
+          <td style="color:var(--dim)">—</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout callout--insight">
+      <strong>The complete trading dashboard</strong> — live price feeds, P&amp;L updates, order entry with optimistic UI, and real-time risk alerts — is built with four Python classes and four Django templates. No JavaScript framework. No build toolchain. No client-side state machine. Just Python.
+    </div>
+
+  </article>
+</div>
+
+<!-- ── FOOTER ─────────────────────────────────────────────────────────────── -->
+<footer>
+  <span>component-framework — MIT license</span>
+  <span>
+    <a href="https://github.com/fsecada01/component-framework" target="_blank" rel="noopener">GitHub</a>
+    <span class="sep">·</span>
+    <a href="https://pypi.org/project/component-framework/" target="_blank" rel="noopener">PyPI</a>
+    <span class="sep">·</span>
+    built with <a href="https://pdoc.dev" target="_blank" rel="noopener">pdoc</a>
+  </span>
+</footer>
+
+</body>
+</html>
