@@ -21,7 +21,12 @@ class ComponentRegistry:
 
         def decorator(cls: type[Component]):
             if name in self._registry:
-                raise ValueError(f"Component '{name}' already registered")
+                if self._registry[name] is cls:
+                    return cls  # idempotent: same class re-imported, no-op
+                raise ValueError(
+                    f"Component '{name}' already registered by a different class "
+                    f"({self._registry[name].__qualname__!r})"
+                )
             self._registry[name] = cls
             return cls
 

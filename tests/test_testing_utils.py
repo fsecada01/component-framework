@@ -186,13 +186,22 @@ class TestRegisterTestComponent:
         register_test_component(reg, "btn", cls)
         assert reg.get("btn") is cls
 
-    def test_duplicate_name_raises(self) -> None:
-        """Registering the same name twice raises ValueError."""
+    def test_duplicate_name_different_class_raises(self) -> None:
+        """Registering a different class under the same name raises ValueError."""
+        reg = ComponentRegistry()
+        cls1 = make_component("dup")
+        cls2 = make_component("dup")
+        register_test_component(reg, "dup", cls1)
+        with pytest.raises(ValueError, match="already registered by a different class"):
+            register_test_component(reg, "dup", cls2)
+
+    def test_duplicate_name_same_class_idempotent(self) -> None:
+        """Registering the same class under the same name is a no-op."""
         reg = ComponentRegistry()
         cls = make_component("dup")
         register_test_component(reg, "dup", cls)
-        with pytest.raises(ValueError, match="already registered"):
-            register_test_component(reg, "dup", cls)
+        register_test_component(reg, "dup", cls)  # must not raise
+        assert reg.get("dup") is cls
 
 
 # ---------------------------------------------------------------------------

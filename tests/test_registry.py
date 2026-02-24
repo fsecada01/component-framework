@@ -22,11 +22,20 @@ class TestComponentRegistry:
         class First(Component):
             pass
 
-        with pytest.raises(ValueError, match="Component 'dup' already registered"):
+        with pytest.raises(ValueError, match="already registered by a different class"):
 
             @self.reg.register("dup")
             class Second(Component):
                 pass
+
+    def test_register_same_class_idempotent(self):
+        @self.reg.register("idempotent")
+        class MyComp(Component):
+            pass
+
+        # Re-registering the exact same class must not raise
+        self.reg.register("idempotent")(MyComp)
+        assert self.reg.get("idempotent") is MyComp
 
     def test_get_missing_returns_none(self):
         assert self.reg.get("nonexistent") is None
