@@ -152,7 +152,7 @@ class ComponentClient {
 
     const body = {
       event,
-      payload: JSON.stringify(payload),
+      payload,
       ...(stateJson ? { state: stateJson } : {}),
     };
 

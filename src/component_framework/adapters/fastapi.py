@@ -1,5 +1,6 @@
 """FastAPI adapter for component endpoints."""
 
+import json
 import logging
 
 try:
@@ -47,8 +48,17 @@ async def component_endpoint(name: str, request: Request) -> JSONResponse:
         # Extract parameters
         params = data.get("params", {})
         event = data.get("event")
-        payload = data.get("payload", {})
+        payload_raw = data.get("payload", {})
         state_str = data.get("state")
+
+        # Guard against double-serialised payload from older client JS
+        if isinstance(payload_raw, str):
+            try:
+                payload = json.loads(payload_raw)
+            except (json.JSONDecodeError, ValueError):
+                payload = {}
+        else:
+            payload = payload_raw
 
         # Deserialize state if provided
         state = None
