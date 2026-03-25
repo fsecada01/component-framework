@@ -115,6 +115,36 @@ class TestComponentEndpoint:
         deserialized = json.loads(data["state"])
         assert deserialized["count"] == 0
 
+    def test_form_encoded_mount(self, client):
+        """HTMX sends form-encoded by default — adapter must accept it."""
+        response = client.post(
+            "/components/test_counter",
+            data={"params": '{"initial": 5}'},
+        )
+        assert response.status_code == 200
+        data = response.json()
+        deserialized = json.loads(data["state"])
+        assert deserialized["count"] == 5
+
+    def test_form_encoded_event(self, client):
+        """HTMX hx-vals are merged into form fields."""
+        # Mount first (JSON)
+        r1 = client.post("/components/test_counter", json={})
+        state = r1.json()["state"]
+
+        # Fire event via form-encoded (HTMX style)
+        r2 = client.post(
+            "/components/test_counter",
+            data={
+                "event": "increment",
+                "payload": '{"amount": 7}',
+                "state": state,
+            },
+        )
+        assert r2.status_code == 200
+        deserialized = json.loads(r2.json()["state"])
+        assert deserialized["count"] == 7
+
 
 # ---------- route registration ----------
 

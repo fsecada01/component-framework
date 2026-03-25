@@ -18,13 +18,71 @@ from ..core.streaming import StreamingComponent, format_sse_frame
 logger = logging.getLogger(__name__)
 
 
+def _parse_json_str(value: str | dict | None, default: dict | None = None) -> dict | None:
+    """Parse a value that may be a JSON string, a dict, or None."""
+    if value is None:
+        return default
+    if isinstance(value, dict):
+        return value
+    try:
+        return json.loads(value)
+    except (json.JSONDecodeError, ValueError):
+        return default
+
+
+async def _parse_request_data(request: Request) -> dict:
+    """Parse request body from JSON or form-encoded data.
+
+    HTMX sends ``application/x-www-form-urlencoded`` by default; the JS
+    ``component-client.js`` sends ``application/json``.  This helper
+    normalises both into a dict with ``event``, ``payload``, ``state``,
+    and ``params`` keys.
+    """
+    content_type = request.headers.get("content-type", "")
+
+    if "application/json" in content_type:
+        try:
+            data = await request.json()
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Invalid JSON: {e}")
+    else:
+        # Form-encoded (HTMX default) — hx-vals are merged into form fields
+        form = await request.form()
+        data = dict(form)
+
+    return data
+
+
+def _extract_params(data: dict) -> tuple[dict, str | None, dict, dict | None]:
+    """Extract and normalise event, payload, state, and params from parsed data.
+
+    Returns:
+        (params, event, payload, state) tuple ready for component dispatch.
+    """
+    params = _parse_json_str(data.get("params"), default={}) or {}
+    event = data.get("event")
+    payload = _parse_json_str(data.get("payload"), default={}) or {}
+    state_raw = data.get("state")
+
+    state = None
+    if state_raw:
+        try:
+            state = (
+                StateSerializer.deserialize(state_raw) if isinstance(state_raw, str) else state_raw
+            )
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Invalid state: {e}")
+
+    return params, event, payload, state
+
+
 @post("/components/{name:str}")
 async def component_endpoint(name: str, request: Request) -> Response:
     """
     Generic component endpoint for Litestar.
 
     POST /components/{name}
-    Body: {
+    Body (JSON or form-encoded): {
         "event": "event_name",
         "payload": {...},
         "state": "serialized_state"
@@ -37,45 +95,16 @@ async def component_endpoint(name: str, request: Request) -> Response:
     }
     """
     try:
-        # Get component class
         component_cls = registry.get(name)
         if not component_cls:
             raise HTTPException(status_code=404, detail=f"Component '{name}' not found")
 
-        # Parse request data
-        try:
-            data = await request.json()
-        except Exception as e:
-            raise HTTPException(status_code=400, detail=f"Invalid JSON: {e}")
+        data = await _parse_request_data(request)
+        params, event, payload, state = _extract_params(data)
 
-        # Extract parameters
-        params = data.get("params", {})
-        event = data.get("event")
-        payload_raw = data.get("payload", {})
-        state_str = data.get("state")
-
-        # Guard against double-serialised payload from older client JS
-        if isinstance(payload_raw, str):
-            try:
-                payload = json.loads(payload_raw)
-            except (json.JSONDecodeError, ValueError):
-                payload = {}
-        else:
-            payload = payload_raw
-
-        # Deserialize state if provided
-        state = None
-        if state_str:
-            try:
-                state = StateSerializer.deserialize(state_str)
-            except Exception as e:
-                raise HTTPException(status_code=400, detail=f"Invalid state: {e}")
-
-        # Create and dispatch component (async to support async on_* handlers)
         component = component_cls(**params)
         result = await component.async_dispatch(event=event, payload=payload, state=state)
 
-        # Serialize state for response
         result["state"] = StateSerializer.serialize(result["state"])
 
         return Response(content=result, media_type="application/json", status_code=200)
@@ -93,7 +122,7 @@ async def stream_component_endpoint(name: str, request: Request) -> Stream:
     SSE streaming endpoint for long-running component operations.
 
     POST /components/{name}/stream
-    Body: same as component_endpoint
+    Body (JSON or form-encoded): same as component_endpoint
 
     Returns: text/event-stream with one ``data:`` frame per intermediate render.
     """
@@ -107,30 +136,8 @@ async def stream_component_endpoint(name: str, request: Request) -> Stream:
             detail=f"Component '{name}' does not support streaming",
         )
 
-    try:
-        data = await request.json()
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Invalid JSON: {e}")
-
-    params = data.get("params", {})
-    event = data.get("event")
-    payload_raw = data.get("payload", {})
-    state_str = data.get("state")
-
-    if isinstance(payload_raw, str):
-        try:
-            payload = json.loads(payload_raw)
-        except (json.JSONDecodeError, ValueError):
-            payload = {}
-    else:
-        payload = payload_raw
-
-    state = None
-    if state_str:
-        try:
-            state = StateSerializer.deserialize(state_str)
-        except Exception as e:
-            raise HTTPException(status_code=400, detail=f"Invalid state: {e}")
+    data = await _parse_request_data(request)
+    params, event, payload, state = _extract_params(data)
 
     component = component_cls(**params)
 

@@ -28,6 +28,7 @@ fastapi = [
     "fastapi>=0.109.0",
     "uvicorn[standard]>=0.27.0",
     "jinjax>=0.41",
+    "python-multipart>=0.0.5",
 ]
 django = [
     "django>=4.2",
