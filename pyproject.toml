@@ -91,6 +91,10 @@ unresolved-attribute = "warn"
 not-iterable = "warn"
 # Cooperative inheritance call-non-callable false positive (save_instance via hasattr guard).
 call-non-callable = "warn"
+# Django adapter intentionally narrows method signatures (SingleComponentView.post
+# drops the `name` param, ComponentConsumer.disconnect renames `code` → `close_code`).
+# These are valid Liskov violations in Django's CBV/consumer patterns.
+invalid-method-override = "warn"
 
 [tool.ruff]
 line-length = 100
