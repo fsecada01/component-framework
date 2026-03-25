@@ -1,5 +1,6 @@
 """Core component base class with lifecycle management."""
 
+import inspect
 import json
 import logging
 from typing import TYPE_CHECKING, Any, ClassVar
@@ -145,7 +146,44 @@ class Component:
 
     def handle_event(self, event: str, payload: dict):
         """
-        Route event to handler method.
+        Route event to a **synchronous** handler method.
+
+        For async handlers (``async def on_*``), use :meth:`async_handle_event`
+        instead.  Calling this method with an async handler will raise
+        :class:`ComponentError`.
+
+        Args:
+            event: Event name (e.g., "increment")
+            payload: Event data
+
+        Raises:
+            EventNotFoundError: If handler not found
+            ComponentError: If handler raises exception or is async
+        """
+        handler = getattr(self, f"on_{event}", None)
+
+        if not handler:
+            raise EventNotFoundError(f"No handler for event: {event}")
+
+        if inspect.iscoroutinefunction(handler):
+            raise ComponentError(
+                f"Handler 'on_{event}' is async — use async_dispatch() or "
+                "async_handle_event() instead of the sync variants."
+            )
+
+        try:
+            handler(**payload)
+        except TypeError as e:
+            raise ComponentError(f"Invalid payload for {event}: {e}") from e
+        except Exception as e:
+            logger.exception(f"Error handling {event} in {self.__class__.__name__}")
+            raise ComponentError(f"Error handling {event}") from e
+
+    async def async_handle_event(self, event: str, payload: dict):
+        """
+        Route event to handler, awaiting if the handler is async.
+
+        Works with both ``def on_*`` and ``async def on_*`` handlers.
 
         Args:
             event: Event name (e.g., "increment")
@@ -161,7 +199,9 @@ class Component:
             raise EventNotFoundError(f"No handler for event: {event}")
 
         try:
-            handler(**payload)
+            result = handler(**payload)
+            if inspect.isawaitable(result):
+                await result
         except TypeError as e:
             raise ComponentError(f"Invalid payload for {event}: {e}") from e
         except Exception as e:
@@ -209,7 +249,10 @@ class Component:
         state: dict | None = None,
     ) -> dict:
         """
-        Main entry point for component execution.
+        Synchronous entry point for component execution.
+
+        For components with ``async def on_*`` handlers, use
+        :meth:`async_dispatch` instead.
 
         Args:
             event: Event name to handle
@@ -242,6 +285,52 @@ class Component:
 
         except Exception:
             logger.exception(f"Error in {self.__class__.__name__}.dispatch()")
+            raise
+
+    async def async_dispatch(
+        self,
+        event: str | None = None,
+        payload: dict | None = None,
+        state: dict | None = None,
+    ) -> dict:
+        """
+        Async entry point for component execution.
+
+        Works with both sync and async event handlers.  Use this from async
+        adapters (FastAPI, Litestar, WebSocket) to support ``async def on_*``
+        handlers.
+
+        Args:
+            event: Event name to handle
+            payload: Event data
+            state: Serialized state to restore
+
+        Returns:
+            Dict with 'html' and 'state' keys
+        """
+        try:
+            # Lifecycle: mount or hydrate
+            if state:
+                self.hydrate(state)
+            else:
+                self.mount()
+
+            # Handle event if provided
+            if event:
+                await self.async_handle_event(event, payload or {})
+
+            # Render
+            html = self.render()
+
+            return {
+                "html": html,
+                "state": self.dehydrate(),
+                "component_id": self.id,
+                "slots": self.render_slots(),
+            }
+
+        except Exception:
+            logger.exception(f"Error in {self.__class__.__name__}.async_dispatch()")
             raise
 
 

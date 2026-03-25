@@ -58,9 +58,9 @@ async def component_endpoint(name: str, request: Request) -> JSONResponse:
             except Exception as e:
                 raise HTTPException(status_code=400, detail=f"Invalid state: {e}")
 
-        # Create and dispatch component
+        # Create and dispatch component (async to support async on_* handlers)
         component = component_cls(**params)
-        result = component.dispatch(event=event, payload=payload, state=state)
+        result = await component.async_dispatch(event=event, payload=payload, state=state)
 
         # Serialize state for response
         result["state"] = StateSerializer.serialize(result["state"])

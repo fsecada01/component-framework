@@ -37,6 +37,28 @@ class SampleComponent(Component):
         self.state["doubled"] = self.state.get("value", 0) * 2
 
 
+class AsyncSampleComponent(Component):
+    """Test component with async event handlers."""
+
+    template_name = "async_sample.html"
+
+    def mount(self):
+        super().mount()
+        self.state["value"] = self.params.get("initial", 0)
+
+    async def on_update(self, value: int):
+        self.state["value"] = value
+
+    async def on_failing_event(self):
+        raise ValueError("intentional async error")
+
+    def on_sync_event(self, value: int = 0):
+        self.state["value"] = value
+
+    def before_render(self):
+        self.state["doubled"] = self.state.get("value", 0) * 2
+
+
 # ---------- Component Lifecycle ----------
 
 
@@ -236,3 +258,95 @@ class TestStateSerializer:
     def test_deserialize_invalid_json_raises(self):
         with pytest.raises(Exception):
             StateSerializer.deserialize("not json")
+
+
+# ---------- Async Event Handling ----------
+
+
+class TestAsyncHandleEvent:
+    @pytest.mark.asyncio
+    async def test_async_handle_event_routes_to_async_handler(self):
+        Component.renderer = MockRenderer()
+        comp = AsyncSampleComponent()
+        comp.mount()
+        await comp.async_handle_event("update", {"value": 99})
+        assert comp.state["value"] == 99
+
+    @pytest.mark.asyncio
+    async def test_async_handle_event_works_with_sync_handler(self):
+        Component.renderer = MockRenderer()
+        comp = AsyncSampleComponent()
+        comp.mount()
+        await comp.async_handle_event("sync_event", {"value": 42})
+        assert comp.state["value"] == 42
+
+    @pytest.mark.asyncio
+    async def test_async_handle_event_missing_handler_raises(self):
+        comp = AsyncSampleComponent()
+        with pytest.raises(EventNotFoundError, match="No handler for event: nonexistent"):
+            await comp.async_handle_event("nonexistent", {})
+
+    @pytest.mark.asyncio
+    async def test_async_handle_event_invalid_payload_raises(self):
+        comp = AsyncSampleComponent()
+        comp.mount()
+        with pytest.raises(ComponentError, match="Invalid payload for update"):
+            await comp.async_handle_event("update", {"wrong_param": 1})
+
+    @pytest.mark.asyncio
+    async def test_async_handle_event_handler_exception_wrapped(self):
+        comp = AsyncSampleComponent()
+        comp.mount()
+        with pytest.raises(ComponentError, match="Error handling failing_event"):
+            await comp.async_handle_event("failing_event", {})
+
+    def test_sync_handle_event_rejects_async_handler(self):
+        comp = AsyncSampleComponent()
+        comp.mount()
+        with pytest.raises(ComponentError, match="is async"):
+            comp.handle_event("update", {"value": 1})
+
+
+# ---------- Async Dispatch ----------
+
+
+class TestAsyncDispatch:
+    def setup_method(self):
+        Component.renderer = MockRenderer()
+
+    @pytest.mark.asyncio
+    async def test_async_dispatch_mount_path(self):
+        comp = AsyncSampleComponent(initial=7)
+        result = await comp.async_dispatch()
+        assert result["state"]["value"] == 7
+        assert result["state"]["doubled"] == 14
+        assert "html" in result
+        assert "component_id" in result
+
+    @pytest.mark.asyncio
+    async def test_async_dispatch_hydrate_path(self):
+        comp = AsyncSampleComponent()
+        result = await comp.async_dispatch(state={"value": 20})
+        assert result["state"]["value"] == 20
+
+    @pytest.mark.asyncio
+    async def test_async_dispatch_with_async_event(self):
+        comp = AsyncSampleComponent()
+        result = await comp.async_dispatch(
+            event="update", payload={"value": 50}, state={"value": 0}
+        )
+        assert result["state"]["value"] == 50
+
+    @pytest.mark.asyncio
+    async def test_async_dispatch_with_sync_event(self):
+        comp = AsyncSampleComponent()
+        result = await comp.async_dispatch(
+            event="sync_event", payload={"value": 77}, state={"value": 0}
+        )
+        assert result["state"]["value"] == 77
+
+    @pytest.mark.asyncio
+    async def test_async_dispatch_event_error_propagates(self):
+        comp = AsyncSampleComponent()
+        with pytest.raises(ComponentError):
+            await comp.async_dispatch(event="nonexistent", state={"value": 0})

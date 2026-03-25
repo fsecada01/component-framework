@@ -134,10 +134,10 @@ class ComponentWebSocketManager:
             if state_str:
                 state = StateSerializer.deserialize(state_str)
 
-            # Create and dispatch component
+            # Create and dispatch component (async to support async on_* handlers)
             params = {"component_id": component_id}
             component = component_cls(**params)
-            result = component.dispatch(event=event, payload=payload, state=state)
+            result = await component.async_dispatch(event=event, payload=payload, state=state)
 
             # Serialize state
             result["state"] = StateSerializer.serialize(result["state"])
