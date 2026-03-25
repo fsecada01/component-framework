@@ -335,12 +335,45 @@ class Component:
 
 
 class StateSerializer:
-    """Handles safe serialization/deserialization of component state."""
+    """Handles safe serialization/deserialization of component state.
+
+    Class attributes:
+        warn_bytes: Emit a warning when serialised state exceeds this size
+            (default 64 KB).  Set to ``0`` to disable warnings.
+        max_bytes: Raise :class:`ComponentError` when serialised state exceeds
+            this size (default 512 KB).  Set to ``0`` to disable the hard limit.
+    """
+
+    warn_bytes: int = 64 * 1024  # 64 KB
+    max_bytes: int = 512 * 1024  # 512 KB
 
     @staticmethod
     def serialize(state: dict) -> str:
-        """Serialize state to JSON string."""
-        return json.dumps(state, default=str)
+        """Serialize state to JSON string.
+
+        Emits a warning if the result exceeds :attr:`warn_bytes` and raises
+        :class:`ComponentError` if it exceeds :attr:`max_bytes`.
+        """
+        serialized = json.dumps(state, default=str)
+        size = len(serialized)
+
+        if StateSerializer.max_bytes and size > StateSerializer.max_bytes:
+            raise ComponentError(
+                f"Component state is {size:,} bytes "
+                f"(hard limit: {StateSerializer.max_bytes:,}). "
+                "Move large data out of state — store IDs/keys instead of "
+                "full objects, or use server-side caching."
+            )
+
+        if StateSerializer.warn_bytes and size > StateSerializer.warn_bytes:
+            logger.warning(
+                "Component state is %s bytes (threshold: %s). "
+                "Consider moving large data out of state.",
+                f"{size:,}",
+                f"{StateSerializer.warn_bytes:,}",
+            )
+
+        return serialized
 
     @staticmethod
     def deserialize(data: str) -> dict:

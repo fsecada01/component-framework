@@ -260,6 +260,61 @@ class TestStateSerializer:
             StateSerializer.deserialize("not json")
 
 
+# ---------- State Size Guard ----------
+
+
+class TestStateSizeGuard:
+    def setup_method(self):
+        self._orig_warn = StateSerializer.warn_bytes
+        self._orig_max = StateSerializer.max_bytes
+
+    def teardown_method(self):
+        StateSerializer.warn_bytes = self._orig_warn
+        StateSerializer.max_bytes = self._orig_max
+
+    def test_warning_on_large_state(self, caplog):
+        StateSerializer.warn_bytes = 50
+        StateSerializer.max_bytes = 0  # disable hard limit
+        big_state = {"data": "x" * 100}
+        import logging
+
+        with caplog.at_level(logging.WARNING):
+            StateSerializer.serialize(big_state)
+        assert "Component state is" in caplog.text
+        assert "threshold" in caplog.text
+
+    def test_no_warning_under_threshold(self, caplog):
+        StateSerializer.warn_bytes = 100_000
+        StateSerializer.max_bytes = 0
+        import logging
+
+        with caplog.at_level(logging.WARNING):
+            StateSerializer.serialize({"small": True})
+        assert "Component state is" not in caplog.text
+
+    def test_error_on_exceeding_hard_limit(self):
+        StateSerializer.max_bytes = 50
+        big_state = {"data": "x" * 100}
+        with pytest.raises(ComponentError, match="hard limit"):
+            StateSerializer.serialize(big_state)
+
+    def test_no_error_under_hard_limit(self):
+        StateSerializer.max_bytes = 100_000
+        result = StateSerializer.serialize({"small": True})
+        assert result  # no exception
+
+    def test_guards_disabled_when_zero(self, caplog):
+        StateSerializer.warn_bytes = 0
+        StateSerializer.max_bytes = 0
+        big_state = {"data": "x" * 10_000}
+        import logging
+
+        with caplog.at_level(logging.WARNING):
+            result = StateSerializer.serialize(big_state)
+        assert result
+        assert "Component state is" not in caplog.text
+
+
 # ---------- Async Event Handling ----------
 
 
