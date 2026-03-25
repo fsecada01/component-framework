@@ -787,28 +787,30 @@ app = <span class="cls">Litestar</span>(
 )</code></pre>
     </div>
 
-    <h3 id="sse-client">Client-side EventSource</h3>
-    <p>A minimal browser snippet to consume the SSE stream and swap partial HTML. HTMX SSE extension handles this automatically if you prefer a zero-JS approach.</p>
+    <h3 id="sse-client">Client-side with HTMX SSE</h3>
+    <p>The framework uses HTMX for all client-side interaction. HTMX's built-in <a href="https://htmx.org/extensions/sse/" target="_blank" rel="noopener">SSE extension</a> handles the stream connection and DOM swapping — no custom JavaScript required.</p>
 
     <div class="code-block">
       <div class="code-block__header">
-        <span class="code-block__filename">report.html (script block)</span>
-        <span class="code-block__lang">JavaScript</span>
+        <span class="code-block__filename">report.html</span>
+        <span class="code-block__lang">HTML</span>
       </div>
-      <pre><code><span class="kw">const</span> source = <span class="kw">new</span> <span class="cls">EventSource</span>(
-  <span class="str">`/components/report/stream/?event=generate&amp;report_id=<span class="kw">${</span>reportId<span class="kw">}</span>`</span>
-);
+      <pre><code><span class="cm">&lt;!-- Load HTMX + SSE extension --&gt;</span>
+&lt;script src=<span class="str">"https://unpkg.com/htmx.org@1.9.10"</span>&gt;&lt;/script&gt;
+&lt;script src=<span class="str">"https://unpkg.com/htmx.org/dist/ext/sse.js"</span>&gt;&lt;/script&gt;
 
-source.<span class="fn">addEventListener</span>(<span class="str">"patch"</span>, (e) =&gt; {
-  <span class="cm">// server sends rendered HTML partial on each yield</span>
-  document.<span class="fn">getElementById</span>(<span class="str">"report-root"</span>).innerHTML = e.data;
-});
-
-source.<span class="fn">addEventListener</span>(<span class="str">"done"</span>, () =&gt; source.<span class="fn">close</span>());</code></pre>
+<span class="cm">&lt;!-- SSE-powered report component --&gt;</span>
+&lt;div hx-ext=<span class="str">"sse"</span>
+     sse-connect=<span class="str">"/components/report/stream"</span>
+     sse-swap=<span class="str">"message"</span>
+     hx-swap=<span class="str">"innerHTML"</span>&gt;
+  <span class="cm">&lt;!-- Each SSE frame replaces this content --&gt;</span>
+  &lt;p&gt;Generating report&amp;hellip;&lt;/p&gt;
+&lt;/div&gt;</code></pre>
     </div>
 
-    <div class="callout callout--warn">
-      <strong>Browser connection limit.</strong> Each <code>EventSource</code> holds one HTTP/1.1 connection. Modern browsers cap concurrent connections per origin at 6. Prefer HTTP/2 in production (Litestar + uvicorn with <code>--http h2</code>) to avoid this ceiling.
+    <div class="callout callout--insight">
+      <strong>Zero JavaScript.</strong> HTMX's SSE extension opens the connection, receives each <code>data:</code> frame from <code>StreamingComponent</code>, and swaps the rendered HTML into the target element automatically. This is consistent with the framework's server-driven, minimal-JS philosophy.
     </div>
 
     <!-- WEBSOCKET -->
@@ -922,7 +924,7 @@ uvicorn examples.litestar_example:app --reload --port <span class="num">8000</sp
       <li><span class="step-text">Open <code>http://localhost:8000</code> — the index page renders all three components server-side.</span></li>
       <li><span class="step-text">Click Increment / Decrement on the counter — each click POSTs to <code>/components/counter/</code> and swaps the HTML fragment.</span></li>
       <li><span class="step-text">Submit text in the sentiment box — the async handler awaits the (mock) ML service and re-renders the score badge.</span></li>
-      <li><span class="step-text">Click Generate Report — an <code>EventSource</code> opens to <code>/components/report/stream/</code> and each section appears as it completes.</span></li>
+      <li><span class="step-text">Click Generate Report — HTMX's SSE extension connects to <code>/components/report/stream/</code> and each section appears as it completes.</span></li>
     </ol>
 
     <!-- TESTING -->
