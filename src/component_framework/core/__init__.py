@@ -14,6 +14,7 @@ from .permissions import (
 from .registry import ComponentRegistry, registry
 from .renderer import Renderer
 from .state import InMemoryStateStore, StateStore
+from .streaming import StreamingComponent, format_sse_frame
 from .websocket import ComponentWebSocketManager, WebSocketConnection, ws_manager
 
 __all__ = [
@@ -36,6 +37,8 @@ __all__ = [
     "Renderer",
     "StateStore",
     "InMemoryStateStore",
+    "StreamingComponent",
+    "format_sse_frame",
     "ComponentWebSocketManager",
     "WebSocketConnection",
     "ws_manager",
