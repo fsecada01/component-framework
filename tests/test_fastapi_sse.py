@@ -84,9 +84,7 @@ class TestStreamEndpoint:
             "/components/stream_counter/stream",
             json={"event": "count_up", "payload": {"steps": 3}},
         )
-        lines = [
-            ln for ln in response.text.strip().split("\n") if ln.startswith("data: ")
-        ]
+        lines = [ln for ln in response.text.strip().split("\n") if ln.startswith("data: ")]
         assert len(lines) == 4  # 3 intermediate + 1 final
         frames = [json.loads(ln.removeprefix("data: ")) for ln in lines]
         assert frames[-1]["stream_done"] is True

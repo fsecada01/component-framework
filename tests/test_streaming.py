@@ -142,7 +142,8 @@ class TestAsyncStreamDispatch:
     async def test_hydrate_path(self):
         comp = StepStreamComponent()
         frames = [
-            f async for f in comp.async_stream_dispatch(
+            f
+            async for f in comp.async_stream_dispatch(
                 event="process", payload={"steps": 1}, state={"step": 10, "done": False}
             )
         ]
@@ -185,13 +186,15 @@ class TestFormatSseFrame:
         result = format_sse_frame(frame)
         assert result.startswith("data: ")
         assert result.endswith("\n\n")
-        parsed = json.loads(result[len("data: "):])
+        parsed = json.loads(result[len("data: ") :])
         assert parsed["html"] == "<div>test</div>"
 
     def test_roundtrip_json(self):
         frame = {
-            "html": "<p>hi</p>", "state": {"count": 1},
-            "component_id": "x", "stream_done": True,
+            "html": "<p>hi</p>",
+            "state": {"count": 1},
+            "component_id": "x",
+            "stream_done": True,
         }
         result = format_sse_frame(frame)
         parsed = json.loads(result.removeprefix("data: ").strip())
