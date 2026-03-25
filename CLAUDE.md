@@ -4,9 +4,9 @@ This file provides context for AI assistants working on this project.
 
 ## Project Overview
 
-**Component Framework** is a Python library for building server-side components with LiveView-style interactivity. It provides a framework-agnostic core with adapters for FastAPI and Django.
+**Component Framework** is a Python library for building server-side components with LiveView-style interactivity. It provides a framework-agnostic core with adapters for FastAPI, Django, and Litestar.
 
-**Status:** Beta (0.3.0-beta)
+**Status:** Beta (0.4.0-beta)
 **Language:** Python 3.11+
 **License:** MIT
 
@@ -25,8 +25,9 @@ This file provides context for AI assistants working on this project.
 ```
 component_framework/
 ├── core/                  # Framework-agnostic
-│   ├── component.py       # Base Component class
+│   ├── component.py       # Base Component + async_dispatch
 │   ├── form.py            # Form validation (Pydantic)
+│   ├── streaming.py       # StreamingComponent + SSE support
 │   ├── websocket.py       # WebSocket manager
 │   ├── registry.py        # Component registration
 │   ├── renderer.py        # Renderer interface
@@ -35,7 +36,10 @@ component_framework/
 │   └── composition.py     # Slot + composite components (Beta)
 │
 ├── adapters/              # Framework-specific
-│   ├── fastapi.py
+│   ├── fastapi.py         # FastAPI HTTP + SSE
+│   ├── fastapi_websocket.py
+│   ├── litestar.py        # Litestar HTTP + SSE
+│   ├── litestar_websocket.py
 │   ├── django_*.py
 │   ├── django_permissions.py   # FBV decorators (Beta)
 │   ├── django_ratelimit.py     # RateLimitMixin (Beta)
@@ -166,6 +170,14 @@ All Beta roadmap items are implemented and test-covered:
 - Testing utilities (`ComponentTestCase`, `dispatch_event`, `assert_state`)
 - Versioned API docs via pdoc + GitHub Pages
 
+## 0.4.0 Features
+
+- Litestar adapter (`[litestar]` extra) — HTTP, WebSocket, SSE
+- Async event handlers (`async_dispatch()` / `async_handle_event()`)
+- SSE streaming (`StreamingComponent` with async generator handlers)
+- State size guard (configurable warning at 64 KB, hard limit at 512 KB)
+- JS double-serialisation fix in `component-client.js`
+
 ## Future Enhancements (1.0)
 
 - Stable, frozen public API
@@ -184,6 +196,10 @@ All Beta roadmap items are implemented and test-covered:
 - fastapi >= 0.109
 - uvicorn (server)
 - jinjax >= 0.41 (rendering)
+
+### Litestar
+- litestar >= 2.0
+- jinja2 >= 3.1
 
 ### Django
 - django >= 4.2

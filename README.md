@@ -14,7 +14,7 @@ Framework-agnostic server components with LiveView-style interactivity inspired 
 
 ## Development Status
 
-**Current Version:** 0.3.0-beta
+**Current Version:** 0.4.0-beta
 **API Documentation:** [fsecada01.github.io/component-framework](https://fsecada01.github.io/component-framework/)
 
 The framework has a complete, tested feature set covering the full Beta roadmap. APIs are solidifying — the core lifecycle, permissions, composition, and testing utilities are stable. We welcome feedback before the 1.0 release.
@@ -27,8 +27,8 @@ The framework has a complete, tested feature set covering the full Beta roadmap.
 |-----------|--------|---------------|-------|
 | **FastAPI** | ✅ Supported | `[fastapi]` | Includes JinjaX renderer and WebSocket adapter |
 | **Django** | ✅ Supported | `[django]` | Includes Channels, Cotton, and template renderer |
+| **Litestar** | ✅ Supported | `[litestar]` | HTTP + WebSocket adapters (0.4.0+) |
 | **Flask** | 🗓 Planned | — | [Tracking issue #5](https://github.com/fsecada01/component-framework/issues/5) |
-| **Litestar** | 🗓 Planned | — | [Tracking issue #6](https://github.com/fsecada01/component-framework/issues/6) |
 
 ---
 
@@ -43,8 +43,11 @@ pip install "component-framework[django]"
 # FastAPI projects
 pip install "component-framework[fastapi]"
 
-# Both adapters
-pip install "component-framework[fastapi,django]"
+# Litestar projects
+pip install "component-framework[litestar]"
+
+# Multiple adapters
+pip install "component-framework[fastapi,django,litestar]"
 
 # Everything
 pip install "component-framework[all]"
@@ -77,11 +80,14 @@ See [CHANGELOG.md](CHANGELOG.md) for the full list of changes.
 ## Features
 
 ### Core
-- **Framework-agnostic** — Works with FastAPI, Django, and more
+- **Framework-agnostic** — Works with FastAPI, Django, Litestar, and more
 - **Server-driven UI** — State lives on the server, not the client
 - **Minimal JavaScript** — HTMX handles frontend interactions
 - **Reusable components** — Clean OOP boundaries with lifecycle hooks
 - **Pluggable renderers** — Jinjax, Django templates, or your own
+- **Async event handlers** — `async def on_*` handlers properly awaited via `async_dispatch()`
+- **SSE streaming** — `StreamingComponent` for long-running operations with intermediate renders
+- **State size guard** — Configurable warning (64 KB) and hard limit (512 KB) on serialised state
 
 ### Forms & Validation
 - **Pydantic validation** — Type-safe form handling
@@ -118,9 +124,11 @@ See [CHANGELOG.md](CHANGELOG.md) for the full list of changes.
 
 ### Real-Time Updates
 - **WebSocket support** — Real-time component updates
+- **SSE streaming** — `StreamingComponent` with async generator handlers for progressive rendering
 - **Broadcasting** — Multi-client synchronisation
 - **Django Channels** — Full Channels integration
 - **FastAPI WebSocket** — Native FastAPI support
+- **Litestar WebSocket** — Native Litestar support
 
 ### Caching
 - **`CacheMixin`** — Configurable per-component render caching
@@ -290,14 +298,15 @@ class TestCounter(ComponentTestCase):
 ## Architecture
 
 ```
-Browser (HTMX/WebSocket)
+Browser (HTMX/WebSocket/SSE)
         |
-Framework Adapter  (FastAPI / Django)
+Framework Adapter  (FastAPI / Django / Litestar)
         |
 Component Framework Core
   - Component lifecycle  (mount → hydrate → handle_event → render → dehydrate)
-  - Event routing        (convention-based on_<event> handlers)
-  - State management     (server-owned JSON state)
+  - Event routing        (convention-based on_<event> handlers, sync + async)
+  - State management     (server-owned JSON state with size guards)
+  - Streaming            (StreamingComponent for SSE progressive rendering)
   - Permissions          (per-component permission_classes)
   - Composition          (SlotComponent, CompositeComponent)
         |
@@ -318,6 +327,7 @@ component-framework/
 │   │   ├── registry.py              # Component registration
 │   │   ├── renderer.py              # Renderer interface
 │   │   ├── state.py                 # State storage
+│   │   ├── streaming.py             # StreamingComponent + SSE support
 │   │   ├── permissions.py           # Permission classes (Beta)
 │   │   └── composition.py           # Slot + composite components (Beta)
 │   │
@@ -330,7 +340,9 @@ component-framework/
 │   │   ├── django_websocket.py      # Django Channels
 │   │   ├── django_permissions.py    # FBV permission decorators (Beta)
 │   │   ├── django_ratelimit.py      # Rate limiting mixin (Beta)
-│   │   └── jinjax_renderer.py       # Jinjax rendering
+│   │   ├── jinjax_renderer.py       # Jinjax rendering
+│   │   ├── litestar.py              # Litestar HTTP + SSE adapter
+│   │   └── litestar_websocket.py    # Litestar WebSocket adapter
 │   │
 │   ├── testing.py                   # ComponentTestCase + fixtures (Beta)
 │   ├── components/                  # Example components
@@ -338,16 +350,21 @@ component-framework/
 │
 ├── examples/
 │   ├── fastapi_example.py           # FastAPI demo
+│   ├── litestar_example.py          # Litestar demo
 │   └── django_example/              # Complete Django app
 │
-├── tests/                           # 20 test modules
-│   ├── test_component.py            # Core component tests
+├── tests/                           # 23 test modules, 404 tests
+│   ├── test_component.py            # Core component + async dispatch tests
 │   ├── test_form.py                 # Form validation tests
 │   ├── test_registry.py             # Registry tests
 │   ├── test_state.py                # State storage tests
+│   ├── test_streaming.py            # StreamingComponent + SSE tests
 │   ├── test_websocket.py            # WebSocket manager tests
 │   ├── test_fastapi_adapter.py      # FastAPI adapter tests
+│   ├── test_fastapi_sse.py          # FastAPI SSE endpoint tests
 │   ├── test_fastapi_websocket.py    # FastAPI WebSocket tests
+│   ├── test_litestar_adapter.py     # Litestar adapter tests
+│   ├── test_litestar_sse.py         # Litestar SSE endpoint tests
 │   ├── test_django_views.py         # Django views tests
 │   ├── test_django_model.py         # Django model binding tests
 │   ├── test_django_renderer.py      # Django renderer tests
@@ -490,6 +507,13 @@ just claude-prompt PROMPT_FILE=prompts/WORKFLOW.md
 - [x] Versioned API documentation (GitHub Pages + pdoc)
 - [x] Optional extras — FastAPI/Uvicorn/JinjaX no longer mandatory (`[fastapi]`, `[django]`, `[all]`)
 
+### 0.4.0 (Complete)
+- [x] Litestar adapter — HTTP, WebSocket, SSE (`[litestar]` extra)
+- [x] Async event handlers — `async_dispatch()` / `async_handle_event()`
+- [x] SSE streaming — `StreamingComponent` with async generator handlers
+- [x] State size guard — configurable warning (64 KB) and hard limit (512 KB)
+- [x] JS double-serialisation fix in `component-client.js`
+
 ### 1.0 (Planned)
 - [ ] Stable, frozen public API
 - [ ] Performance benchmarks and optimisation
@@ -517,6 +541,7 @@ Current benchmarks (local development):
 Optional extras:
 - `[fastapi]` — FastAPI 0.109+, Uvicorn, JinjaX 0.41+
 - `[django]` — Django 4.2+, Django Channels 4.0+, channels-redis 4.1+, django-cotton 0.9+
+- `[litestar]` — Litestar 2.0+, Jinja2 3.1+
 - `[websockets]` — websockets 12.0+
 - `[all]` — all of the above
 
@@ -527,7 +552,7 @@ Optional extras:
 - State must be JSON-serialisable
 - WebSocket scaling requires a Redis channel layer
 - CSRF handling for WebSockets is manual
-- State size limits not enforced (keep state minimal)
+- SSE streaming requires ASGI deployment (Django) or any async framework (FastAPI/Litestar)
 
 ---
 

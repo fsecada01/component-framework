@@ -165,7 +165,7 @@ class Component:
     # ---------- Dispatch ----------
 
     def dispatch(self, event=None, payload=None, state=None):
-
+        """Synchronous dispatch — use for sync handlers only."""
         if state:
             self.hydrate(state)
         else:
@@ -173,6 +173,23 @@ class Component:
 
         if event:
             self.handle_event(event, payload or {})
+
+        html = self.render()
+
+        return {
+            "html": html,
+            "state": self.dehydrate(),
+        }
+
+    async def async_dispatch(self, event=None, payload=None, state=None):
+        """Async dispatch — supports both sync and async on_* handlers."""
+        if state:
+            self.hydrate(state)
+        else:
+            self.mount()
+
+        if event:
+            await self.async_handle_event(event, payload or {})
 
         html = self.render()
 
@@ -490,6 +507,30 @@ Model updated →
                     HTMX swap
 ```
 
+## SSE Streaming (0.4.0+)
+
+`StreamingComponent` enables long-running operations that emit intermediate renders:
+
+```python
+from component_framework.core.streaming import StreamingComponent
+
+@registry.register("rag_query")
+class RagQueryComponent(StreamingComponent):
+    template_name = "rag_query.html"
+
+    async def on_analyze(self, query: str):
+        async for step in rag_service.stream(query):
+            self.state["step"] = step
+            yield  # emit SSE frame with current render
+        self.state["done"] = True
+```
+
+Each `yield` triggers `render()` and emits a `data:` SSE frame. The final frame
+includes `"stream_done": true`. Non-generator handlers produce a single frame,
+making the streaming endpoint backward-compatible.
+
+Adapter endpoints: `POST /components/{name}/stream` (FastAPI, Litestar).
+
 ---
 
 # Suggested Project Structure
@@ -500,11 +541,13 @@ core/
     renderer.py
     registry.py
     state.py
+    streaming.py
     model.py
 
 adapters/
     fastapi.py
     litestar.py
+    litestar_websocket.py
     django.py
     jinjax.py
 
@@ -539,12 +582,9 @@ No HTTP required.
 
 - Automatic form generation from model metadata
 - DOM morphing integration
-- WebSocket adapter layer
 - Component diffing
 - Devtools inspector
-- Permission system
 - Dependency injection
-- Optimistic UI engine
 
 ---
 
@@ -555,7 +595,10 @@ This architecture provides:
 - LiveView-like server interactivity
 - Minimal JavaScript
 - Framework independence
-- Django and FastAPI compatibility
+- Django, FastAPI, and Litestar compatibility
+- Async event handler support
+- SSE streaming for long-running operations
+- State size guards
 - Clean OOP boundaries
 - Extensible rendering system
 
