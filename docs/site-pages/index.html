@@ -642,7 +642,7 @@
 
 <!-- ── HERO ─────────────────────────────────────────────────────────────── -->
 <section class="hero">
-  <p class="hero__eyebrow">Python · Django · FastAPI · HTMX</p>
+  <p class="hero__eyebrow">Python · Django · FastAPI · Litestar · HTMX</p>
   <h1 class="hero__title">
     Server-side components<br>
     with <span class="hl">LiveView</span>-style<br>
@@ -654,7 +654,7 @@
   </p>
   <div class="hero__tagline">
     <span>Framework-agnostic core</span>
-    <span>FastAPI + Django adapters</span>
+    <span>FastAPI + Django + Litestar</span>
     <span>5 KB JS footprint</span>
     <span>Pure Python tests</span>
   </div>
@@ -700,8 +700,8 @@
     </div>
     <div class="feature">
       <span class="feature__icon">🌐</span>
-      <div class="feature__name">WebSocket Push</div>
-      <div class="feature__desc">Real-time component updates via Django Channels or FastAPI WebSocket. Broadcast to groups; the framework handles the render cycle.</div>
+      <div class="feature__name">WebSocket + SSE</div>
+      <div class="feature__desc">Real-time component updates via Django Channels, FastAPI, or Litestar WebSocket. SSE streaming for long-running operations with <code style="font-family:var(--mono);font-size:11px;color:var(--green);background:var(--green-dim);padding:1px 4px;border-radius:2px">StreamingComponent</code>.</div>
     </div>
     <div class="feature">
       <span class="feature__icon">🧩</span>
@@ -880,14 +880,16 @@
     <div class="qs-step">
       <div class="qs-step__num">03 / Wire</div>
       <div class="qs-step__title">Connect to your framework</div>
-      <div class="qs-step__body">Mount the component view in Django urls.py or FastAPI router — one line.</div>
+      <div class="qs-step__body">Mount the component view in Django, FastAPI, or Litestar — one line.</div>
       <pre><span class="cm"># Django</span>
 path(<span class="str">"components/&lt;str:name&gt;/"</span>,
      component_view)
 
 <span class="cm"># FastAPI</span>
-app.include_router(
-    component_router)</pre>
+create_component_routes(app)
+
+<span class="cm"># Litestar</span>
+app = Litestar([component_endpoint])</pre>
     </div>
     <div class="qs-step">
       <div class="qs-step__num">04 / Render</div>
