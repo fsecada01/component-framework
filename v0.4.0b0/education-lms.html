@@ -1,0 +1,1276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NYS Regents Chemistry — Proctoring &amp; Score Management — component-framework</title>
+  <meta name="description" content="A test-taking dashboard for NYS public schools: room assignments, student check-in, per-part score entry with automatic raw-to-scale conversion, and school-level analytics for the Physical Setting/Chemistry Regents exam." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* ── TERMINAL MODERN — shared design system ─────────────────────────── */
+    :root {
+      --bg:          #0c1117;
+      --panel:       #161c26;
+      --panel-lit:   #1e2637;
+      --code-bg:     #090e18;
+      --border:      #1e2a3c;
+      --border-lit:  #29394f;
+
+      --green:       #4ade80;
+      --green-dim:   rgba(74,222,128,0.10);
+      --green-glow:  rgba(74,222,128,0.18);
+      --amber:       #fbbf24;
+      --amber-dim:   rgba(251,191,36,0.09);
+      --sky:         #38bdf8;
+      --sky-dim:     rgba(56,189,248,0.09);
+      --violet:      #a78bfa;
+      --rose:        #fb7185;
+
+      --text:        #cbd5e1;
+      --muted:       #64748b;
+      --dim:         #334155;
+      --white:       #f1f5f9;
+
+      --mono:        'IBM Plex Mono', 'Courier New', monospace;
+      --sans:        'Inter', system-ui, -apple-system, sans-serif;
+      --radius:      6px;
+      --radius-sm:   3px;
+      --bar-h:       42px;
+      --toc-w:       220px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 15px;
+      line-height: 1.75;
+      min-height: 100vh;
+    }
+
+    ::-webkit-scrollbar              { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-thumb        { background: var(--border-lit); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover  { background: var(--muted); }
+
+    /* ── TOP BAR ────────────────────────────────────────────────────────── */
+    .topbar {
+      position: sticky; top: 0; z-index: 200;
+      height: var(--bar-h);
+      display: flex; align-items: center;
+      padding: 0 clamp(1rem, 4vw, 2.5rem);
+      background: linear-gradient(to right, #1a2232 0%, var(--panel) 60%);
+      border-bottom: 1px solid var(--border);
+      gap: 1rem;
+    }
+    .topbar__logo { font-family: var(--mono); font-size: 13px; font-weight: 600; color: var(--green); text-decoration: none; letter-spacing: 0.02em; flex-shrink: 0; }
+    .topbar__logo::before { content: "> "; color: var(--amber); }
+    .topbar__badge { font-family: var(--mono); font-size: 9px; letter-spacing: 0.12em; color: var(--amber); border: 1px solid rgba(251,191,36,0.4); background: rgba(251,191,36,0.06); padding: 2px 6px; border-radius: var(--radius-sm); }
+    .topbar__nav { margin-left: auto; display: flex; gap: 1.5rem; list-style: none; align-items: center; }
+    .topbar__nav a { font-family: var(--mono); font-size: 12px; color: var(--muted); text-decoration: none; letter-spacing: 0.03em; transition: color 0.15s; }
+    .topbar__nav a:hover { color: var(--green); }
+    .topbar__nav a.nav-active { color: var(--green); }
+    .topbar__nav a.nav-api { color: var(--sky); }
+    .topbar__nav a.nav-api:hover { color: var(--green); }
+    @media (max-width: 640px) { .topbar__nav .nav-hide { display: none; } }
+
+    /* ── NAV DROPDOWN ──────────────────────────────────────────────────── */
+    .nav-dropdown { position: relative; cursor: default; }
+    .nav-dropdown > span { color: var(--text); font-size: 13px; font-family: var(--mono); letter-spacing: 0.03em; padding: 0 0.1rem; cursor: pointer; display: flex; align-items: center; gap: 0.25rem; }
+    .nav-dropdown__menu { display: none; position: absolute; top: calc(100% + 8px); left: 50%; transform: translateX(-50%); background: var(--panel); border: 1px solid var(--border-lit); border-radius: var(--radius); padding: 0.35rem 0; min-width: 210px; list-style: none; z-index: 100; box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
+    .nav-dropdown:hover .nav-dropdown__menu { display: block; }
+    .nav-dropdown::after { content: ''; position: absolute; top: 100%; left: -1rem; right: -1rem; height: 10px; }
+    .nav-dropdown__menu li a { display: block; padding: 0.4rem 1rem; font-size: 13px; font-family: var(--mono); color: var(--text); text-decoration: none; letter-spacing: 0.03em; }
+    .nav-dropdown__menu li a:hover, .nav-dropdown__menu li a.nav-active { color: var(--green); }
+
+    /* ── DOC HERO ───────────────────────────────────────────────────────── */
+    .doc-hero { background: linear-gradient(180deg, #111926 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); padding: clamp(2.5rem, 6vw, 4rem) clamp(1.5rem, 6vw, 4rem); }
+    .doc-hero__inner { max-width: 860px; margin: 0 auto; }
+    .doc-hero__eyebrow { font-family: var(--mono); font-size: 11px; color: var(--amber); letter-spacing: 0.18em; text-transform: uppercase; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.6rem; }
+    .doc-hero__eyebrow::before { content: ''; display: block; width: 20px; height: 1px; background: var(--amber); opacity: 0.6; }
+    .doc-hero__title { font-family: var(--mono); font-size: clamp(1.75rem, 4vw, 2.75rem); font-weight: 600; color: var(--white); line-height: 1.1; margin-bottom: 1rem; letter-spacing: -0.02em; }
+    .doc-hero__lead { font-size: 16px; color: var(--muted); max-width: 680px; line-height: 1.8; margin-bottom: 1.75rem; }
+    .doc-hero__tags { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .tag { font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; padding: 3px 8px; border-radius: var(--radius-sm); text-transform: uppercase; }
+    .tag--green  { color: var(--green); border: 1px solid rgba(74,222,128,0.3);  background: var(--green-dim); }
+    .tag--sky    { color: var(--sky);   border: 1px solid rgba(56,189,248,0.3);  background: var(--sky-dim);   }
+    .tag--amber  { color: var(--amber); border: 1px solid rgba(251,191,36,0.3);  background: var(--amber-dim); }
+    .tag--violet { color: var(--violet);border: 1px solid rgba(167,139,250,0.3); background: rgba(167,139,250,0.08); }
+
+    /* ── DOC LAYOUT ─────────────────────────────────────────────────────── */
+    .doc-layout { display: flex; align-items: flex-start; max-width: 1120px; margin: 0 auto; padding: 0 clamp(1rem, 3vw, 2rem); gap: 3rem; }
+
+    /* ── TOC ─────────────────────────────────────────────────────────────── */
+    .doc-toc { flex-shrink: 0; width: var(--toc-w); position: sticky; top: calc(var(--bar-h) + 1.5rem); align-self: flex-start; padding: 1.5rem 0; }
+    .doc-toc__heading { font-family: var(--mono); font-size: 9px; color: var(--dim); letter-spacing: 0.2em; text-transform: uppercase; margin-bottom: 0.75rem; }
+    .doc-toc__heading::before { content: "// "; color: var(--amber); }
+    .doc-toc__list { list-style: none; display: flex; flex-direction: column; gap: 0; }
+    .doc-toc__list li a { display: block; font-family: var(--mono); font-size: 11.5px; color: var(--muted); text-decoration: none; padding: 0.3rem 0.75rem; border-left: 2px solid var(--border); transition: color 0.12s, border-color 0.12s, background 0.12s; line-height: 1.4; }
+    .doc-toc__list li a:hover { color: var(--green); border-left-color: var(--green); background: var(--green-dim); }
+    .doc-toc__list li.toc-sub a { font-size: 10.5px; padding-left: 1.25rem; color: var(--dim); }
+    .doc-toc__list li.toc-sub a:hover { color: var(--sky); border-left-color: var(--sky); background: var(--sky-dim); }
+    @media (max-width: 900px) { .doc-toc { display: none; } }
+
+    /* ── CONTENT ────────────────────────────────────────────────────────── */
+    .doc-content { flex: 1; min-width: 0; padding: 2.5rem 0 4rem; }
+    .doc-content h2 { font-family: var(--mono); font-size: clamp(1.1rem, 2.5vw, 1.4rem); font-weight: 600; color: var(--white); margin: 3rem 0 0.85rem; padding-top: 1rem; scroll-margin-top: calc(var(--bar-h) + 1rem); display: flex; align-items: center; gap: 0.6rem; }
+    .doc-content h2::before { content: attr(data-n); font-size: 10px; color: var(--amber); border: 1px solid rgba(251,191,36,0.35); background: var(--amber-dim); padding: 1px 6px; border-radius: var(--radius-sm); letter-spacing: 0.1em; flex-shrink: 0; }
+    .doc-content h2:first-of-type { margin-top: 0; }
+    .doc-content h3 { font-family: var(--mono); font-size: 13.5px; font-weight: 600; color: var(--sky); margin: 2rem 0 0.65rem; scroll-margin-top: calc(var(--bar-h) + 1rem); letter-spacing: 0.02em; }
+    .doc-content h3::before { content: "→ "; color: var(--dim); }
+    .doc-content p { color: var(--text); margin-bottom: 1.1rem; max-width: 72ch; }
+    .doc-content p:last-child { margin-bottom: 0; }
+    .doc-content ul { margin: 0.5rem 0 1.1rem 1.25rem; color: var(--muted); }
+    .doc-content ul li { margin-bottom: 0.3rem; }
+    .doc-content ul li strong { color: var(--text); }
+    .doc-content strong { color: var(--white); font-weight: 600; }
+    .doc-content code { font-family: var(--mono); font-size: 11.5px; color: var(--green); background: var(--green-dim); padding: 0.1em 0.4em; border-radius: var(--radius-sm); }
+
+    /* ── CODE BLOCKS ────────────────────────────────────────────────────── */
+    .code-block { background: var(--code-bg); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin: 1.25rem 0; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+    .code-block__header { display: flex; align-items: center; justify-content: space-between; padding: 0.55rem 1rem; background: var(--panel); border-bottom: 1px solid var(--border); }
+    .code-block__filename { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+    .code-block__lang { font-family: var(--mono); font-size: 9px; color: var(--dim); letter-spacing: 0.1em; text-transform: uppercase; }
+    .code-block pre { margin: 0; padding: 1.1rem 1.25rem; overflow-x: auto; font-family: var(--mono); font-size: 12.5px; line-height: 1.7; }
+    .code-block pre code { color: var(--text); background: none; padding: 0; border-radius: 0; font-size: inherit; }
+
+    /* ── SYNTAX TOKENS ──────────────────────────────────────────────────── */
+    .kw  { color: var(--amber); }
+    .fn  { color: var(--sky); }
+    .cls { color: var(--sky); font-weight: 600; }
+    .dec { color: var(--amber); opacity: 0.85; }
+    .str { color: var(--green); }
+    .cm  { color: var(--dim); font-style: italic; }
+    .num { color: var(--green); }
+    .typ { color: var(--violet); }
+    .xml-tag  { color: var(--rose); }
+    .xml-attr { color: var(--amber); opacity: 0.85; }
+    .xml-val  { color: var(--green); }
+    .xml-cm   { color: var(--dim); font-style: italic; }
+
+    /* ── CALLOUT BOXES ──────────────────────────────────────────────────── */
+    .callout { border-left: 3px solid; border-radius: 0 var(--radius) var(--radius) 0; padding: 0.9rem 1.1rem; margin: 1.25rem 0; font-size: 14px; line-height: 1.65; }
+    .callout--insight { border-color: var(--green); background: var(--green-dim); color: var(--text); }
+    .callout--insight strong { color: var(--green); }
+    .callout--note { border-color: var(--sky); background: var(--sky-dim); color: var(--text); }
+    .callout--note strong { color: var(--sky); }
+    .callout--warn { border-color: var(--amber); background: var(--amber-dim); color: var(--text); }
+    .callout--warn strong { color: var(--amber); }
+
+    /* ── ARCHITECTURE BOX ────────────────────────────────────────────────── */
+    .arch-box { background: var(--code-bg); border: 1px solid var(--border-lit); border-radius: var(--radius); padding: 1.25rem 1.5rem; font-family: var(--mono); font-size: 12px; line-height: 1.8; color: var(--muted); white-space: pre; overflow-x: auto; margin: 1.25rem 0; }
+    .arch-box .arch-hl  { color: var(--green); }
+    .arch-box .arch-dim { color: var(--dim); }
+    .arch-box .arch-sky { color: var(--sky); }
+    .arch-box .arch-amb { color: var(--amber); }
+
+    /* ── CODE SPLIT (2-col) ──────────────────────────────────────────────── */
+    .code-split { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin: 1.5rem 0; }
+    @media (max-width: 800px) { .code-split { grid-template-columns: 1fr; } }
+    .code-split__label { font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; margin-bottom: 0.6rem; }
+
+    /* ── COMPARISON / SUMMARY TABLES ────────────────────────────────────── */
+    .cmp-table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 1.5rem 0; }
+    .cmp-table th { text-align: left; padding: 0.55rem 0.9rem; font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; border-bottom: 2px solid var(--border-lit); }
+    .cmp-table th:first-child { color: var(--muted); }
+    .cmp-table th.th-cfx { color: var(--green); }
+    .cmp-table th.th-alt { color: var(--sky); }
+    .cmp-table td { padding: 0.5rem 0.9rem; border-bottom: 1px solid var(--border); vertical-align: top; color: var(--text); }
+    .cmp-table td:first-child { color: var(--muted); font-family: var(--mono); font-size: 11.5px; }
+    .cmp-table tr:hover td { background: rgba(74,222,128,0.025); }
+    .win { color: var(--green); font-weight: 600; }
+
+    .summary-table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 1.5rem 0; }
+    .summary-table th { text-align: left; padding: 0.5rem 0.85rem; font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; border-bottom: 2px solid var(--border-lit); color: var(--muted); }
+    .summary-table td { padding: 0.5rem 0.85rem; border-bottom: 1px solid var(--border); color: var(--text); font-size: 13px; }
+    .summary-table td:first-child { color: var(--sky); font-family: var(--mono); font-size: 12px; }
+    .summary-table td:nth-child(2) { color: var(--green); font-family: var(--mono); font-size: 11.5px; }
+    .summary-table tr:hover td { background: rgba(74,222,128,0.02); }
+
+    /* ── SCORE LEVEL BADGES ─────────────────────────────────────────────── */
+    .level-badge { display: inline-block; font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; padding: 2px 7px; border-radius: var(--radius-sm); font-weight: 600; }
+    .level-5 { background: rgba(74,222,128,0.15); color: var(--green); border: 1px solid rgba(74,222,128,0.4); }
+    .level-4 { background: rgba(56,189,248,0.12); color: var(--sky); border: 1px solid rgba(56,189,248,0.35); }
+    .level-3 { background: rgba(167,139,250,0.12); color: var(--violet); border: 1px solid rgba(167,139,250,0.35); }
+    .level-2 { background: rgba(251,191,36,0.1); color: var(--amber); border: 1px solid rgba(251,191,36,0.35); }
+    .level-1 { background: rgba(251,113,133,0.1); color: var(--rose); border: 1px solid rgba(251,113,133,0.3); }
+
+    /* ── STEP / RUN LIST ────────────────────────────────────────────────── */
+    .run-steps { list-style: none; counter-reset: run-step; display: flex; flex-direction: column; gap: 0.85rem; margin: 1.25rem 0; }
+    .run-steps li { counter-increment: run-step; display: flex; gap: 0.9rem; align-items: flex-start; }
+    .run-steps li::before { content: counter(run-step, decimal-leading-zero); font-family: var(--mono); font-size: 10px; color: var(--amber); border: 1px solid rgba(251,191,36,0.35); background: var(--amber-dim); padding: 1px 6px; border-radius: var(--radius-sm); flex-shrink: 0; line-height: 1.8; }
+    .run-steps li .step-text { color: var(--muted); font-size: 13.5px; }
+    .run-steps li .step-text code { font-family: var(--mono); font-size: 11px; color: var(--sky); background: var(--sky-dim); padding: 0.1em 0.4em; border-radius: 2px; }
+
+    /* ── FOOTER ─────────────────────────────────────────────────────────── */
+    footer { border-top: 1px solid var(--border); padding: 1.25rem clamp(1.5rem, 6vw, 4rem); display: flex; justify-content: space-between; align-items: center; font-family: var(--mono); font-size: 11px; color: var(--dim); background: var(--panel); flex-wrap: wrap; gap: 0.75rem; }
+    footer a { color: var(--dim); text-decoration: none; transition: color 0.15s; }
+    footer a:hover { color: var(--green); }
+    footer .sep { margin: 0 0.45rem; }
+  </style>
+</head>
+<body>
+
+<!-- ── TOP BAR ──────────────────────────────────────────────────────────── -->
+<header class="topbar">
+  <a href="../index.html" class="topbar__logo">component-framework</a>
+  <span class="topbar__badge">BETA</span>
+  <nav aria-label="Main navigation">
+    <ul class="topbar__nav">
+      <li><a href="../index.html">Home</a></li>
+      <li class="nav-dropdown">
+        <span>Examples ▾</span>
+        <ul class="nav-dropdown__menu">
+          <li><a href="ecommerce.html">E-Commerce</a></li>
+          <li><a href="admin-panel.html">Admin Panel</a></li>
+          <li><a href="customer-support.html">Customer Support</a></li>
+          <li><a href="education-lms.html" class="nav-active">NYS Regents</a></li>
+          <li><a href="financial-dashboard.html">Financial Dashboard</a></li>
+        </ul>
+      </li>
+      <li><a href="../component_framework.html" class="nav-api">API Ref</a></li>
+      <li class="nav-hide"><a href="https://github.com/fsecada01/component-framework" target="_blank" rel="noopener">GitHub ↗</a></li>
+    </ul>
+  </nav>
+</header>
+
+<!-- ── DOC HERO ─────────────────────────────────────────────────────────── -->
+<div class="doc-hero">
+  <div class="doc-hero__inner">
+    <p class="doc-hero__eyebrow">Government · Education · Django · NYS Public School</p>
+    <h1 class="doc-hero__title">NYS Regents Chemistry<br>Proctoring &amp; Score Management</h1>
+    <p class="doc-hero__lead">
+      A real-world dashboard for New York State public school administrators running the
+      Physical Setting/Chemistry Regents exam — room assignments, accommodation-aware
+      student check-in, per-part score entry with automatic raw-to-scale conversion,
+      and school-level analytics with one-click SIRS export for state reporting.
+    </p>
+    <div class="doc-hero__tags">
+      <span class="tag tag--green">DjangoModelComponent</span>
+      <span class="tag tag--sky">FormComponent · Pydantic</span>
+      <span class="tag tag--amber">Raw → Scale Conversion</span>
+      <span class="tag tag--violet">SIRS Export</span>
+      <span class="tag tag--green">Accommodation Flags</span>
+      <span class="tag tag--sky">Performance Levels 1–5</span>
+    </div>
+  </div>
+</div>
+
+<!-- ── MAIN ─────────────────────────────────────────────────────────────── -->
+<div class="doc-layout">
+
+  <!-- ── TOC ───────────────────────────────────────────────────────────── -->
+  <aside class="doc-toc" aria-label="Table of contents">
+    <p class="doc-toc__heading">On this page</p>
+    <ul class="doc-toc__list">
+      <li><a href="#overview">Overview</a></li>
+      <li><a href="#exam-structure">Exam Structure</a></li>
+      <li><a href="#architecture">Architecture</a></li>
+      <li><a href="#models">Data Models</a></li>
+      <li><a href="#exam-session">ExamSessionComponent</a></li>
+      <li class="toc-sub"><a href="#session-state">State &amp; mount()</a></li>
+      <li class="toc-sub"><a href="#session-events">Events</a></li>
+      <li class="toc-sub"><a href="#session-template">Template</a></li>
+      <li><a href="#score-entry">ScoreEntryComponent</a></li>
+      <li class="toc-sub"><a href="#score-schema">Pydantic Schema</a></li>
+      <li class="toc-sub"><a href="#score-events">Events &amp; Conversion</a></li>
+      <li class="toc-sub"><a href="#score-template">Template</a></li>
+      <li><a href="#analytics">ScoreAnalyticsComponent</a></li>
+      <li class="toc-sub"><a href="#analytics-events">SIRS Export</a></li>
+      <li><a href="#testing">Testing</a></li>
+      <li><a href="#running">Running the Example</a></li>
+    </ul>
+  </aside>
+
+  <!-- ── CONTENT ───────────────────────────────────────────────────────── -->
+  <main class="doc-content">
+
+    <!-- ── OVERVIEW ────────────────────────────────────────────────────── -->
+    <h2 id="overview" data-n="01">Overview</h2>
+    <p>
+      The <strong>Physical Setting/Chemistry Regents</strong> is one of the most administratively
+      complex standardized exams in New York State: mixed machine-scored and hand-scored
+      parts, per-administration raw-to-scale conversion charts, five performance levels,
+      accommodation-driven room splits, and mandatory score reporting to NYSED's SIRS
+      repository. A typical school manages 50–200 students across 3–6 rooms per session.
+    </p>
+    <p>
+      This example builds three server-side Django components that replace a patchwork of
+      spreadsheets. No JavaScript framework — HTMX handles all interactions, state lives
+      on the server, and the conversion chart is stored in the database and applied
+      automatically on save.
+    </p>
+
+    <div class="callout callout--note">
+      <strong>2026 exam transition:</strong> NYSED is transitioning the exam to
+      "Physical Science: Chemistry" with a new 4-page data sheet (replacing the 12-page
+      reference tables) beginning June 2026. The <code>ConversionChart</code> model uses
+      a <code>exam_format</code> field so both formats can coexist during the overlap period.
+    </div>
+
+    <!-- ── EXAM STRUCTURE ──────────────────────────────────────────────── -->
+    <h2 id="exam-structure" data-n="02">Exam Structure</h2>
+    <p>The Chemistry Regents has <strong>85 total raw points</strong> across four parts,
+    offered three times per year (January, June, August).</p>
+
+    <table class="summary-table">
+      <thead>
+        <tr>
+          <th>Part</th>
+          <th>Max Raw Points</th>
+          <th>Question Type</th>
+          <th>Scoring</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Part A</td><td>30</td><td>30 multiple choice</td><td>Machine-scanned answer sheet</td></tr>
+        <tr><td>Part B-1</td><td>20</td><td>20 multiple choice (Reference Tables required)</td><td>Machine-scanned answer sheet</td></tr>
+        <tr><td>Part B-2</td><td>15</td><td>Constructed response, partial credit</td><td>Hand-scored by two raters</td></tr>
+        <tr><td>Part C</td><td>25</td><td>Extended constructed response, partial credit</td><td>Hand-scored by two raters</td></tr>
+      </tbody>
+    </table>
+
+    <p>Raw scores are converted to a 0–100 <strong>scale score</strong> via a conversion
+    chart released by NYSED on exam day. The chart varies each administration to account
+    for difficulty differences. Scale scores map to five performance levels:</p>
+
+    <table class="summary-table">
+      <thead><tr><th>Level</th><th>Scale Score</th><th>Meaning</th><th>Dashboard indicator</th></tr></thead>
+      <tbody>
+        <tr><td>Level 5</td><td>85–100</td><td>Mastery — diploma mastery annotation eligible</td><td><span class="level-badge level-5">MASTERY</span></td></tr>
+        <tr><td>Level 4</td><td>76–84</td><td>Meets standards</td><td><span class="level-badge level-4">LEVEL 4</span></td></tr>
+        <tr><td>Level 3</td><td>65–75</td><td>Passing — satisfies Regents diploma requirement</td><td><span class="level-badge level-3">PASS</span></td></tr>
+        <tr><td>Level 2</td><td>55–64</td><td>Safety net zone (primarily SWD students)</td><td><span class="level-badge level-2">SAFETY NET</span></td></tr>
+        <tr><td>Level 1</td><td>0–54</td><td>Does not meet standards</td><td><span class="level-badge level-1">FAIL</span></td></tr>
+      </tbody>
+    </table>
+
+    <!-- ── ARCHITECTURE ────────────────────────────────────────────────── -->
+    <h2 id="architecture" data-n="03">Architecture</h2>
+
+    <div class="arch-box"><span class="arch-amb">NYSED releases exam materials + conversion chart (exam day)</span>
+         │
+         ▼
+<span class="arch-hl">ExamSessionComponent</span>          <span class="arch-dim">← proctor manages their room</span>
+  • room roster with OSIS numbers
+  • accommodation flags (extended time, separate location)
+  • real-time check-in / mark absent
+  • seat count: pending / checked-in / absent
+         │
+         ▼
+<span class="arch-hl">ScoreEntryComponent</span>           <span class="arch-dim">← score clerk enters raw scores</span>
+  • Part A  (0–30)  ─┐
+  • Part B-1 (0–20)  ├─ auto total raw (0–85)
+  • Part B-2 (0–15)  │  → ConversionChart lookup
+  • Part C   (0–25) ─┘  → scale score + level badge
+  • validation via ChemistryScoreSchema (Pydantic)
+         │
+         ▼
+<span class="arch-hl">ScoreAnalyticsComponent</span>        <span class="arch-dim">← administrator / counselor</span>
+  • pass rate (≥65) · mastery rate (≥85)
+  • Level 1–5 distribution bar
+  • safety-net student list (55–64, SWD flag)
+  • appeal roster (60–64, general ed)
+  • SIRS export payload → state reporting</div>
+
+    <!-- ── DATA MODELS ─────────────────────────────────────────────────── -->
+    <h2 id="models" data-n="04">Data Models</h2>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">regents/models.py</span>
+        <span class="code-block__lang">python</span>
+      </div>
+      <pre><code><span class="kw">from</span> django.db <span class="kw">import</span> models
+<span class="kw">from</span> django.contrib.auth <span class="kw">import</span> get_user_model
+
+<span class="cls">User</span> = get_user_model()
+
+
+<span class="kw">class</span> <span class="cls">RegentsSession</span>(models.Model):
+    <span class="str">"""A single administration of a Regents exam (e.g., June 2025 Chemistry)."""</span>
+    <span class="cls">PERIOD_CHOICES</span> = [(<span class="str">"january"</span>, <span class="str">"January"</span>), (<span class="str">"june"</span>, <span class="str">"June"</span>), (<span class="str">"august"</span>, <span class="str">"August"</span>)]
+    <span class="cls">FORMAT_CHOICES</span> = [(<span class="str">"legacy"</span>, <span class="str">"Pre-2026 (12-page CRT)"</span>), (<span class="str">"2026"</span>, <span class="str">"2026+ (4-page data sheet)"</span>)]
+
+    period      = models.CharField(max_length=<span class="num">10</span>, choices=<span class="cls">PERIOD_CHOICES</span>)
+    year        = models.IntegerField()
+    exam_date   = models.DateField()
+    exam_format = models.CharField(max_length=<span class="num">10</span>, choices=<span class="cls">FORMAT_CHOICES</span>, default=<span class="str">"legacy"</span>)
+    chart_loaded = models.BooleanField(default=<span class="num">False</span>)  <span class="cm"># True once NYSED chart is uploaded</span>
+
+    <span class="kw">class</span> <span class="cls">Meta</span>:
+        unique_together = [(<span class="str">"period"</span>, <span class="str">"year"</span>)]
+        ordering = [<span class="str">"-year"</span>, <span class="str">"period"</span>]
+
+    <span class="kw">def</span> <span class="fn">__str__</span>(<span class="kw">self</span>):
+        <span class="kw">return</span> <span class="fn">f</span><span class="str">"{self.period.title()} {self.year} — Chemistry"</span>
+
+
+<span class="kw">class</span> <span class="cls">ConversionChart</span>(models.Model):
+    <span class="str">"""Raw → scale score lookup table for one session. Uploaded on exam day."""</span>
+    session    = models.ForeignKey(<span class="cls">RegentsSession</span>, on_delete=models.CASCADE, related_name=<span class="str">"chart_entries"</span>)
+    raw_score  = models.PositiveSmallIntegerField()   <span class="cm"># 0–85</span>
+    scale_score = models.PositiveSmallIntegerField()  <span class="cm"># 0–100</span>
+
+    <span class="kw">class</span> <span class="cls">Meta</span>:
+        unique_together = [(<span class="str">"session"</span>, <span class="str">"raw_score"</span>)]
+
+
+<span class="kw">class</span> <span class="cls">ExamRoom</span>(models.Model):
+    <span class="str">"""A room assigned to a Regents session — standard, extended time, or separate location."""</span>
+    <span class="cls">ROOM_TYPES</span> = [
+        (<span class="str">"standard"</span>,          <span class="str">"Standard"</span>),
+        (<span class="str">"extended_time"</span>,     <span class="str">"Extended Time (1.5×)"</span>),
+        (<span class="str">"extended_time_2x"</span>,  <span class="str">"Extended Time (2×)"</span>),
+        (<span class="str">"separate_location"</span>, <span class="str">"Separate Location"</span>),
+    ]
+    session     = models.ForeignKey(<span class="cls">RegentsSession</span>, on_delete=models.CASCADE, related_name=<span class="str">"rooms"</span>)
+    room_number = models.CharField(max_length=<span class="num">20</span>)
+    room_type   = models.CharField(max_length=<span class="num">20</span>, choices=<span class="cls">ROOM_TYPES</span>, default=<span class="str">"standard"</span>)
+    capacity    = models.PositiveSmallIntegerField(default=<span class="num">30</span>)
+    proctor     = models.ForeignKey(<span class="cls">User</span>, on_delete=models.SET_NULL, null=<span class="num">True</span>, related_name=<span class="str">"proctored_rooms"</span>)
+
+
+<span class="kw">class</span> <span class="cls">StudentEnrollment</span>(models.Model):
+    <span class="str">"""A student registered for a session, assigned to a room with accommodation tracking."""</span>
+    <span class="cls">ACCOMMODATION_CHOICES</span> = [
+        (<span class="str">"none"</span>,              <span class="str">"No accommodation"</span>),
+        (<span class="str">"extended_time"</span>,    <span class="str">"Extended time (1.5×)"</span>),
+        (<span class="str">"extended_time_2x"</span>, <span class="str">"Extended time (2×)"</span>),
+        (<span class="str">"separate_location"</span>,<span class="str">"Separate location"</span>),
+        (<span class="str">"oral"</span>,             <span class="str">"Oral administration"</span>),
+        (<span class="str">"large_print"</span>,      <span class="str">"Large print"</span>),
+    ]
+    <span class="cls">STATUS_CHOICES</span> = [(<span class="str">"pending"</span>, <span class="str">"Pending"</span>), (<span class="str">"checked_in"</span>, <span class="str">"Checked In"</span>), (<span class="str">"absent"</span>, <span class="str">"Absent"</span>)]
+
+    session       = models.ForeignKey(<span class="cls">RegentsSession</span>, on_delete=models.CASCADE)
+    student       = models.ForeignKey(<span class="cls">User</span>, on_delete=models.CASCADE, related_name=<span class="str">"enrollments"</span>)
+    room          = models.ForeignKey(<span class="cls">ExamRoom</span>, on_delete=models.SET_NULL, null=<span class="num">True</span>)
+    accommodation = models.CharField(max_length=<span class="num">20</span>, choices=<span class="cls">ACCOMMODATION_CHOICES</span>, default=<span class="str">"none"</span>)
+    is_swd        = models.BooleanField(default=<span class="num">False</span>)  <span class="cm"># student with disability (IEP/504)</span>
+    check_in_status = models.CharField(max_length=<span class="num">12</span>, choices=<span class="cls">STATUS_CHOICES</span>, default=<span class="str">"pending"</span>)
+    checked_in_at   = models.DateTimeField(null=<span class="num">True</span>, blank=<span class="num">True</span>)
+
+
+<span class="kw">class</span> <span class="cls">RegentsScore</span>(models.Model):
+    <span class="str">"""Scored results for one student's exam, stored part-by-part for analytics."""</span>
+    enrollment    = models.OneToOneField(<span class="cls">StudentEnrollment</span>, on_delete=models.CASCADE, related_name=<span class="str">"score"</span>)
+    part_a        = models.PositiveSmallIntegerField(null=<span class="num">True</span>)  <span class="cm"># 0–30</span>
+    part_b1       = models.PositiveSmallIntegerField(null=<span class="num">True</span>)  <span class="cm"># 0–20</span>
+    part_b2       = models.PositiveSmallIntegerField(null=<span class="num">True</span>)  <span class="cm"># 0–15</span>
+    part_c        = models.PositiveSmallIntegerField(null=<span class="num">True</span>)  <span class="cm"># 0–25</span>
+    total_raw     = models.PositiveSmallIntegerField(null=<span class="num">True</span>)  <span class="cm"># 0–85</span>
+    scale_score   = models.PositiveSmallIntegerField(null=<span class="num">True</span>)  <span class="cm"># 0–100</span>
+    performance_level = models.PositiveSmallIntegerField(null=<span class="num">True</span>)  <span class="cm"># 1–5</span>
+    entered_by    = models.ForeignKey(<span class="cls">User</span>, on_delete=models.SET_NULL, null=<span class="num">True</span>)
+    entered_at    = models.DateTimeField(auto_now_add=<span class="num">True</span>, null=<span class="num">True</span>)</code></pre>
+    </div>
+
+    <!-- ── EXAM SESSION COMPONENT ──────────────────────────────────────── -->
+    <h2 id="exam-session" data-n="05">ExamSessionComponent</h2>
+    <p>
+      Each proctor sees only their assigned room's roster. Students are listed with their
+      OSIS number, accommodation flag, and current check-in status. The proctor taps
+      a button per student — HTMX posts the event, the component updates state, and
+      Django writes the timestamp. No page reload.
+    </p>
+
+    <h3 id="session-state">State &amp; mount()</h3>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">regents/components/exam_session.py</span>
+        <span class="code-block__lang">python</span>
+      </div>
+      <pre><code><span class="kw">from</span> django.utils <span class="kw">import</span> timezone
+<span class="kw">from</span> component_framework.core.registry <span class="kw">import</span> registry
+<span class="kw">from</span> component_framework.adapters.django_model <span class="kw">import</span> <span class="cls">DjangoModelComponent</span>
+<span class="kw">from</span> ..models <span class="kw">import</span> <span class="cls">ExamRoom</span>, <span class="cls">StudentEnrollment</span>
+
+
+<span class="dec">@registry.register(<span class="str">"exam_session"</span>)</span>
+<span class="kw">class</span> <span class="cls">ExamSessionComponent</span>(<span class="cls">DjangoModelComponent</span>):
+    <span class="str">"""
+    Proctor's room view for a Chemistry Regents administration.
+
+    Params:
+        room_id (int): PK of the ExamRoom this proctor is managing.
+    """</span>
+    template_name = <span class="str">"regents/exam_session.html"</span>
+    model = <span class="cls">ExamRoom</span>
+
+    <span class="kw">def</span> <span class="fn">mount</span>(<span class="kw">self</span>):
+        room = (
+            <span class="cls">ExamRoom</span>.objects
+            .select_related(<span class="str">"session"</span>, <span class="str">"proctor"</span>)
+            .get(pk=<span class="kw">self</span>.params[<span class="str">"room_id"</span>])
+        )
+        enrollments = (
+            <span class="cls">StudentEnrollment</span>.objects
+            .filter(room=room)
+            .select_related(<span class="str">"student"</span>)
+            .order_by(<span class="str">"student__last_name"</span>, <span class="str">"student__first_name"</span>)
+        )
+        <span class="kw">self</span>.state.update({
+            <span class="str">"room_id"</span>:      room.pk,
+            <span class="str">"room_number"</span>:  room.room_number,
+            <span class="str">"room_type"</span>:    room.get_room_type_display(),
+            <span class="str">"proctor_name"</span>: room.proctor.get_full_name() <span class="kw">if</span> room.proctor <span class="kw">else</span> <span class="str">"—"</span>,
+            <span class="str">"session_label"</span>: str(room.session),
+            <span class="str">"capacity"</span>:     room.capacity,
+            <span class="str">"students"</span>: [
+                {
+                    <span class="str">"id"</span>:            e.pk,
+                    <span class="str">"name"</span>:          e.student.get_full_name(),
+                    <span class="str">"osis"</span>:          e.student.username,   <span class="cm"># OSIS stored as username</span>
+                    <span class="str">"accommodation"</span>: e.get_accommodation_display(),
+                    <span class="str">"is_swd"</span>:        e.is_swd,
+                    <span class="str">"status"</span>:        e.check_in_status,
+                    <span class="str">"checked_in_at"</span>: (
+                        e.checked_in_at.strftime(<span class="str">"%H:%M"</span>) <span class="kw">if</span> e.checked_in_at <span class="kw">else</span> <span class="num">None</span>
+                    ),
+                }
+                <span class="kw">for</span> e <span class="kw">in</span> enrollments
+            ],
+        })
+        <span class="kw">self</span>.<span class="fn">_refresh_counts</span>()
+
+    <span class="kw">def</span> <span class="fn">_refresh_counts</span>(<span class="kw">self</span>):
+        students = <span class="kw">self</span>.state[<span class="str">"students"</span>]
+        <span class="kw">self</span>.state[<span class="str">"checked_in"</span>] = <span class="fn">sum</span>(<span class="num">1</span> <span class="kw">for</span> s <span class="kw">in</span> students <span class="kw">if</span> s[<span class="str">"status"</span>] == <span class="str">"checked_in"</span>)
+        <span class="kw">self</span>.state[<span class="str">"absent"</span>]     = <span class="fn">sum</span>(<span class="num">1</span> <span class="kw">for</span> s <span class="kw">in</span> students <span class="kw">if</span> s[<span class="str">"status"</span>] == <span class="str">"absent"</span>)
+        <span class="kw">self</span>.state[<span class="str">"pending"</span>]    = <span class="fn">sum</span>(<span class="num">1</span> <span class="kw">for</span> s <span class="kw">in</span> students <span class="kw">if</span> s[<span class="str">"status"</span>] == <span class="str">"pending"</span>)</code></pre>
+    </div>
+
+    <h3 id="session-events">Events: check-in &amp; absent</h3>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">regents/components/exam_session.py (continued)</span>
+        <span class="code-block__lang">python</span>
+      </div>
+      <pre><code>    <span class="kw">def</span> <span class="fn">on_check_in</span>(<span class="kw">self</span>):
+        <span class="str">"""Mark a student as checked in and record the timestamp."""</span>
+        enrollment_id = <span class="kw">self</span>.payload[<span class="str">"enrollment_id"</span>]
+        now = timezone.<span class="fn">now</span>()
+        <span class="cls">StudentEnrollment</span>.objects.filter(pk=enrollment_id).update(
+            check_in_status=<span class="str">"checked_in"</span>,
+            checked_in_at=now,
+        )
+        <span class="kw">for</span> s <span class="kw">in</span> <span class="kw">self</span>.state[<span class="str">"students"</span>]:
+            <span class="kw">if</span> s[<span class="str">"id"</span>] == enrollment_id:
+                s[<span class="str">"status"</span>] = <span class="str">"checked_in"</span>
+                s[<span class="str">"checked_in_at"</span>] = now.strftime(<span class="str">"%H:%M"</span>)
+        <span class="kw">self</span>.<span class="fn">_refresh_counts</span>()
+
+    <span class="kw">def</span> <span class="fn">on_mark_absent</span>(<span class="kw">self</span>):
+        <span class="str">"""Mark a student as absent (did not sit for the exam)."""</span>
+        enrollment_id = <span class="kw">self</span>.payload[<span class="str">"enrollment_id"</span>]
+        <span class="cls">StudentEnrollment</span>.objects.filter(pk=enrollment_id).update(
+            check_in_status=<span class="str">"absent"</span>,
+            checked_in_at=<span class="num">None</span>,
+        )
+        <span class="kw">for</span> s <span class="kw">in</span> <span class="kw">self</span>.state[<span class="str">"students"</span>]:
+            <span class="kw">if</span> s[<span class="str">"id"</span>] == enrollment_id:
+                s[<span class="str">"status"</span>] = <span class="str">"absent"</span>
+                s[<span class="str">"checked_in_at"</span>] = <span class="num">None</span>
+        <span class="kw">self</span>.<span class="fn">_refresh_counts</span>()
+
+    <span class="kw">def</span> <span class="fn">on_undo</span>(<span class="kw">self</span>):
+        <span class="str">"""Revert a student's status back to pending (typo correction)."""</span>
+        enrollment_id = <span class="kw">self</span>.payload[<span class="str">"enrollment_id"</span>]
+        <span class="cls">StudentEnrollment</span>.objects.filter(pk=enrollment_id).update(
+            check_in_status=<span class="str">"pending"</span>, checked_in_at=<span class="num">None</span>,
+        )
+        <span class="kw">for</span> s <span class="kw">in</span> <span class="kw">self</span>.state[<span class="str">"students"</span>]:
+            <span class="kw">if</span> s[<span class="str">"id"</span>] == enrollment_id:
+                s[<span class="str">"status"</span>] = <span class="str">"pending"</span>
+                s[<span class="str">"checked_in_at"</span>] = <span class="num">None</span>
+        <span class="kw">self</span>.<span class="fn">_refresh_counts</span>()</code></pre>
+    </div>
+
+    <h3 id="session-template">Template</h3>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">templates/regents/exam_session.html</span>
+        <span class="code-block__lang">html</span>
+      </div>
+      <pre><code><span class="xml-cm">&lt;!-- Room header --&gt;</span>
+<span class="xml-tag">&lt;div</span> <span class="xml-attr">class</span>=<span class="xml-val">"room-header"</span><span class="xml-tag">&gt;</span>
+  <span class="xml-tag">&lt;h2&gt;</span>Room {{ state.room_number }} — {{ state.room_type }}<span class="xml-tag">&lt;/h2&gt;</span>
+  <span class="xml-tag">&lt;p&gt;</span>Proctor: {{ state.proctor_name }} · {{ state.session_label }}<span class="xml-tag">&lt;/p&gt;</span>
+  <span class="xml-tag">&lt;div</span> <span class="xml-attr">class</span>=<span class="xml-val">"checkin-summary"</span><span class="xml-tag">&gt;</span>
+    <span class="xml-tag">&lt;span</span> <span class="xml-attr">class</span>=<span class="xml-val">"badge badge--green"</span><span class="xml-tag">&gt;</span>✓ {{ state.checked_in }} checked in<span class="xml-tag">&lt;/span&gt;</span>
+    <span class="xml-tag">&lt;span</span> <span class="xml-attr">class</span>=<span class="xml-val">"badge badge--amber"</span><span class="xml-tag">&gt;</span>⏳ {{ state.pending }} pending<span class="xml-tag">&lt;/span&gt;</span>
+    <span class="xml-tag">&lt;span</span> <span class="xml-attr">class</span>=<span class="xml-val">"badge badge--red"</span><span class="xml-tag">&gt;</span>✗ {{ state.absent }} absent<span class="xml-tag">&lt;/span&gt;</span>
+  <span class="xml-tag">&lt;/div&gt;</span>
+<span class="xml-tag">&lt;/div&gt;</span>
+
+<span class="xml-cm">&lt;!-- Student roster --&gt;</span>
+<span class="xml-tag">&lt;table</span> <span class="xml-attr">class</span>=<span class="xml-val">"roster-table"</span><span class="xml-tag">&gt;</span>
+  <span class="xml-tag">&lt;thead&gt;&lt;tr&gt;</span>
+    <span class="xml-tag">&lt;th&gt;</span>Student<span class="xml-tag">&lt;/th&gt;&lt;th&gt;</span>OSIS<span class="xml-tag">&lt;/th&gt;&lt;th&gt;</span>Accommodation<span class="xml-tag">&lt;/th&gt;&lt;th&gt;</span>Status<span class="xml-tag">&lt;/th&gt;&lt;th&gt;</span>Actions<span class="xml-tag">&lt;/th&gt;</span>
+  <span class="xml-tag">&lt;/tr&gt;&lt;/thead&gt;</span>
+  <span class="xml-tag">&lt;tbody&gt;</span>
+  {% for student in state.students %}
+    <span class="xml-tag">&lt;tr</span> <span class="xml-attr">class</span>=<span class="xml-val">"row--{{ student.status }}"</span><span class="xml-tag">&gt;</span>
+      <span class="xml-tag">&lt;td&gt;</span>
+        {{ student.name }}
+        {% if student.is_swd %}<span class="xml-tag">&lt;span</span> <span class="xml-attr">class</span>=<span class="xml-val">"swd-flag"</span> <span class="xml-attr">title</span>=<span class="xml-val">"Student with Disability"</span><span class="xml-tag">&gt;</span>SWD<span class="xml-tag">&lt;/span&gt;</span>{% endif %}
+      <span class="xml-tag">&lt;/td&gt;</span>
+      <span class="xml-tag">&lt;td</span> <span class="xml-attr">class</span>=<span class="xml-val">"osis"</span><span class="xml-tag">&gt;</span>{{ student.osis }}<span class="xml-tag">&lt;/td&gt;</span>
+      <span class="xml-tag">&lt;td&gt;</span>{{ student.accommodation }}<span class="xml-tag">&lt;/td&gt;</span>
+      <span class="xml-tag">&lt;td&gt;</span>
+        {% if student.status == "checked_in" %}✓ {{ student.checked_in_at }}
+        {% elif student.status == "absent" %}✗ Absent
+        {% else %}—{% endif %}
+      <span class="xml-tag">&lt;/td&gt;</span>
+      <span class="xml-tag">&lt;td</span> <span class="xml-attr">class</span>=<span class="xml-val">"actions"</span><span class="xml-tag">&gt;</span>
+        {% if student.status == "pending" %}
+          <span class="xml-tag">&lt;button</span> <span class="xml-attr">hx-post</span>=<span class="xml-val">"/components/exam_session"</span>
+                  <span class="xml-attr">hx-vals</span>=<span class="xml-val">'{"event":"check_in","payload":{"enrollment_id":{{ student.id }}},"state":"{{ serialized_state }}"}'</span>
+                  <span class="xml-attr">hx-target</span>=<span class="xml-val">"#exam-session-{{ state.room_id }}"</span>
+                  <span class="xml-attr">hx-swap</span>=<span class="xml-val">"outerHTML"</span><span class="xml-tag">&gt;</span>Check In<span class="xml-tag">&lt;/button&gt;</span>
+          <span class="xml-tag">&lt;button</span> <span class="xml-attr">hx-post</span>=<span class="xml-val">"/components/exam_session"</span>
+                  <span class="xml-attr">hx-vals</span>=<span class="xml-val">'{"event":"mark_absent","payload":{"enrollment_id":{{ student.id }}},"state":"{{ serialized_state }}"}'</span>
+                  <span class="xml-attr">hx-target</span>=<span class="xml-val">"#exam-session-{{ state.room_id }}"</span>
+                  <span class="xml-attr">hx-swap</span>=<span class="xml-val">"outerHTML"</span><span class="xml-tag">&gt;</span>Absent<span class="xml-tag">&lt;/button&gt;</span>
+        {% else %}
+          <span class="xml-tag">&lt;button</span> <span class="xml-attr">hx-post</span>=<span class="xml-val">"/components/exam_session"</span>
+                  <span class="xml-attr">hx-vals</span>=<span class="xml-val">'{"event":"undo","payload":{"enrollment_id":{{ student.id }}},"state":"{{ serialized_state }}"}'</span>
+                  <span class="xml-attr">hx-target</span>=<span class="xml-val">"#exam-session-{{ state.room_id }}"</span>
+                  <span class="xml-attr">hx-swap</span>=<span class="xml-val">"outerHTML"</span><span class="xml-tag">&gt;</span>Undo<span class="xml-tag">&lt;/button&gt;</span>
+        {% endif %}
+      <span class="xml-tag">&lt;/td&gt;</span>
+    <span class="xml-tag">&lt;/tr&gt;</span>
+  {% endfor %}
+  <span class="xml-tag">&lt;/tbody&gt;</span>
+<span class="xml-tag">&lt;/table&gt;</span></code></pre>
+    </div>
+
+    <div class="callout callout--insight">
+      <strong>Proctor rule:</strong> NYSED requires that no teacher proctor a section of their
+      own subject. The <code>ExamRoom.proctor</code> FK should be validated at assignment time
+      to enforce this — or simply note it in the admin UI. The component itself is read-only
+      about who the proctor is.
+    </div>
+
+    <!-- ── SCORE ENTRY COMPONENT ───────────────────────────────────────── -->
+    <h2 id="score-entry" data-n="06">ScoreEntryComponent</h2>
+    <p>
+      After scanning is complete (Parts A and B-1) and hand-scoring is done (B-2 and C),
+      a score clerk enters raw scores per part. The component validates each part's range,
+      sums to a total raw score, looks up the administration's conversion chart in the
+      database, and immediately shows the scale score and performance level badge.
+    </p>
+
+    <h3 id="score-schema">Pydantic Schema</h3>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">regents/components/score_entry.py</span>
+        <span class="code-block__lang">python</span>
+      </div>
+      <pre><code><span class="kw">from</span> pydantic <span class="kw">import</span> BaseModel, Field, model_validator
+<span class="kw">from</span> component_framework.core.registry <span class="kw">import</span> registry
+<span class="kw">from</span> component_framework.core.form <span class="kw">import</span> <span class="cls">FormComponent</span>
+<span class="kw">from</span> ..models <span class="kw">import</span> <span class="cls">StudentEnrollment</span>, <span class="cls">RegentsScore</span>, <span class="cls">ConversionChart</span>
+
+
+<span class="kw">class</span> <span class="cls">ChemistryScoreSchema</span>(<span class="cls">BaseModel</span>):
+    <span class="str">"""
+    Validates raw scores for each part of the Chemistry Regents.
+
+    Part maxima: A=30, B-1=20, B-2=15, C=25.  Total must not exceed 85.
+    """</span>
+    part_a:  <span class="typ">int</span> = Field(ge=<span class="num">0</span>, le=<span class="num">30</span>, description=<span class="str">"Part A  (0–30)"</span>)
+    part_b1: <span class="typ">int</span> = Field(ge=<span class="num">0</span>, le=<span class="num">20</span>, description=<span class="str">"Part B-1 (0–20)"</span>)
+    part_b2: <span class="typ">int</span> = Field(ge=<span class="num">0</span>, le=<span class="num">15</span>, description=<span class="str">"Part B-2 (0–15)"</span>)
+    part_c:  <span class="typ">int</span> = Field(ge=<span class="num">0</span>, le=<span class="num">25</span>, description=<span class="str">"Part C   (0–25)"</span>)
+
+    <span class="dec">@model_validator(mode=<span class="str">"after"</span>)</span>
+    <span class="kw">def</span> <span class="fn">total_within_range</span>(<span class="kw">self</span>) -&gt; <span class="str">"ChemistryScoreSchema"</span>:
+        total = <span class="kw">self</span>.part_a + <span class="kw">self</span>.part_b1 + <span class="kw">self</span>.part_b2 + <span class="kw">self</span>.part_c
+        <span class="kw">if</span> total &gt; <span class="num">85</span>:
+            <span class="kw">raise</span> ValueError(<span class="fn">f</span><span class="str">"Total raw score {total} exceeds maximum of 85."</span>)
+        <span class="kw">return</span> <span class="kw">self</span></code></pre>
+    </div>
+
+    <h3 id="score-events">mount(), on_preview(), on_submit(), and conversion</h3>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">regents/components/score_entry.py (continued)</span>
+        <span class="code-block__lang">python</span>
+      </div>
+      <pre><code><span class="dec">@registry.register(<span class="str">"score_entry"</span>)</span>
+<span class="kw">class</span> <span class="cls">ScoreEntryComponent</span>(<span class="cls">FormComponent</span>):
+    <span class="str">"""Per-student score entry with automatic raw-to-scale conversion."""</span>
+    template_name = <span class="str">"regents/score_entry.html"</span>
+    schema = <span class="cls">ChemistryScoreSchema</span>
+
+    <span class="kw">def</span> <span class="fn">mount</span>(<span class="kw">self</span>):
+        enrollment = (
+            <span class="cls">StudentEnrollment</span>.objects
+            .select_related(<span class="str">"student"</span>, <span class="str">"room__session"</span>)
+            .get(pk=<span class="kw">self</span>.params[<span class="str">"enrollment_id"</span>])
+        )
+        session = enrollment.room.session
+        <span class="kw">self</span>.state.update({
+            <span class="str">"enrollment_id"</span>:  enrollment.pk,
+            <span class="str">"student_name"</span>:   enrollment.student.get_full_name(),
+            <span class="str">"osis"</span>:           enrollment.student.username,
+            <span class="str">"session_label"</span>:  str(session),
+            <span class="str">"is_swd"</span>:         enrollment.is_swd,
+            <span class="str">"accommodation"</span>:  enrollment.get_accommodation_display(),
+            <span class="str">"chart_loaded"</span>:   session.chart_loaded,
+            <span class="str">"part_a"</span>: <span class="num">None</span>, <span class="str">"part_b1"</span>: <span class="num">None</span>,
+            <span class="str">"part_b2"</span>: <span class="num">None</span>, <span class="str">"part_c"</span>: <span class="num">None</span>,
+            <span class="str">"total_raw"</span>: <span class="num">None</span>, <span class="str">"scale_score"</span>: <span class="num">None</span>,
+            <span class="str">"performance_level"</span>: <span class="num">None</span>, <span class="str">"entry_status"</span>: <span class="str">"unsaved"</span>,
+        })
+        <span class="cm"># Load existing scores if already entered</span>
+        <span class="kw">try</span>:
+            score = <span class="cls">RegentsScore</span>.objects.get(enrollment=enrollment)
+            <span class="kw">self</span>.state.update({
+                <span class="str">"part_a"</span>: score.part_a, <span class="str">"part_b1"</span>: score.part_b1,
+                <span class="str">"part_b2"</span>: score.part_b2, <span class="str">"part_c"</span>: score.part_c,
+                <span class="str">"total_raw"</span>: score.total_raw, <span class="str">"scale_score"</span>: score.scale_score,
+                <span class="str">"performance_level"</span>: score.performance_level,
+                <span class="str">"entry_status"</span>: <span class="str">"saved"</span>,
+            })
+        <span class="kw">except</span> <span class="cls">RegentsScore</span>.DoesNotExist:
+            <span class="kw">pass</span>
+
+    <span class="kw">def</span> <span class="fn">on_preview</span>(<span class="kw">self</span>):
+        <span class="str">"""Calculate scale score from typed values without writing to the database."""</span>
+        part_a  = <span class="fn">int</span>(<span class="kw">self</span>.payload.get(<span class="str">"part_a"</span>, <span class="num">0</span>))
+        part_b1 = <span class="fn">int</span>(<span class="kw">self</span>.payload.get(<span class="str">"part_b1"</span>, <span class="num">0</span>))
+        part_b2 = <span class="fn">int</span>(<span class="kw">self</span>.payload.get(<span class="str">"part_b2"</span>, <span class="num">0</span>))
+        part_c  = <span class="fn">int</span>(<span class="kw">self</span>.payload.get(<span class="str">"part_c"</span>, <span class="num">0</span>))
+        total_raw = part_a + part_b1 + part_b2 + part_c
+        enrollment = <span class="cls">StudentEnrollment</span>.objects.select_related(<span class="str">"room__session"</span>).get(
+            pk=<span class="kw">self</span>.state[<span class="str">"enrollment_id"</span>]
+        )
+        scale = <span class="kw">self</span>.<span class="fn">_to_scale</span>(enrollment.room.session, total_raw)
+        <span class="kw">self</span>.state.update({
+            <span class="str">"part_a"</span>: part_a, <span class="str">"part_b1"</span>: part_b1,
+            <span class="str">"part_b2"</span>: part_b2, <span class="str">"part_c"</span>: part_c,
+            <span class="str">"total_raw"</span>: total_raw, <span class="str">"scale_score"</span>: scale,
+            <span class="str">"performance_level"</span>: <span class="kw">self</span>.<span class="fn">_level</span>(scale),
+            <span class="str">"entry_status"</span>: <span class="str">"previewing"</span>,
+        })
+
+    <span class="kw">def</span> <span class="fn">on_submit</span>(<span class="kw">self</span>):
+        <span class="str">"""Validate, compute scale score, and persist to RegentsScore."""</span>
+        data = <span class="kw">self</span>.validated_data   <span class="cm"># raises FormValidationError on bad input</span>
+        total_raw = data.part_a + data.part_b1 + data.part_b2 + data.part_c
+        enrollment = <span class="cls">StudentEnrollment</span>.objects.select_related(<span class="str">"room__session"</span>).get(
+            pk=<span class="kw">self</span>.state[<span class="str">"enrollment_id"</span>]
+        )
+        scale = <span class="kw">self</span>.<span class="fn">_to_scale</span>(enrollment.room.session, total_raw)
+        level = <span class="kw">self</span>.<span class="fn">_level</span>(scale)
+        <span class="cls">RegentsScore</span>.objects.update_or_create(
+            enrollment=enrollment,
+            defaults={
+                <span class="str">"part_a"</span>: data.part_a, <span class="str">"part_b1"</span>: data.part_b1,
+                <span class="str">"part_b2"</span>: data.part_b2, <span class="str">"part_c"</span>: data.part_c,
+                <span class="str">"total_raw"</span>: total_raw, <span class="str">"scale_score"</span>: scale,
+                <span class="str">"performance_level"</span>: level,
+            }
+        )
+        <span class="kw">self</span>.state.update({
+            <span class="str">"part_a"</span>: data.part_a, <span class="str">"part_b1"</span>: data.part_b1,
+            <span class="str">"part_b2"</span>: data.part_b2, <span class="str">"part_c"</span>: data.part_c,
+            <span class="str">"total_raw"</span>: total_raw, <span class="str">"scale_score"</span>: scale,
+            <span class="str">"performance_level"</span>: level, <span class="str">"entry_status"</span>: <span class="str">"saved"</span>,
+        })
+
+    <span class="cm"># ── helpers ────────────────────────────────────────────────────────────</span>
+
+    <span class="kw">def</span> <span class="fn">_to_scale</span>(<span class="kw">self</span>, session, raw: <span class="typ">int</span>) -&gt; <span class="typ">int</span>:
+        <span class="str">"""Look up the administration-specific conversion chart."""</span>
+        <span class="kw">try</span>:
+            entry = <span class="cls">ConversionChart</span>.objects.get(session=session, raw_score=raw)
+            <span class="kw">return</span> entry.scale_score
+        <span class="kw">except</span> <span class="cls">ConversionChart</span>.DoesNotExist:
+            <span class="cm"># Fallback linear approximation if chart not yet uploaded</span>
+            <span class="kw">return</span> <span class="fn">min</span>(<span class="num">100</span>, <span class="fn">round</span>((raw / <span class="num">85</span>) * <span class="num">100</span>))
+
+    <span class="kw">def</span> <span class="fn">_level</span>(<span class="kw">self</span>, scale: <span class="typ">int</span>) -&gt; <span class="typ">int</span>:
+        <span class="str">"""Map scale score to NYSED 1-5 performance level."""</span>
+        <span class="kw">if</span> scale &gt;= <span class="num">85</span>: <span class="kw">return</span> <span class="num">5</span>  <span class="cm"># Mastery</span>
+        <span class="kw">if</span> scale &gt;= <span class="num">76</span>: <span class="kw">return</span> <span class="num">4</span>  <span class="cm"># Meets standards</span>
+        <span class="kw">if</span> scale &gt;= <span class="num">65</span>: <span class="kw">return</span> <span class="num">3</span>  <span class="cm"># Passing</span>
+        <span class="kw">if</span> scale &gt;= <span class="num">55</span>: <span class="kw">return</span> <span class="num">2</span>  <span class="cm"># Safety net zone</span>
+        <span class="kw">return</span> <span class="num">1</span>                     <span class="cm"># Does not meet standards</span></code></pre>
+    </div>
+
+    <h3 id="score-template">Template — score entry form</h3>
+
+    <div class="code-split">
+      <div>
+        <p class="code-split__label" style="color:var(--amber);">score_entry.html — form fields</p>
+        <div class="code-block">
+          <pre><code><span class="xml-tag">&lt;form</span> <span class="xml-attr">id</span>=<span class="xml-val">"score-{{ state.enrollment_id }}"</span><span class="xml-tag">&gt;</span>
+  <span class="xml-tag">&lt;h3&gt;</span>{{ state.student_name }}<span class="xml-tag">&lt;/h3&gt;</span>
+  <span class="xml-tag">&lt;p&gt;</span>OSIS: {{ state.osis }}
+     · {{ state.session_label }}<span class="xml-tag">&lt;/p&gt;</span>
+
+  <span class="xml-cm">&lt;!-- Part scores --&gt;</span>
+  <span class="xml-tag">&lt;label&gt;</span>Part A (0–30)
+    <span class="xml-tag">&lt;input</span> <span class="xml-attr">type</span>=<span class="xml-val">"number"</span> <span class="xml-attr">name</span>=<span class="xml-val">"part_a"</span>
+           <span class="xml-attr">min</span>=<span class="xml-val">"0"</span> <span class="xml-attr">max</span>=<span class="xml-val">"30"</span>
+           <span class="xml-attr">value</span>=<span class="xml-val">"{{ state.part_a|default:'' }}"</span><span class="xml-tag">&gt;</span>
+  <span class="xml-tag">&lt;/label&gt;</span>
+  <span class="xml-tag">&lt;label&gt;</span>Part B-1 (0–20)
+    <span class="xml-tag">&lt;input</span> <span class="xml-attr">type</span>=<span class="xml-val">"number"</span> <span class="xml-attr">name</span>=<span class="xml-val">"part_b1"</span>
+           <span class="xml-attr">min</span>=<span class="xml-val">"0"</span> <span class="xml-attr">max</span>=<span class="xml-val">"20"</span>
+           <span class="xml-attr">value</span>=<span class="xml-val">"{{ state.part_b1|default:'' }}"</span><span class="xml-tag">&gt;</span>
+  <span class="xml-tag">&lt;/label&gt;</span>
+  <span class="xml-tag">&lt;label&gt;</span>Part B-2 (0–15)
+    <span class="xml-tag">&lt;input</span> <span class="xml-attr">type</span>=<span class="xml-val">"number"</span> <span class="xml-attr">name</span>=<span class="xml-val">"part_b2"</span>
+           <span class="xml-attr">min</span>=<span class="xml-val">"0"</span> <span class="xml-attr">max</span>=<span class="xml-val">"15"</span>
+           <span class="xml-attr">value</span>=<span class="xml-val">"{{ state.part_b2|default:'' }}"</span><span class="xml-tag">&gt;</span>
+  <span class="xml-tag">&lt;/label&gt;</span>
+  <span class="xml-tag">&lt;label&gt;</span>Part C (0–25)
+    <span class="xml-tag">&lt;input</span> <span class="xml-attr">type</span>=<span class="xml-val">"number"</span> <span class="xml-attr">name</span>=<span class="xml-val">"part_c"</span>
+           <span class="xml-attr">min</span>=<span class="xml-val">"0"</span> <span class="xml-attr">max</span>=<span class="xml-val">"25"</span>
+           <span class="xml-attr">value</span>=<span class="xml-val">"{{ state.part_c|default:'' }}"</span><span class="xml-tag">&gt;</span>
+  <span class="xml-tag">&lt;/label&gt;</span>
+
+  <span class="xml-tag">&lt;button</span> <span class="xml-attr">hx-post</span>=<span class="xml-val">"/components/score_entry"</span>
+          <span class="xml-attr">hx-include</span>=<span class="xml-val">"#score-{{ state.enrollment_id }}"</span>
+          <span class="xml-attr">hx-vals</span>=<span class="xml-val">'{"event":"preview","state":"{{ serialized_state }}"}'</span>
+          <span class="xml-attr">hx-target</span>=<span class="xml-val">"closest form"</span>
+          <span class="xml-attr">hx-swap</span>=<span class="xml-val">"outerHTML"</span><span class="xml-tag">&gt;</span>
+    Preview
+  <span class="xml-tag">&lt;/button&gt;</span>
+  <span class="xml-tag">&lt;button</span> <span class="xml-attr">hx-post</span>=<span class="xml-val">"/components/score_entry"</span>
+          <span class="xml-attr">hx-include</span>=<span class="xml-val">"#score-{{ state.enrollment_id }}"</span>
+          <span class="xml-attr">hx-vals</span>=<span class="xml-val">'{"event":"submit","state":"{{ serialized_state }}"}'</span>
+          <span class="xml-attr">hx-target</span>=<span class="xml-val">"closest form"</span>
+          <span class="xml-attr">hx-swap</span>=<span class="xml-val">"outerHTML"</span><span class="xml-tag">&gt;</span>
+    Save Scores
+  <span class="xml-tag">&lt;/button&gt;</span>
+<span class="xml-tag">&lt;/form&gt;</span></code></pre>
+        </div>
+      </div>
+      <div>
+        <p class="code-split__label" style="color:var(--green);">score_entry.html — result panel</p>
+        <div class="code-block">
+          <pre><code><span class="xml-cm">&lt;!-- Result panel (shown after preview/save) --&gt;</span>
+{% if state.total_raw is not None %}
+<span class="xml-tag">&lt;div</span> <span class="xml-attr">class</span>=<span class="xml-val">"score-result"</span><span class="xml-tag">&gt;</span>
+
+  <span class="xml-tag">&lt;div</span> <span class="xml-attr">class</span>=<span class="xml-val">"score-row"</span><span class="xml-tag">&gt;</span>
+    <span class="xml-tag">&lt;span&gt;</span>Total raw:<span class="xml-tag">&lt;/span&gt;</span>
+    <span class="xml-tag">&lt;strong&gt;</span>{{ state.total_raw }} / 85<span class="xml-tag">&lt;/strong&gt;</span>
+  <span class="xml-tag">&lt;/div&gt;</span>
+
+  <span class="xml-tag">&lt;div</span> <span class="xml-attr">class</span>=<span class="xml-val">"score-row"</span><span class="xml-tag">&gt;</span>
+    <span class="xml-tag">&lt;span&gt;</span>Scale score:<span class="xml-tag">&lt;/span&gt;</span>
+    <span class="xml-tag">&lt;strong</span> <span class="xml-attr">class</span>=<span class="xml-val">"scale-score"</span><span class="xml-tag">&gt;</span>{{ state.scale_score }}<span class="xml-tag">&lt;/strong&gt;</span>
+  <span class="xml-tag">&lt;/div&gt;</span>
+
+  <span class="xml-tag">&lt;div</span> <span class="xml-attr">class</span>=<span class="xml-val">"score-row"</span><span class="xml-tag">&gt;</span>
+    <span class="xml-tag">&lt;span&gt;</span>Performance level:<span class="xml-tag">&lt;/span&gt;</span>
+    <span class="xml-tag">&lt;span</span> <span class="xml-attr">class</span>=<span class="xml-val">"level-badge level-{{ state.performance_level }}"</span><span class="xml-tag">&gt;</span>
+      Level {{ state.performance_level }}
+      {% if state.performance_level == 5 %} — Mastery
+      {% elif state.performance_level == 3 %} — Pass
+      {% elif state.performance_level == 2 %} — Safety Net
+      {% elif state.performance_level == 1 %} — Fail
+      {% endif %}
+    <span class="xml-tag">&lt;/span&gt;</span>
+  <span class="xml-tag">&lt;/div&gt;</span>
+
+  {% if state.is_swd and state.performance_level == 2 %}
+  <span class="xml-tag">&lt;p</span> <span class="xml-attr">class</span>=<span class="xml-val">"safety-net-note"</span><span class="xml-tag">&gt;</span>
+    ⚑ SWD Safety Net: score 55–64 may satisfy
+    local diploma testing requirement.
+  <span class="xml-tag">&lt;/p&gt;</span>
+  {% endif %}
+
+  {% if state.entry_status == "saved" %}
+  <span class="xml-tag">&lt;p</span> <span class="xml-attr">class</span>=<span class="xml-val">"saved-badge"</span><span class="xml-tag">&gt;</span>✓ Saved<span class="xml-tag">&lt;/p&gt;</span>
+  {% endif %}
+
+<span class="xml-tag">&lt;/div&gt;</span>
+{% endif %}</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout callout--warn">
+      <strong>Conversion chart timing:</strong> NYSED releases the raw-to-scale conversion
+      chart on exam day, after the morning session ends. The component handles a missing chart
+      gracefully with a linear fallback, but <code>chart_loaded</code> is surfaced in the
+      template so clerks see a clear warning if they're entering scores before the official
+      chart is uploaded. Upload the chart via a simple Django admin action that bulk-creates
+      <code>ConversionChart</code> rows from NYSED's published CSV.
+    </div>
+
+    <!-- ── ANALYTICS COMPONENT ─────────────────────────────────────────── -->
+    <h2 id="analytics" data-n="07">ScoreAnalyticsComponent</h2>
+    <p>
+      The analytics view gives administrators a school-level picture of each session:
+      pass rate, mastery rate, Level 1–5 distribution, and a safety-net student list.
+      The <strong>on_export_sirs</strong> event generates the state-reporting payload in the
+      format required by NYSED's SIRS repository.
+    </p>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">regents/components/score_analytics.py</span>
+        <span class="code-block__lang">python</span>
+      </div>
+      <pre><code><span class="kw">from</span> django.db.models <span class="kw">import</span> Avg, Count
+<span class="kw">from</span> component_framework.core.registry <span class="kw">import</span> registry
+<span class="kw">from</span> component_framework.adapters.django_model <span class="kw">import</span> <span class="cls">DjangoModelComponent</span>
+<span class="kw">from</span> ..models <span class="kw">import</span> <span class="cls">RegentsSession</span>, <span class="cls">RegentsScore</span>
+
+
+<span class="dec">@registry.register(<span class="str">"score_analytics"</span>)</span>
+<span class="kw">class</span> <span class="cls">ScoreAnalyticsComponent</span>(<span class="cls">DjangoModelComponent</span>):
+    <span class="str">"""
+    School-level analytics for a Chemistry Regents session.
+
+    Surfaces pass/mastery rates, Level 1-5 distribution, and the safety-net
+    student roster. The on_export_sirs event generates a SIRS-compatible
+    payload for upload to NYSED's Student Information Repository System.
+    """</span>
+    template_name = <span class="str">"regents/score_analytics.html"</span>
+    model = <span class="cls">RegentsSession</span>
+
+    <span class="kw">def</span> <span class="fn">mount</span>(<span class="kw">self</span>):
+        session_id = <span class="kw">self</span>.params.get(<span class="str">"session_id"</span>)
+        session = <span class="cls">RegentsSession</span>.objects.get(pk=session_id)
+        <span class="kw">self</span>.state.update({
+            <span class="str">"session_id"</span>:    session_id,
+            <span class="str">"session_label"</span>: str(session),
+            <span class="str">"sessions"</span>: [
+                {<span class="str">"id"</span>: s.pk, <span class="str">"label"</span>: str(s)}
+                <span class="kw">for</span> s <span class="kw">in</span> <span class="cls">RegentsSession</span>.objects.order_by(<span class="str">"-year"</span>, <span class="str">"period"</span>)[:<span class="num">10</span>]
+            ],
+            <span class="str">"sirs_ready"</span>: <span class="num">False</span>,
+        })
+        <span class="kw">self</span>.<span class="fn">_compute</span>(session)
+
+    <span class="kw">def</span> <span class="fn">_compute</span>(<span class="kw">self</span>, session):
+        scores = <span class="cls">RegentsScore</span>.objects.filter(
+            enrollment__room__session=session
+        ).select_related(<span class="str">"enrollment__student"</span>, <span class="str">"enrollment"</span>)
+
+        total = scores.<span class="fn">count</span>()
+        <span class="kw">if</span> not total:
+            <span class="kw">self</span>.state[<span class="str">"no_data"</span>] = <span class="num">True</span>
+            <span class="kw">return</span>
+
+        agg = scores.<span class="fn">aggregate</span>(avg=Avg(<span class="str">"scale_score"</span>))
+        passing   = scores.filter(scale_score__gte=<span class="num">65</span>).<span class="fn">count</span>()
+        mastery   = scores.filter(scale_score__gte=<span class="num">85</span>).<span class="fn">count</span>()
+        safety_net = scores.filter(
+            scale_score__gte=<span class="num">55</span>, scale_score__lt=<span class="num">65</span>
+        )
+
+        appeal_eligible = scores.filter(  <span class="cm"># general ed, 60–64 (within 5 of passing)</span>
+            scale_score__gte=<span class="num">60</span>, scale_score__lt=<span class="num">65</span>,
+            enrollment__is_swd=<span class="num">False</span>,
+        )
+
+        level_dist = {
+            i: scores.filter(performance_level=i).<span class="fn">count</span>() <span class="kw">for</span> i <span class="kw">in</span> <span class="fn">range</span>(<span class="num">1</span>, <span class="num">6</span>)
+        }
+
+        <span class="kw">self</span>.state.update({
+            <span class="str">"no_data"</span>:          <span class="num">False</span>,
+            <span class="str">"total"</span>:            total,
+            <span class="str">"average_scale"</span>:    <span class="fn">round</span>(agg[<span class="str">"avg"</span>] <span class="kw">or</span> <span class="num">0</span>, <span class="num">1</span>),
+            <span class="str">"pass_count"</span>:       passing,
+            <span class="str">"pass_rate"</span>:        <span class="fn">round</span>(passing / total * <span class="num">100</span>, <span class="num">1</span>),
+            <span class="str">"mastery_count"</span>:    mastery,
+            <span class="str">"mastery_rate"</span>:     <span class="fn">round</span>(mastery / total * <span class="num">100</span>, <span class="num">1</span>),
+            <span class="str">"safety_net_students"</span>: [
+                {
+                    <span class="str">"name"</span>:    s.enrollment.student.get_full_name(),
+                    <span class="str">"osis"</span>:    s.enrollment.student.username,
+                    <span class="str">"scale"</span>:   s.scale_score,
+                    <span class="str">"is_swd"</span>:  s.enrollment.is_swd,
+                }
+                <span class="kw">for</span> s <span class="kw">in</span> safety_net.select_related(<span class="str">"enrollment__student"</span>)
+            ],
+            <span class="str">"appeal_count"</span>:     appeal_eligible.<span class="fn">count</span>(),
+            <span class="str">"level_dist"</span>: {
+                str(k): {<span class="str">"count"</span>: v, <span class="str">"pct"</span>: <span class="fn">round</span>(v / total * <span class="num">100</span>, <span class="num">1</span>)}
+                <span class="kw">for</span> k, v <span class="kw">in</span> level_dist.items()
+            },
+        })
+
+    <span class="kw">def</span> <span class="fn">on_filter_session</span>(<span class="kw">self</span>):
+        <span class="str">"""Switch the analytics view to a different session."""</span>
+        session_id = <span class="kw">self</span>.payload[<span class="str">"session_id"</span>]
+        session = <span class="cls">RegentsSession</span>.objects.get(pk=session_id)
+        <span class="kw">self</span>.state[<span class="str">"session_id"</span>]    = session_id
+        <span class="kw">self</span>.state[<span class="str">"session_label"</span>] = str(session)
+        <span class="kw">self</span>.state[<span class="str">"sirs_ready"</span>]    = <span class="num">False</span>
+        <span class="kw">self</span>.<span class="fn">_compute</span>(session)</code></pre>
+    </div>
+
+    <h3 id="analytics-events">SIRS export event</h3>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">regents/components/score_analytics.py (continued)</span>
+        <span class="code-block__lang">python</span>
+      </div>
+      <pre><code>    <span class="kw">def</span> <span class="fn">on_export_sirs</span>(<span class="kw">self</span>):
+        <span class="str">"""
+        Build a SIRS-compatible score payload.
+
+        NYSED's Student Information Repository System expects actual scale
+        scores — no rounding up, no substitution. Schools report the score
+        the student earned, regardless of passing status.
+        """</span>
+        session = <span class="cls">RegentsSession</span>.objects.get(pk=<span class="kw">self</span>.state[<span class="str">"session_id"</span>])
+        scores = <span class="cls">RegentsScore</span>.objects.filter(
+            enrollment__room__session=session
+        ).select_related(<span class="str">"enrollment__student"</span>)
+
+        <span class="kw">self</span>.state[<span class="str">"sirs_export"</span>] = [
+            {
+                <span class="str">"osis"</span>:             s.enrollment.student.username,
+                <span class="str">"last_name"</span>:        s.enrollment.student.last_name,
+                <span class="str">"first_name"</span>:       s.enrollment.student.first_name,
+                <span class="str">"exam_code"</span>:        <span class="str">"CHRE"</span>,  <span class="cm"># NYSED exam code for Chemistry Regents</span>
+                <span class="str">"scale_score"</span>:      s.scale_score,
+                <span class="str">"performance_level"</span>: s.performance_level,
+                <span class="str">"period"</span>:           session.period,
+                <span class="str">"year"</span>:             session.year,
+            }
+            <span class="kw">for</span> s <span class="kw">in</span> scores
+        ]
+        <span class="kw">self</span>.state[<span class="str">"sirs_ready"</span>] = <span class="num">True</span></code></pre>
+    </div>
+
+    <!-- ── TESTING ─────────────────────────────────────────────────────── -->
+    <h2 id="testing" data-n="08">Testing</h2>
+    <p>All three components are pure Python — no HTTP, no browser, no Django test client required
+    for unit tests. Use <code>ComponentTestCase</code> and inject fake state directly.</p>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">tests/test_regents_components.py</span>
+        <span class="code-block__lang">python</span>
+      </div>
+      <pre><code><span class="kw">import</span> pytest
+<span class="kw">from</span> unittest.mock <span class="kw">import</span> patch, MagicMock
+<span class="kw">from</span> component_framework.testing <span class="kw">import</span> ComponentTestCase
+
+<span class="kw">from</span> regents.components.score_entry <span class="kw">import</span> <span class="cls">ScoreEntryComponent</span>, <span class="cls">ChemistryScoreSchema</span>
+<span class="kw">from</span> regents.components.score_analytics <span class="kw">import</span> <span class="cls">ScoreAnalyticsComponent</span>
+
+
+<span class="cm"># ── Schema validation tests (no DB) ─────────────────────────────────────</span>
+
+<span class="kw">class</span> <span class="cls">TestChemistryScoreSchema</span>:
+
+    <span class="kw">def</span> <span class="fn">test_valid_scores_accepted</span>(<span class="kw">self</span>):
+        s = <span class="cls">ChemistryScoreSchema</span>(part_a=<span class="num">28</span>, part_b1=<span class="num">18</span>, part_b2=<span class="num">12</span>, part_c=<span class="num">20</span>)
+        assert s.part_a + s.part_b1 + s.part_b2 + s.part_c == <span class="num">78</span>
+
+    <span class="kw">def</span> <span class="fn">test_part_a_exceeds_max_raises</span>(<span class="kw">self</span>):
+        <span class="kw">with</span> pytest.raises(Exception, match=<span class="str">"less than or equal to 30"</span>):
+            <span class="cls">ChemistryScoreSchema</span>(part_a=<span class="num">31</span>, part_b1=<span class="num">0</span>, part_b2=<span class="num">0</span>, part_c=<span class="num">0</span>)
+
+    <span class="kw">def</span> <span class="fn">test_total_over_85_raises</span>(<span class="kw">self</span>):
+        <span class="kw">with</span> pytest.raises(Exception, match=<span class="str">"exceeds maximum of 85"</span>):
+            <span class="cm"># A=30, B1=20, B2=15, C=25 = 90 → should fail</span>
+            <span class="cls">ChemistryScoreSchema</span>(part_a=<span class="num">30</span>, part_b1=<span class="num">20</span>, part_b2=<span class="num">15</span>, part_c=<span class="num">25</span>)
+
+    <span class="kw">def</span> <span class="fn">test_zero_scores_valid</span>(<span class="kw">self</span>):
+        s = <span class="cls">ChemistryScoreSchema</span>(part_a=<span class="num">0</span>, part_b1=<span class="num">0</span>, part_b2=<span class="num">0</span>, part_c=<span class="num">0</span>)
+        assert s.part_a == <span class="num">0</span>
+
+    <span class="kw">def</span> <span class="fn">test_maximum_total_valid</span>(<span class="kw">self</span>):
+        <span class="cm"># 30+20+15+19 = 84 — valid (model_validator checks &gt;85 strictly)</span>
+        s = <span class="cls">ChemistryScoreSchema</span>(part_a=<span class="num">30</span>, part_b1=<span class="num">20</span>, part_b2=<span class="num">15</span>, part_c=<span class="num">19</span>)
+        assert s.part_a + s.part_b1 + s.part_b2 + s.part_c == <span class="num">84</span>
+
+
+<span class="cm"># ── Performance level helper (isolated) ─────────────────────────────────</span>
+
+<span class="kw">class</span> <span class="cls">TestPerformanceLevels</span>:
+
+    <span class="kw">def</span> <span class="fn">_level</span>(<span class="kw">self</span>, scale):
+        <span class="cm"># Mirror component logic directly</span>
+        <span class="kw">if</span> scale &gt;= <span class="num">85</span>: <span class="kw">return</span> <span class="num">5</span>
+        <span class="kw">if</span> scale &gt;= <span class="num">76</span>: <span class="kw">return</span> <span class="num">4</span>
+        <span class="kw">if</span> scale &gt;= <span class="num">65</span>: <span class="kw">return</span> <span class="num">3</span>
+        <span class="kw">if</span> scale &gt;= <span class="num">55</span>: <span class="kw">return</span> <span class="num">2</span>
+        <span class="kw">return</span> <span class="num">1</span>
+
+    <span class="dec">@pytest.mark.parametrize(<span class="str">"scale,expected"</span>, [
+        (<span class="num">100</span>, <span class="num">5</span>), (<span class="num">85</span>, <span class="num">5</span>),   <span class="cm"># mastery</span>
+        (<span class="num">84</span>,  <span class="num">4</span>), (<span class="num">76</span>, <span class="num">4</span>),   <span class="cm"># meets standards</span>
+        (<span class="num">75</span>,  <span class="num">3</span>), (<span class="num">65</span>, <span class="num">3</span>),   <span class="cm"># passing</span>
+        (<span class="num">64</span>,  <span class="num">2</span>), (<span class="num">55</span>, <span class="num">2</span>),   <span class="cm"># safety net</span>
+        (<span class="num">54</span>,  <span class="num">1</span>), (<span class="num">0</span>,  <span class="num">1</span>),   <span class="cm"># failing</span>
+    ])</span>
+    <span class="kw">def</span> <span class="fn">test_level_boundaries</span>(<span class="kw">self</span>, scale, expected):
+        assert <span class="kw">self</span>.<span class="fn">_level</span>(scale) == expected
+
+
+<span class="cm"># ── ScoreEntryComponent (DB mocked) ─────────────────────────────────────</span>
+
+<span class="kw">class</span> <span class="cls">TestScoreEntryComponent</span>:
+
+    <span class="kw">def</span> <span class="fn">_make_component</span>(<span class="kw">self</span>, initial_state):
+        comp = <span class="cls">ScoreEntryComponent</span>(enrollment_id=<span class="num">1</span>)
+        comp.state = initial_state
+        <span class="kw">return</span> comp
+
+    <span class="kw">def</span> <span class="fn">test_level_mastery</span>(<span class="kw">self</span>):
+        comp = <span class="cls">ScoreEntryComponent</span>()
+        assert comp.<span class="fn">_level</span>(<span class="num">91</span>) == <span class="num">5</span>
+
+    <span class="kw">def</span> <span class="fn">test_level_safety_net_boundary</span>(<span class="kw">self</span>):
+        comp = <span class="cls">ScoreEntryComponent</span>()
+        assert comp.<span class="fn">_level</span>(<span class="num">55</span>) == <span class="num">2</span>
+        assert comp.<span class="fn">_level</span>(<span class="num">64</span>) == <span class="num">2</span>
+        assert comp.<span class="fn">_level</span>(<span class="num">65</span>) == <span class="num">3</span>
+
+    <span class="kw">def</span> <span class="fn">test_conversion_fallback_when_no_chart</span>(<span class="kw">self</span>):
+        comp = <span class="cls">ScoreEntryComponent</span>()
+        mock_session = MagicMock()
+        <span class="kw">with</span> <span class="fn">patch</span>(<span class="str">"regents.components.score_entry.ConversionChart.objects.get"</span>,
+                    side_effect=<span class="cls">Exception</span>(<span class="str">"DoesNotExist"</span>)):
+            scale = comp.<span class="fn">_to_scale</span>(mock_session, <span class="num">51</span>)
+        <span class="cm"># Linear fallback: round(51/85 * 100) = 60</span>
+        assert scale == <span class="num">60</span>
+
+    <span class="kw">def</span> <span class="fn">test_conversion_uses_chart_when_available</span>(<span class="kw">self</span>):
+        comp = <span class="cls">ScoreEntryComponent</span>()
+        mock_session = MagicMock()
+        mock_entry = MagicMock(scale_score=<span class="num">67</span>)
+        <span class="kw">with</span> <span class="fn">patch</span>(<span class="str">"regents.components.score_entry.ConversionChart.objects.get"</span>,
+                    return_value=mock_entry):
+            scale = comp.<span class="fn">_to_scale</span>(mock_session, <span class="num">42</span>)
+        assert scale == <span class="num">67</span></code></pre>
+    </div>
+
+    <div class="callout callout--insight">
+      <strong>Test strategy:</strong> Schema validation and level-mapping logic need zero
+      database access — test them as plain Python. DB-touching methods (<code>mount</code>,
+      <code>on_submit</code>, <code>on_export_sirs</code>) are best covered with
+      <code>pytest-django</code> fixtures using a real SQLite test database, or mocked with
+      <code>unittest.mock.patch</code> for fast CI.
+    </div>
+
+    <!-- ── RUNNING ─────────────────────────────────────────────────────── -->
+    <h2 id="running" data-n="09">Running the Example</h2>
+
+    <ol class="run-steps">
+      <li><span class="step-text">Install with Django extras:<br>
+        <code>pip install "component-framework[django]"</code></span></li>
+      <li><span class="step-text">Add to <code>INSTALLED_APPS</code>:
+        <code>"component_framework"</code> and <code>"regents"</code></span></li>
+      <li><span class="step-text">Run migrations: <code>python manage.py migrate</code></span></li>
+      <li><span class="step-text">Create a session and load a conversion chart via Django admin or
+        a management command. NYSED publishes the chart as a PDF on exam day — parse it into
+        86 <code>ConversionChart</code> rows (raw 0–85 → scale 0–100).</span></li>
+      <li><span class="step-text">Register rooms and enroll students. Accommodation flags
+        drive automatic room assignment to extended-time or separate-location rooms.</span></li>
+      <li><span class="step-text">Wire up URLs in <code>urls.py</code>:<br>
+        <code>from component_framework.adapters.django_views import ComponentView</code><br>
+        <code>path("components/&lt;str:name&gt;/", ComponentView.as_view())</code></span></li>
+      <li><span class="step-text">Set the global renderer in <code>apps.py</code>:<br>
+        <code>Component.renderer = DjangoRenderer()</code></span></li>
+      <li><span class="step-text">Include HTMX in your base template and load each component
+        via the <code>{% live_component %}</code> template tag.</span></li>
+    </ol>
+
+    <div class="callout callout--note">
+      <strong>SIRS reporting:</strong> The <code>on_export_sirs</code> event returns a JSON
+      list in the component state. Wire a download view that reads this list and streams it
+      as a CSV — NYSED's ASAP platform accepts CSV uploads for score entry. Always report
+      the <em>actual scale score earned</em>; do not round up or substitute for administrative
+      convenience.
+    </div>
+
+    <!-- ── COMPARISON TABLE ────────────────────────────────────────────── -->
+    <h2 id="comparison" data-n="10">Compared to the spreadsheet approach</h2>
+
+    <table class="cmp-table">
+      <thead>
+        <tr>
+          <th>Capability</th>
+          <th class="th-alt">Spreadsheet + Email</th>
+          <th class="th-cfx">component-framework</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Check-in tracking</td>
+          <td>Paper roster, reconciled manually</td>
+          <td class="win">Live per-room view, timestamped check-ins</td>
+        </tr>
+        <tr>
+          <td>Score entry validation</td>
+          <td>None — clerks enter anything</td>
+          <td class="win">Pydantic schema catches out-of-range values before save</td>
+        </tr>
+        <tr>
+          <td>Raw → scale conversion</td>
+          <td>Manual lookup, transcription errors common</td>
+          <td class="win">Automatic via DB conversion chart</td>
+        </tr>
+        <tr>
+          <td>Performance level</td>
+          <td>Computed separately in a second sheet</td>
+          <td class="win">Derived automatically on save</td>
+        </tr>
+        <tr>
+          <td>Safety-net flagging</td>
+          <td>Manual filter, often missed</td>
+          <td class="win">Surfaced automatically; SWD flag shown inline</td>
+        </tr>
+        <tr>
+          <td>SIRS export</td>
+          <td>Re-keyed into ASAP web form</td>
+          <td class="win">One-click JSON payload, download as CSV</td>
+        </tr>
+        <tr>
+          <td>Multi-room coordination</td>
+          <td>Email/phone between rooms</td>
+          <td class="win">Each room is an independent component instance</td>
+        </tr>
+        <tr>
+          <td>Audit trail</td>
+          <td>None</td>
+          <td class="win"><code>entered_by</code> + <code>entered_at</code> on every score row</td>
+        </tr>
+      </tbody>
+    </table>
+
+  </main>
+</div>
+
+<!-- ── FOOTER ────────────────────────────────────────────────────────────── -->
+<footer>
+  <span>component-framework <span class="sep">·</span> NYS Regents Chemistry Example</span>
+  <span>
+    <a href="https://www.nysed.gov/state-assessment" target="_blank" rel="noopener">NYSED Assessments ↗</a>
+    <span class="sep">·</span>
+    <a href="https://github.com/fsecada01/component-framework" target="_blank" rel="noopener">GitHub ↗</a>
+    <span class="sep">·</span>
+    <a href="../component_framework.html">API Reference</a>
+  </span>
+</footer>
+
+</body>
+</html>
