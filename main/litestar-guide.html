@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Litestar Adapter Guide — component-framework</title>
+  <meta name="description" content="Set up component-framework on Litestar — HTTP endpoints, async event handlers, SSE streaming, and WebSocket real-time updates. One install, three transport protocols." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* ── TERMINAL MODERN — shared design system ─────────────────────────── */
+    :root {
+      --bg:          #0c1117;
+      --panel:       #161c26;
+      --panel-lit:   #1e2637;
+      --code-bg:     #090e18;
+      --border:      #1e2a3c;
+      --border-lit:  #29394f;
+
+      --green:       #4ade80;
+      --green-dim:   rgba(74,222,128,0.10);
+      --green-glow:  rgba(74,222,128,0.18);
+      --amber:       #fbbf24;
+      --amber-dim:   rgba(251,191,36,0.09);
+      --sky:         #38bdf8;
+      --sky-dim:     rgba(56,189,248,0.09);
+      --violet:      #a78bfa;
+      --rose:        #fb7185;
+
+      --text:        #cbd5e1;
+      --muted:       #64748b;
+      --dim:         #334155;
+      --white:       #f1f5f9;
+
+      --mono:        'IBM Plex Mono', 'Courier New', monospace;
+      --sans:        'Inter', system-ui, -apple-system, sans-serif;
+      --radius:      6px;
+      --radius-sm:   3px;
+      --bar-h:       42px;
+      --toc-w:       220px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 15px;
+      line-height: 1.75;
+      min-height: 100vh;
+    }
+
+    ::-webkit-scrollbar              { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-thumb        { background: var(--border-lit); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover  { background: var(--muted); }
+
+    /* ── TOP BAR ────────────────────────────────────────────────────────── */
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 200;
+      height: var(--bar-h);
+      display: flex;
+      align-items: center;
+      padding: 0 clamp(1rem, 4vw, 2.5rem);
+      background: linear-gradient(to right, #1a2232 0%, var(--panel) 60%);
+      border-bottom: 1px solid var(--border);
+      gap: 1rem;
+    }
+    .topbar__logo {
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--green);
+      text-decoration: none;
+      letter-spacing: 0.02em;
+      flex-shrink: 0;
+    }
+    .topbar__logo::before { content: "> "; color: var(--amber); }
+    .topbar__badge {
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 0.12em;
+      color: var(--amber);
+      border: 1px solid rgba(251,191,36,0.4);
+      background: rgba(251,191,36,0.06);
+      padding: 2px 6px;
+      border-radius: var(--radius-sm);
+    }
+    .topbar__nav {
+      margin-left: auto;
+      display: flex;
+      gap: 1.5rem;
+      list-style: none;
+      align-items: center;
+    }
+    .topbar__nav a {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--muted);
+      text-decoration: none;
+      letter-spacing: 0.03em;
+      transition: color 0.15s;
+    }
+    .topbar__nav a:hover         { color: var(--green); }
+    .topbar__nav a.nav-active    { color: var(--green); }
+    .topbar__nav a.nav-api       { color: var(--sky); }
+    .topbar__nav a.nav-api:hover { color: var(--green); }
+    @media (max-width: 640px) { .topbar__nav .nav-hide { display: none; } }
+
+    /* ── DOC HERO ───────────────────────────────────────────────────────── */
+    .doc-hero {
+      background: linear-gradient(180deg, #111926 0%, var(--bg) 100%);
+      border-bottom: 1px solid var(--border);
+      padding: clamp(2.5rem, 6vw, 4rem) clamp(1.5rem, 6vw, 4rem);
+    }
+    .doc-hero__inner {
+      max-width: 860px;
+      margin: 0 auto;
+    }
+    .doc-hero__eyebrow {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--amber);
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+    .doc-hero__eyebrow::before {
+      content: '';
+      display: block;
+      width: 20px;
+      height: 1px;
+      background: var(--amber);
+      opacity: 0.6;
+    }
+    .doc-hero__title {
+      font-family: var(--mono);
+      font-size: clamp(1.75rem, 4vw, 2.75rem);
+      font-weight: 600;
+      color: var(--white);
+      line-height: 1.1;
+      margin-bottom: 1rem;
+      letter-spacing: -0.02em;
+    }
+    .doc-hero__lead {
+      font-size: 16px;
+      color: var(--muted);
+      max-width: 680px;
+      line-height: 1.8;
+      margin-bottom: 1.75rem;
+    }
+    .doc-hero__tags {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .tag {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      padding: 3px 8px;
+      border-radius: var(--radius-sm);
+      text-transform: uppercase;
+    }
+    .tag--green  { color: var(--green); border: 1px solid rgba(74,222,128,0.3); background: var(--green-dim); }
+    .tag--sky    { color: var(--sky);   border: 1px solid rgba(56,189,248,0.3); background: var(--sky-dim);   }
+    .tag--amber  { color: var(--amber); border: 1px solid rgba(251,191,36,0.3); background: var(--amber-dim); }
+    .tag--violet { color: var(--violet);border: 1px solid rgba(167,139,250,0.3);background: rgba(167,139,250,0.08); }
+
+    /* ── DOC LAYOUT ─────────────────────────────────────────────────────── */
+    .doc-layout {
+      display: flex;
+      align-items: flex-start;
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 0 clamp(1rem, 3vw, 2rem);
+      gap: 3rem;
+    }
+
+    /* ── TOC ─────────────────────────────────────────────────────────────── */
+    .doc-toc {
+      flex-shrink: 0;
+      width: var(--toc-w);
+      position: sticky;
+      top: calc(var(--bar-h) + 1.5rem);
+      align-self: flex-start;
+      padding: 1.5rem 0;
+    }
+    .doc-toc__heading {
+      font-family: var(--mono);
+      font-size: 9px;
+      color: var(--dim);
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      margin-bottom: 0.75rem;
+    }
+    .doc-toc__heading::before { content: "// "; color: var(--amber); }
+    .doc-toc__list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+    .doc-toc__list li a {
+      display: block;
+      font-family: var(--mono);
+      font-size: 11.5px;
+      color: var(--muted);
+      text-decoration: none;
+      padding: 0.3rem 0.75rem;
+      border-left: 2px solid var(--border);
+      transition: color 0.12s, border-color 0.12s, background 0.12s;
+      line-height: 1.4;
+    }
+    .doc-toc__list li a:hover {
+      color: var(--green);
+      border-left-color: var(--green);
+      background: var(--green-dim);
+    }
+    .doc-toc__list li.toc-sub a {
+      font-size: 10.5px;
+      padding-left: 1.25rem;
+      color: var(--dim);
+    }
+    .doc-toc__list li.toc-sub a:hover { color: var(--sky); border-left-color: var(--sky); background: var(--sky-dim); }
+    @media (max-width: 900px) { .doc-toc { display: none; } }
+
+    /* ── CONTENT ────────────────────────────────────────────────────────── */
+    .doc-content {
+      flex: 1;
+      min-width: 0;
+      padding: 2.5rem 0 4rem;
+    }
+
+    .doc-content h2 {
+      font-family: var(--mono);
+      font-size: clamp(1.1rem, 2.5vw, 1.4rem);
+      font-weight: 600;
+      color: var(--white);
+      margin: 3rem 0 0.85rem;
+      padding-top: 1rem;
+      scroll-margin-top: calc(var(--bar-h) + 1rem);
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+    .doc-content h2::before {
+      content: attr(data-n);
+      font-size: 10px;
+      color: var(--amber);
+      border: 1px solid rgba(251,191,36,0.35);
+      background: var(--amber-dim);
+      padding: 1px 6px;
+      border-radius: var(--radius-sm);
+      letter-spacing: 0.1em;
+      flex-shrink: 0;
+    }
+    .doc-content h2:first-of-type { margin-top: 0; }
+
+    .doc-content h3 {
+      font-family: var(--mono);
+      font-size: 13.5px;
+      font-weight: 600;
+      color: var(--sky);
+      margin: 2rem 0 0.65rem;
+      scroll-margin-top: calc(var(--bar-h) + 1rem);
+      letter-spacing: 0.02em;
+    }
+    .doc-content h3::before { content: "→ "; color: var(--dim); }
+
+    .doc-content p {
+      color: var(--text);
+      margin-bottom: 1.1rem;
+      max-width: 72ch;
+    }
+    .doc-content p:last-child { margin-bottom: 0; }
+
+    .doc-content ul {
+      margin: 0.5rem 0 1.1rem 1.25rem;
+      color: var(--muted);
+    }
+    .doc-content ul li { margin-bottom: 0.3rem; }
+    .doc-content ul li strong { color: var(--text); }
+
+    .doc-content strong { color: var(--white); font-weight: 600; }
+
+    .doc-content code {
+      font-family: var(--mono);
+      font-size: 11.5px;
+      color: var(--green);
+      background: var(--green-dim);
+      padding: 0.1em 0.4em;
+      border-radius: var(--radius-sm);
+    }
+
+    /* ── CODE BLOCKS ────────────────────────────────────────────────────── */
+    .code-block {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      margin: 1.25rem 0;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+    .code-block__header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.55rem 1rem;
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+    }
+    .code-block__filename {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .code-block__lang {
+      font-family: var(--mono);
+      font-size: 9px;
+      color: var(--dim);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+    .code-block pre {
+      margin: 0;
+      padding: 1.1rem 1.25rem;
+      overflow-x: auto;
+      font-family: var(--mono);
+      font-size: 12.5px;
+      line-height: 1.7;
+    }
+    .code-block pre code { color: var(--text); background: none; padding: 0; border-radius: 0; font-size: inherit; }
+
+    /* ── SYNTAX TOKENS ──────────────────────────────────────────────────── */
+    .kw  { color: var(--amber); }
+    .fn  { color: var(--sky); }
+    .cls { color: var(--sky); font-weight: 600; }
+    .dec { color: var(--amber); opacity: 0.85; }
+    .str { color: var(--green); }
+    .cm  { color: var(--dim); font-style: italic; }
+    .num { color: var(--green); }
+    .typ { color: var(--violet); }
+
+    /* ── CALLOUT BOXES ──────────────────────────────────────────────────── */
+    .callout {
+      border-left: 3px solid;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      padding: 0.9rem 1.1rem;
+      margin: 1.25rem 0;
+      font-size: 14px;
+      line-height: 1.65;
+    }
+    .callout--insight {
+      border-color: var(--green);
+      background: var(--green-dim);
+      color: var(--text);
+    }
+    .callout--insight strong { color: var(--green); }
+    .callout--note {
+      border-color: var(--sky);
+      background: var(--sky-dim);
+      color: var(--text);
+    }
+    .callout--note strong { color: var(--sky); }
+    .callout--warn {
+      border-color: var(--amber);
+      background: var(--amber-dim);
+      color: var(--text);
+    }
+    .callout--warn strong { color: var(--amber); }
+
+    /* ── ARCHITECTURE BOX ────────────────────────────────────────────────── */
+    .arch-box {
+      background: var(--code-bg);
+      border: 1px solid var(--border-lit);
+      border-radius: var(--radius);
+      padding: 1.25rem 1.5rem;
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height: 1.8;
+      color: var(--muted);
+      white-space: pre;
+      overflow-x: auto;
+      margin: 1.25rem 0;
+    }
+    .arch-box .arch-hl  { color: var(--green); }
+    .arch-box .arch-dim { color: var(--dim); }
+    .arch-box .arch-sky { color: var(--sky); }
+    .arch-box .arch-amb { color: var(--amber); }
+
+    /* ── SUMMARY TABLE ──────────────────────────────────────────────────── */
+    .summary-table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 1.5rem 0; }
+    .summary-table th { text-align: left; padding: 0.5rem 0.85rem; font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; border-bottom: 2px solid var(--border-lit); color: var(--muted); }
+    .summary-table td { padding: 0.5rem 0.85rem; border-bottom: 1px solid var(--border); color: var(--text); font-size: 13px; }
+    .summary-table td:first-child  { color: var(--sky); font-family: var(--mono); font-size: 12px; }
+    .summary-table td:nth-child(2) { color: var(--green); font-family: var(--mono); font-size: 11.5px; }
+    .summary-table tr:hover td { background: rgba(74,222,128,0.02); }
+
+    /* ── STEP INLINE ────────────────────────────────────────────────────── */
+    .run-steps { list-style: none; counter-reset: run-step; display: flex; flex-direction: column; gap: 0.85rem; margin: 1.25rem 0; }
+    .run-steps li { counter-increment: run-step; display: flex; gap: 0.9rem; align-items: flex-start; }
+    .run-steps li::before {
+      content: counter(run-step, decimal-leading-zero);
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--amber);
+      border: 1px solid rgba(251,191,36,0.35);
+      background: var(--amber-dim);
+      padding: 1px 6px;
+      border-radius: var(--radius-sm);
+      flex-shrink: 0;
+      line-height: 1.8;
+    }
+    .run-steps li .step-text { color: var(--muted); font-size: 13.5px; }
+    .run-steps li .step-text code { font-family: var(--mono); font-size: 11px; color: var(--sky); background: var(--sky-dim); padding: 0.1em 0.4em; border-radius: 2px; }
+
+    /* ── FOOTER ─────────────────────────────────────────────────────────── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 1.25rem clamp(1.5rem, 6vw, 4rem);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--dim);
+      background: var(--panel);
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+    footer a { color: var(--dim); text-decoration: none; transition: color 0.15s; }
+    footer a:hover { color: var(--green); }
+    footer .sep { margin: 0 0.45rem; }
+
+    /* ── NAV DROPDOWN ──────────────────────────────────────────────────────── */
+    .nav-dropdown { position: relative; cursor: default; }
+    .nav-dropdown > span {
+      color: var(--text); font-size: 13px; font-family: var(--mono);
+      letter-spacing: 0.03em; padding: 0 0.1rem; cursor: pointer;
+      display: flex; align-items: center; gap: 0.25rem;
+    }
+    .nav-dropdown__menu {
+      display: none; position: absolute; top: calc(100% + 8px); left: 50%;
+      transform: translateX(-50%);
+      background: var(--panel); border: 1px solid var(--border-lit);
+      border-radius: var(--radius); padding: 0.35rem 0; min-width: 190px;
+      list-style: none; z-index: 100;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    }
+    .nav-dropdown:hover .nav-dropdown__menu { display: block; }
+    .nav-dropdown::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: -1rem;
+      right: -1rem;
+      height: 10px;
+    }
+    .nav-dropdown__menu li a {
+      display: block; padding: 0.4rem 1rem;
+      font-size: 13px; font-family: var(--mono); color: var(--text);
+      text-decoration: none; letter-spacing: 0.03em;
+    }
+    .nav-dropdown__menu li a:hover,
+    .nav-dropdown__menu li a.nav-active { color: var(--green); }
+  </style>
+</head>
+<body>
+
+<!-- ── TOP BAR ──────────────────────────────────────────────────────────── -->
+<header class="topbar">
+  <a href="index.html" class="topbar__logo">component-framework</a>
+  <span class="topbar__badge">BETA</span>
+  <nav aria-label="Main navigation">
+    <ul class="topbar__nav">
+      <li><a href="index.html">Home</a></li>
+      <li class="nav-dropdown">
+        <span>Examples ▾</span>
+        <ul class="nav-dropdown__menu">
+          <li><a href="ecommerce.html">E-Commerce</a></li>
+          <li><a href="admin-panel.html">Admin Panel</a></li>
+          <li><a href="customer-support.html">Customer Support</a></li>
+          <li><a href="education-lms.html">Education / LMS</a></li>
+          <li><a href="financial-dashboard.html">Financial Dashboard</a></li>
+          <li><a href="litestar-guide.html" class="nav-active">Litestar Guide</a></li>
+        </ul>
+      </li>
+      <li><a href="component_framework.html" class="nav-api">API Ref</a></li>
+      <li class="nav-hide"><a href="https://github.com/fsecada01/component-framework" target="_blank" rel="noopener">GitHub ↗</a></li>
+    </ul>
+  </nav>
+</header>
+
+<!-- ── DOC HERO ─────────────────────────────────────────────────────────── -->
+<div class="doc-hero">
+  <div class="doc-hero__inner">
+    <p class="doc-hero__eyebrow">Setup Guide · Litestar · HTTP · WebSocket · SSE</p>
+    <h1 class="doc-hero__title">Litestar Adapter</h1>
+    <p class="doc-hero__lead">
+      Get started with component-framework on Litestar — HTTP endpoints, WebSocket real-time
+      updates, and SSE streaming for long-running operations. One install, three transport
+      protocols.
+    </p>
+    <div class="doc-hero__tags">
+      <span class="tag tag--green">Litestar 2.0+</span>
+      <span class="tag tag--sky">async_dispatch</span>
+      <span class="tag tag--amber">StreamingComponent</span>
+      <span class="tag tag--violet">WebSocket</span>
+      <span class="tag tag--green">Jinja2</span>
+    </div>
+  </div>
+</div>
+
+<!-- ── MAIN ─────────────────────────────────────────────────────────────── -->
+<div class="doc-layout">
+
+  <!-- ── TOC ─────────────────────────────────────────────────────────────── -->
+  <aside class="doc-toc" aria-label="Table of contents">
+    <div class="doc-toc__heading">On this page</div>
+    <ul class="doc-toc__list">
+      <li><a href="#installation">Installation</a></li>
+      <li><a href="#http-endpoint">HTTP Endpoint</a></li>
+      <li class="toc-sub"><a href="#http-component">Component</a></li>
+      <li class="toc-sub"><a href="#http-app">Litestar App</a></li>
+      <li><a href="#async-handlers">Async Event Handlers</a></li>
+      <li><a href="#sse-streaming">SSE Streaming</a></li>
+      <li class="toc-sub"><a href="#sse-component">StreamingComponent</a></li>
+      <li class="toc-sub"><a href="#sse-client">Client-side</a></li>
+      <li><a href="#websocket">WebSocket Support</a></li>
+      <li><a href="#full-example">Full Example App</a></li>
+      <li><a href="#testing">Testing</a></li>
+      <li><a href="#summary">Summary</a></li>
+    </ul>
+  </aside>
+
+  <!-- ── CONTENT ──────────────────────────────────────────────────────────── -->
+  <article class="doc-content">
+
+    <!-- INSTALLATION -->
+    <h2 id="installation" data-n="01">Installation</h2>
+    <p>Install component-framework with the <code>litestar</code> extras group. This pulls in Litestar 2.x, Jinja2, and the adapter itself. No other dependencies are needed for the core HTTP and SSE transports.</p>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">terminal</span>
+        <span class="code-block__lang">Shell</span>
+      </div>
+      <pre><code>pip install <span class="str">"component-framework[litestar]"</span>
+
+<span class="cm"># or with uv (recommended)</span>
+uv add <span class="str">"component-framework[litestar]"</span></code></pre>
+    </div>
+
+    <p>If you are managing extras in <code>pyproject.toml</code>, the group looks like this:</p>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">pyproject.toml</span>
+        <span class="code-block__lang">TOML</span>
+      </div>
+      <pre><code>[project.optional-dependencies]
+litestar = [
+    <span class="str">"litestar>=2.0"</span>,
+    <span class="str">"jinja2>=3.1"</span>,
+    <span class="str">"uvicorn>=0.27"</span>,
+]</code></pre>
+    </div>
+
+    <div class="callout callout--note">
+      <strong>Jinja2 included.</strong> The Litestar extras group ships Jinja2 as its default renderer. If you prefer a different engine, implement <code>Renderer</code> from <code>component_framework.core.renderer</code> and pass it to your components at startup.
+    </div>
+
+    <!-- HTTP ENDPOINT -->
+    <h2 id="http-endpoint" data-n="02">HTTP Endpoint</h2>
+    <p>The Litestar adapter exposes <code>component_endpoint</code> — an async route handler that hydrates a component, dispatches the incoming event, and returns rendered HTML. Wire it into your app with <code>Litestar(route_handlers=[...])</code> or with the helper <code>create_component_routes(app)</code>.</p>
+
+    <h3 id="http-component">Defining a Component</h3>
+    <p>Components are plain Python classes. They know nothing about Litestar — the same class works on FastAPI or Django.</p>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">components.py</span>
+        <span class="code-block__lang">Python</span>
+      </div>
+      <pre><code><span class="kw">from</span> component_framework.core <span class="kw">import</span> registry
+<span class="kw">from</span> component_framework.core.component <span class="kw">import</span> <span class="cls">Component</span>
+
+
+<span class="dec">@registry.register(<span class="str">"counter"</span>)</span>
+<span class="kw">class</span> <span class="cls">CounterComponent</span>(<span class="cls">Component</span>):
+    <span class="str">"""Simple increment/decrement counter."""</span>
+
+    template_name = <span class="str">"counter.html"</span>
+
+    <span class="kw">def</span> <span class="fn">mount</span>(<span class="kw">self</span>):
+        <span class="kw">self</span>.state[<span class="str">"count"</span>] = <span class="num">0</span>
+
+    <span class="kw">def</span> <span class="fn">on_increment</span>(<span class="kw">self</span>):
+        <span class="kw">self</span>.state[<span class="str">"count"</span>] += <span class="num">1</span>
+
+    <span class="kw">def</span> <span class="fn">on_decrement</span>(<span class="kw">self</span>):
+        <span class="kw">self</span>.state[<span class="str">"count"</span>] = <span class="fn">max</span>(<span class="num">0</span>, <span class="kw">self</span>.state[<span class="str">"count"</span>] - <span class="num">1</span>)</code></pre>
+    </div>
+
+    <h3 id="http-app">Wiring into Litestar</h3>
+    <p>Two registration patterns are supported. Use whichever fits your project structure.</p>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">app.py — pattern A: explicit route handlers</span>
+        <span class="code-block__lang">Python</span>
+      </div>
+      <pre><code><span class="kw">from</span> litestar <span class="kw">import</span> <span class="cls">Litestar</span>
+<span class="kw">from</span> litestar.contrib.jinja <span class="kw">import</span> <span class="cls">JinjaTemplateEngine</span>
+<span class="kw">from</span> litestar.template <span class="kw">import</span> <span class="cls">TemplateConfig</span>
+<span class="kw">from</span> component_framework.adapters.litestar <span class="kw">import</span> <span class="fn">component_endpoint</span>
+<span class="kw">from</span> component_framework.adapters.jinjax_renderer <span class="kw">import</span> <span class="cls">Jinja2Renderer</span>
+<span class="kw">from</span> component_framework.core.component <span class="kw">import</span> <span class="cls">Component</span>
+
+<span class="kw">import</span> components  <span class="cm"># registers CounterComponent via @registry.register</span>
+
+<span class="cls">Component</span>.renderer = <span class="cls">Jinja2Renderer</span>(<span class="str">"templates"</span>)
+
+app = <span class="cls">Litestar</span>(
+    route_handlers=[<span class="fn">component_endpoint</span>],
+    template_config=<span class="cls">TemplateConfig</span>(
+        directory=<span class="str">"templates"</span>,
+        engine=<span class="cls">JinjaTemplateEngine</span>,
+    ),
+)</code></pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">app.py — pattern B: create_component_routes helper</span>
+        <span class="code-block__lang">Python</span>
+      </div>
+      <pre><code><span class="kw">from</span> litestar <span class="kw">import</span> <span class="cls">Litestar</span>
+<span class="kw">from</span> component_framework.adapters.litestar <span class="kw">import</span> <span class="fn">create_component_routes</span>
+
+<span class="kw">import</span> components
+
+app = <span class="cls">Litestar</span>()
+<span class="fn">create_component_routes</span>(app)  <span class="cm"># auto-registers /components/{name}/ for every entry in registry</span></code></pre>
+    </div>
+
+    <p>Make a request with HTMX or plain <code>fetch</code>:</p>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">terminal</span>
+        <span class="code-block__lang">Shell</span>
+      </div>
+      <pre><code><span class="cm"># Initial mount (no state yet)</span>
+curl -X POST http://localhost:8000/components/counter/ \
+     -H <span class="str">"Content-Type: application/json"</span> \
+     -d <span class="str">'{"event": "mount", "state": {}}'</span>
+
+<span class="cm"># Dispatch an event with existing state</span>
+curl -X POST http://localhost:8000/components/counter/ \
+     -H <span class="str">"Content-Type: application/json"</span> \
+     -d <span class="str">'{"event": "increment", "state": {"count": 3}}'</span></code></pre>
+    </div>
+
+    <!-- ASYNC EVENT HANDLERS -->
+    <h2 id="async-handlers" data-n="03">Async Event Handlers</h2>
+    <p>Litestar is async-native, so <code>async def</code> event handlers are the natural pattern. Use <code>async_dispatch()</code> from the core to route the event through the async lifecycle without blocking the event loop.</p>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">components.py</span>
+        <span class="code-block__lang">Python</span>
+      </div>
+      <pre><code><span class="kw">import</span> asyncio
+<span class="kw">from</span> component_framework.core <span class="kw">import</span> registry
+<span class="kw">from</span> component_framework.core.component <span class="kw">import</span> <span class="cls">Component</span>
+
+
+<span class="dec">@registry.register(<span class="str">"sentiment"</span>)</span>
+<span class="kw">class</span> <span class="cls">SentimentComponent</span>(<span class="cls">Component</span>):
+    <span class="str">"""Calls an external ML service to score a text snippet."""</span>
+
+    template_name = <span class="str">"sentiment.html"</span>
+
+    <span class="kw">def</span> <span class="fn">mount</span>(<span class="kw">self</span>):
+        <span class="kw">self</span>.state.<span class="fn">update</span>({<span class="str">"text"</span>: <span class="str">""</span>, <span class="str">"score"</span>: <span class="kw">None</span>, <span class="str">"loading"</span>: <span class="kw">False</span>})
+
+    <span class="kw">async def</span> <span class="fn">on_analyze</span>(<span class="kw">self</span>, text: <span class="typ">str</span>):
+        <span class="str">"""Await an external service — zero thread-pool overhead."""</span>
+        <span class="kw">self</span>.state[<span class="str">"loading"</span>] = <span class="kw">True</span>
+        <span class="kw">self</span>.state[<span class="str">"text"</span>]    = text
+
+        <span class="cm"># Any awaitable — httpx, aiohttp, asyncpg, etc.</span>
+        score = <span class="kw">await</span> <span class="fn">_call_ml_service</span>(text)
+
+        <span class="kw">self</span>.state[<span class="str">"score"</span>]   = score
+        <span class="kw">self</span>.state[<span class="str">"loading"</span>] = <span class="kw">False</span>
+
+
+<span class="kw">async def</span> <span class="fn">_call_ml_service</span>(text: <span class="typ">str</span>) -> <span class="typ">float</span>:
+    <span class="kw">import</span> httpx
+    <span class="kw">async with</span> httpx.<span class="cls">AsyncClient</span>() <span class="kw">as</span> client:
+        resp = <span class="kw">await</span> client.<span class="fn">post</span>(
+            <span class="str">"https://api.example.com/sentiment"</span>,
+            json={<span class="str">"text"</span>: text},
+        )
+        <span class="kw">return</span> resp.<span class="fn">json</span>()[<span class="str">"score"</span>]</code></pre>
+    </div>
+
+    <p>The Litestar adapter calls <code>async_dispatch()</code> automatically when it detects an async handler. No configuration needed — if your method is <code>async def</code>, it runs natively in the event loop.</p>
+
+    <div class="callout callout--insight">
+      <strong>async_dispatch vs dispatch:</strong> <code>dispatch()</code> is the synchronous entrypoint used by FastAPI and Django. <code>async_dispatch()</code> is its awaitable counterpart. The Litestar adapter selects the right one based on <code>asyncio.iscoroutinefunction(handler)</code>, so you never have to choose manually.
+    </div>
+
+    <!-- SSE STREAMING -->
+    <h2 id="sse-streaming" data-n="04">SSE Streaming</h2>
+    <p>Server-Sent Events let a component push incremental updates to the browser over a single long-lived HTTP connection. This is the recommended transport for long-running operations like report generation, file processing, or AI token streaming — cases where WebSockets are heavier than needed.</p>
+
+    <h3 id="sse-component">StreamingComponent</h3>
+    <p>Subclass <code>StreamingComponent</code> and implement an <code>async</code> generator handler. Each <code>yield</code> flushes a partial state patch to the client.</p>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">components.py</span>
+        <span class="code-block__lang">Python</span>
+      </div>
+      <pre><code><span class="kw">import</span> asyncio
+<span class="kw">from</span> typing <span class="kw">import</span> <span class="cls">AsyncGenerator</span>
+<span class="kw">from</span> component_framework.core <span class="kw">import</span> registry
+<span class="kw">from</span> component_framework.core.component <span class="kw">import</span> <span class="cls">StreamingComponent</span>
+
+
+<span class="dec">@registry.register(<span class="str">"report"</span>)</span>
+<span class="kw">class</span> <span class="cls">ReportComponent</span>(<span class="cls">StreamingComponent</span>):
+    <span class="str">"""Generates a multi-section report, streaming each section as it completes."""</span>
+
+    template_name = <span class="str">"report.html"</span>
+
+    <span class="kw">def</span> <span class="fn">mount</span>(<span class="kw">self</span>):
+        <span class="kw">self</span>.state.<span class="fn">update</span>({<span class="str">"sections"</span>: [], <span class="str">"done"</span>: <span class="kw">False</span>})
+
+    <span class="kw">async def</span> <span class="fn">on_generate</span>(<span class="kw">self</span>, report_id: <span class="typ">int</span>) -> <span class="cls">AsyncGenerator</span>:
+        <span class="str">"""Yield state patches — each becomes one SSE event."""</span>
+        sections = [<span class="str">"Executive Summary"</span>, <span class="str">"Revenue Analysis"</span>, <span class="str">"Forecast"</span>]
+
+        <span class="kw">for</span> title <span class="kw">in</span> sections:
+            <span class="cm"># Simulate work: fetch data, run query, call LLM, etc.</span>
+            content = <span class="kw">await</span> <span class="fn">_build_section</span>(report_id, title)
+            <span class="kw">self</span>.state[<span class="str">"sections"</span>].<span class="fn">append</span>({<span class="str">"title"</span>: title, <span class="str">"content"</span>: content})
+            <span class="kw">yield</span>  <span class="cm"># push current state to client immediately</span>
+
+        <span class="kw">self</span>.state[<span class="str">"done"</span>] = <span class="kw">True</span>
+        <span class="kw">yield</span>  <span class="cm"># final flush</span>
+
+
+<span class="kw">async def</span> <span class="fn">_build_section</span>(report_id: <span class="typ">int</span>, title: <span class="typ">str</span>) -> <span class="typ">str</span>:
+    <span class="kw">await</span> asyncio.<span class="fn">sleep</span>(<span class="num">0.4</span>)  <span class="cm"># replace with real I/O</span>
+    <span class="kw">return</span> <span class="str">f"Content for {title} (report #{report_id})"</span></code></pre>
+    </div>
+
+    <p>Register the SSE endpoint alongside the standard HTTP endpoint:</p>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">app.py</span>
+        <span class="code-block__lang">Python</span>
+      </div>
+      <pre><code><span class="kw">from</span> litestar <span class="kw">import</span> <span class="cls">Litestar</span>
+<span class="kw">from</span> component_framework.adapters.litestar <span class="kw">import</span> (
+    <span class="fn">component_endpoint</span>,
+    <span class="fn">component_stream_endpoint</span>,  <span class="cm"># SSE handler</span>
+)
+
+app = <span class="cls">Litestar</span>(
+    route_handlers=[
+        <span class="fn">component_endpoint</span>,         <span class="cm"># POST /components/{name}/</span>
+        <span class="fn">component_stream_endpoint</span>,  <span class="cm"># GET  /components/{name}/stream/</span>
+    ],
+)</code></pre>
+    </div>
+
+    <h3 id="sse-client">Client-side EventSource</h3>
+    <p>A minimal browser snippet to consume the SSE stream and swap partial HTML. HTMX SSE extension handles this automatically if you prefer a zero-JS approach.</p>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">report.html (script block)</span>
+        <span class="code-block__lang">JavaScript</span>
+      </div>
+      <pre><code><span class="kw">const</span> source = <span class="kw">new</span> <span class="cls">EventSource</span>(
+  <span class="str">`/components/report/stream/?event=generate&amp;report_id=<span class="kw">${</span>reportId<span class="kw">}</span>`</span>
+);
+
+source.<span class="fn">addEventListener</span>(<span class="str">"patch"</span>, (e) =&gt; {
+  <span class="cm">// server sends rendered HTML partial on each yield</span>
+  document.<span class="fn">getElementById</span>(<span class="str">"report-root"</span>).innerHTML = e.data;
+});
+
+source.<span class="fn">addEventListener</span>(<span class="str">"done"</span>, () =&gt; source.<span class="fn">close</span>());</code></pre>
+    </div>
+
+    <div class="callout callout--warn">
+      <strong>Browser connection limit.</strong> Each <code>EventSource</code> holds one HTTP/1.1 connection. Modern browsers cap concurrent connections per origin at 6. Prefer HTTP/2 in production (Litestar + uvicorn with <code>--http h2</code>) to avoid this ceiling.
+    </div>
+
+    <!-- WEBSOCKET -->
+    <h2 id="websocket" data-n="05">WebSocket Support</h2>
+    <p>For true bidirectional real-time (chat, collaborative editing, live dashboards with server push), use the WebSocket transport. The pattern mirrors the FastAPI adapter — a <code>LitestarWebSocketConnection</code> manages the channel lifecycle.</p>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">app.py</span>
+        <span class="code-block__lang">Python</span>
+      </div>
+      <pre><code><span class="kw">from</span> litestar <span class="kw">import</span> <span class="cls">Litestar</span>
+<span class="kw">from</span> component_framework.adapters.litestar <span class="kw">import</span> (
+    <span class="fn">component_endpoint</span>,
+    <span class="fn">component_websocket_endpoint</span>,  <span class="cm"># WS handler</span>
+)
+
+app = <span class="cls">Litestar</span>(
+    route_handlers=[
+        <span class="fn">component_endpoint</span>,
+        <span class="fn">component_websocket_endpoint</span>,  <span class="cm"># WS /components/{name}/ws/</span>
+    ],
+)</code></pre>
+    </div>
+
+    <p>Push an update to all subscribers of a component from anywhere in your application:</p>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">services.py</span>
+        <span class="code-block__lang">Python</span>
+      </div>
+      <pre><code><span class="kw">from</span> component_framework.core.websocket <span class="kw">import</span> <span class="cls">WebSocketManager</span>
+
+manager = <span class="cls">WebSocketManager</span>()  <span class="cm"># shared singleton, e.g. via DI container</span>
+
+
+<span class="kw">async def</span> <span class="fn">broadcast_price_update</span>(ticker: <span class="typ">str</span>, price: <span class="typ">float</span>):
+    <span class="str">"""Called from a background task or message-queue consumer."""</span>
+    <span class="kw">await</span> manager.<span class="fn">broadcast</span>(
+        component_name=<span class="str">"ticker"</span>,
+        event=<span class="str">"price_update"</span>,
+        payload={<span class="str">"ticker"</span>: ticker, <span class="str">"price"</span>: price},
+    )</code></pre>
+    </div>
+
+    <div class="callout callout--note">
+      <strong>Scaling WebSockets.</strong> <code>WebSocketManager</code> is in-process by default. For multi-worker deployments, swap the backing store for Redis pub/sub — the interface is identical, only the constructor argument changes.
+    </div>
+
+    <!-- FULL EXAMPLE APP -->
+    <h2 id="full-example" data-n="06">Full Example App</h2>
+    <p>The repository ships a self-contained Litestar example at <code>examples/litestar_example.py</code>. It wires together a Jinja2 renderer, three components (counter, sentiment, report), and an index page — roughly 120 lines.</p>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">examples/litestar_example.py (key parts)</span>
+        <span class="code-block__lang">Python</span>
+      </div>
+      <pre><code><span class="kw">from</span> pathlib <span class="kw">import</span> <span class="cls">Path</span>
+<span class="kw">from</span> litestar <span class="kw">import</span> <span class="cls">Litestar</span>, <span class="fn">get</span>
+<span class="kw">from</span> litestar.contrib.jinja <span class="kw">import</span> <span class="cls">JinjaTemplateEngine</span>
+<span class="kw">from</span> litestar.response <span class="kw">import</span> <span class="cls">Template</span>
+<span class="kw">from</span> litestar.template <span class="kw">import</span> <span class="cls">TemplateConfig</span>
+<span class="kw">from</span> component_framework.adapters.litestar <span class="kw">import</span> (
+    <span class="fn">component_endpoint</span>,
+    <span class="fn">component_stream_endpoint</span>,
+    <span class="fn">component_websocket_endpoint</span>,
+)
+<span class="kw">from</span> component_framework.adapters.jinjax_renderer <span class="kw">import</span> <span class="cls">Jinja2Renderer</span>
+<span class="kw">from</span> component_framework.core.component <span class="kw">import</span> <span class="cls">Component</span>
+
+<span class="cm"># Point the renderer at the templates directory</span>
+<span class="cls">Component</span>.renderer = <span class="cls">Jinja2Renderer</span>(<span class="cls">Path</span>(<span class="str">"examples/litestar_templates"</span>))
+
+<span class="kw">import</span> examples.litestar_components  <span class="cm"># noqa: F401 — side-effect: registers all components</span>
+
+
+<span class="dec">@get(<span class="str">"/"</span>)</span>
+<span class="kw">async def</span> <span class="fn">index</span>() -> <span class="cls">Template</span>:
+    <span class="kw">return</span> <span class="cls">Template</span>(template_name=<span class="str">"index.html"</span>)
+
+
+app = <span class="cls">Litestar</span>(
+    route_handlers=[
+        <span class="fn">index</span>,
+        <span class="fn">component_endpoint</span>,
+        <span class="fn">component_stream_endpoint</span>,
+        <span class="fn">component_websocket_endpoint</span>,
+    ],
+    template_config=<span class="cls">TemplateConfig</span>(
+        directory=<span class="str">"examples/litestar_templates"</span>,
+        engine=<span class="cls">JinjaTemplateEngine</span>,
+    ),
+)</code></pre>
+    </div>
+
+    <p>Run it:</p>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">terminal</span>
+        <span class="code-block__lang">Shell</span>
+      </div>
+      <pre><code>python examples/litestar_example.py
+<span class="cm"># or via uvicorn directly:</span>
+uvicorn examples.litestar_example:app --reload --port <span class="num">8000</span></code></pre>
+    </div>
+
+    <ol class="run-steps">
+      <li><span class="step-text">Open <code>http://localhost:8000</code> — the index page renders all three components server-side.</span></li>
+      <li><span class="step-text">Click Increment / Decrement on the counter — each click POSTs to <code>/components/counter/</code> and swaps the HTML fragment.</span></li>
+      <li><span class="step-text">Submit text in the sentiment box — the async handler awaits the (mock) ML service and re-renders the score badge.</span></li>
+      <li><span class="step-text">Click Generate Report — an <code>EventSource</code> opens to <code>/components/report/stream/</code> and each section appears as it completes.</span></li>
+    </ol>
+
+    <!-- TESTING -->
+    <h2 id="testing" data-n="07">Testing</h2>
+    <p>Litestar ships its own sync/async test client. Use <code>pytest.importorskip</code> to guard tests so the suite still passes in environments without Litestar installed.</p>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">tests/test_litestar_adapter.py</span>
+        <span class="code-block__lang">Python</span>
+      </div>
+      <pre><code><span class="kw">import</span> pytest
+litestar = pytest.<span class="fn">importorskip</span>(<span class="str">"litestar"</span>)
+
+<span class="kw">from</span> litestar.testing <span class="kw">import</span> <span class="cls">TestClient</span>
+<span class="kw">from</span> litestar.testing <span class="kw">import</span> <span class="fn">create_test_client</span>
+<span class="kw">from</span> component_framework.adapters.litestar <span class="kw">import</span> <span class="fn">component_endpoint</span>
+<span class="kw">from</span> component_framework.adapters.jinjax_renderer <span class="kw">import</span> <span class="cls">Jinja2Renderer</span>
+<span class="kw">from</span> component_framework.core.component <span class="kw">import</span> <span class="cls">Component</span>
+
+<span class="kw">from</span> tests.fixtures <span class="kw">import</span> <span class="cls">MockRenderer</span>
+
+<span class="cm"># Use a mock renderer so tests never touch the filesystem</span>
+<span class="cls">Component</span>.renderer = <span class="cls">MockRenderer</span>()
+
+
+<span class="dec">@pytest.fixture</span>
+<span class="kw">def</span> <span class="fn">client</span>():
+    <span class="kw">return</span> <span class="fn">create_test_client</span>(route_handlers=[<span class="fn">component_endpoint</span>])
+
+
+<span class="kw">def</span> <span class="fn">test_counter_mount</span>(client: <span class="cls">TestClient</span>):
+    resp = client.<span class="fn">post</span>(
+        <span class="str">"/components/counter/"</span>,
+        json={<span class="str">"event"</span>: <span class="str">"mount"</span>, <span class="str">"state"</span>: {}},
+    )
+    <span class="kw">assert</span> resp.status_code == <span class="num">200</span>
+    data = resp.<span class="fn">json</span>()
+    <span class="kw">assert</span> data[<span class="str">"state"</span>][<span class="str">"count"</span>] == <span class="num">0</span>
+
+
+<span class="kw">def</span> <span class="fn">test_counter_increment</span>(client: <span class="cls">TestClient</span>):
+    resp = client.<span class="fn">post</span>(
+        <span class="str">"/components/counter/"</span>,
+        json={<span class="str">"event"</span>: <span class="str">"increment"</span>, <span class="str">"state"</span>: {<span class="str">"count"</span>: <span class="num">2</span>}},
+    )
+    <span class="kw">assert</span> resp.<span class="fn">json</span>()[<span class="str">"state"</span>][<span class="str">"count"</span>] == <span class="num">3</span>
+
+
+<span class="dec">@pytest.mark.asyncio</span>
+<span class="kw">async def</span> <span class="fn">test_sentiment_async_handler</span>():
+    <span class="str">"""Component logic tested directly — no HTTP layer needed."""</span>
+    <span class="kw">from</span> tests.fixtures <span class="kw">import</span> <span class="cls">SentimentComponent</span>
+
+    comp = <span class="cls">SentimentComponent</span>()
+    comp.<span class="fn">mount</span>()
+    <span class="kw">await</span> comp.<span class="fn">on_analyze</span>(<span class="str">"I love async Python"</span>)
+    <span class="kw">assert</span> comp.state[<span class="str">"score"</span>] <span class="kw">is not</span> <span class="kw">None</span>
+    <span class="kw">assert</span> comp.state[<span class="str">"loading"</span>] <span class="kw">is</span> <span class="kw">False</span></code></pre>
+    </div>
+
+    <div class="callout callout--insight">
+      <strong>Components are framework-agnostic.</strong> The last test calls <code>on_analyze</code> directly — no Litestar, no HTTP, no client. Because components are plain Python classes, the bulk of your test suite can skip the adapter entirely and run in milliseconds.
+    </div>
+
+    <!-- SUMMARY -->
+    <h2 id="summary" data-n="08">Summary</h2>
+    <p>The Litestar adapter gives you all three transports with the same component code you would write for FastAPI or Django.</p>
+
+    <table class="summary-table">
+      <thead>
+        <tr>
+          <th>Transport</th>
+          <th>Endpoint</th>
+          <th>Best for</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>HTTP POST</td>
+          <td>component_endpoint</td>
+          <td>Standard HTMX interactions, forms, state mutations</td>
+        </tr>
+        <tr>
+          <td>SSE (GET)</td>
+          <td>component_stream_endpoint</td>
+          <td>Long-running ops, AI streaming, progress indicators</td>
+        </tr>
+        <tr>
+          <td>WebSocket</td>
+          <td>component_websocket_endpoint</td>
+          <td>Bidirectional real-time — chat, live dashboards</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p>All three share the same component base class, the same renderer, and the same state serialisation. Switching transport is a one-line change in <code>app.py</code>; the component itself never changes.</p>
+
+    <div class="callout callout--note">
+      <strong>Next steps.</strong> See the <a href="component_framework.html" style="color: var(--sky);">API Reference</a> for the full <code>StreamingComponent</code> and <code>WebSocketManager</code> interfaces. For a production Django deployment with permissions, caching, and WebSocket fan-out, see the <a href="admin-panel.html" style="color: var(--sky);">Admin Panel</a> guide.
+    </div>
+
+  </article>
+</div>
+
+<!-- ── FOOTER ─────────────────────────────────────────────────────────────── -->
+<footer>
+  <span>component-framework — MIT license</span>
+  <span>
+    <a href="https://github.com/fsecada01/component-framework" target="_blank" rel="noopener">GitHub</a>
+    <span class="sep">·</span>
+    <a href="https://pypi.org/project/component-framework/" target="_blank" rel="noopener">PyPI</a>
+    <span class="sep">·</span>
+    built with <a href="https://pdoc.dev" target="_blank" rel="noopener">pdoc</a>
+  </span>
+</footer>
+</body>
+</html>
