@@ -11,17 +11,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
         with:
+          enable-cache: true
           python-version: "3.12"
       - name: Install dependencies
-        # Brings ruff, the pinned ty, and prek (plus the framework deps ty needs
-        # to resolve imports) so the hooks run against a complete environment.
-        run: pip install -e ".[dev]"
+        # uv sync against the committed lockfile; --locked fails loudly if the
+        # lock has drifted from pyproject (keeps CI reproducible).
+        run: uv sync --extra dev --locked
       - name: Run lint hooks (prek)
         # Single source of truth: CI runs the same pinned hooks as local
         # pre-commit (ruff, ruff-format, ty) defined in .pre-commit-config.yaml.
-        run: prek run --all-files --show-diff-on-failure
+        run: uv run prek run --all-files --show-diff-on-failure
 
   test:
     runs-on: ubuntu-latest
@@ -31,13 +33,15 @@ jobs:
         python-version: ["3.11", "3.12", "3.13", "3.14"]
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
         with:
+          enable-cache: true
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
-        run: pip install -e ".[dev]"
+        run: uv sync --extra dev --locked
       - name: Run tests
-        run: pytest tests/ -q --tb=short
+        run: uv run pytest tests/ -q --tb=short
 
   test-js:
     runs-on: ubuntu-latest
