@@ -11,19 +11,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
       - name: Install uv
         uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
-          python-version: "3.12"
       - name: Install dependencies
-        # uv sync against the committed lockfile; --locked fails loudly if the
-        # lock has drifted from pyproject (keeps CI reproducible).
-        run: uv sync --extra dev --locked
+        # Project standardizes on uv. uv.lock is gitignored (library resolves
+        # fresh), so install into the runner's Python rather than syncing a lock.
+        run: uv pip install --system -e ".[dev]"
       - name: Run lint hooks (prek)
         # Single source of truth: CI runs the same pinned hooks as local
         # pre-commit (ruff, ruff-format, ty) defined in .pre-commit-config.yaml.
-        run: uv run prek run --all-files --show-diff-on-failure
+        run: prek run --all-files --show-diff-on-failure
 
   test:
     runs-on: ubuntu-latest
@@ -33,15 +35,17 @@ jobs:
         python-version: ["3.11", "3.12", "3.13", "3.14"]
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
       - name: Install uv
         uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
-          python-version: ${{ matrix.python-version }}
       - name: Install dependencies
-        run: uv sync --extra dev --locked
+        run: uv pip install --system -e ".[dev]"
       - name: Run tests
-        run: uv run pytest tests/ -q --tb=short
+        run: pytest tests/ -q --tb=short
 
   test-js:
     runs-on: ubuntu-latest
