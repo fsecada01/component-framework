@@ -14,7 +14,7 @@ Framework-agnostic server components with LiveView-style interactivity inspired 
 
 ## Development Status
 
-**Current Version:** 0.4.0-beta
+**Current Version:** 0.5.0-beta
 **API Documentation:** [fsecada01.github.io/component-framework](https://fsecada01.github.io/component-framework/)
 
 The framework has a complete, tested feature set covering the full Beta roadmap. APIs are solidifying — the core lifecycle, permissions, composition, and testing utilities are stable. We welcome feedback before the 1.0 release.
