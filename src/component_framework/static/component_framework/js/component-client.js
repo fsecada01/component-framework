@@ -2,20 +2,35 @@
  * Component Framework Client
  *
  * Handles server-side component updates with optimistic UI support.
- * Sends events to the server via fetch, applies optimistic state patches
- * immediately, then reconciles the DOM with the server response.
+ * Sends events to the server via fetch, optionally applies a client-side
+ * predicted (optimistic) state patch *immediately* — before the request
+ * starts — then reconciles the DOM with the authoritative server response.
  * On error the previous DOM state is restored (rollback).
+ *
+ * Optimistic feedback is opt-in and declarative: a trigger element carries the
+ * predicted patch, which `dispatch()` applies synchronously at click time:
+ *
+ *   - `data-optimistic='{"interested": true}'` — an explicit partial state patch.
+ *   - `data-optimistic-toggle="interested"` — shorthand that flips the named
+ *     boolean field in the component's current state.
+ *
+ * The patch is merged into `data-state` and surfaced as `data-optimistic` and
+ * `data-optimistic-<field>` attributes so CSS can reflect the pending state
+ * instantly. A `[data-loading]` attribute is toggled for the request duration.
+ * Ship `component-framework.css` (or your own rules) to style these hooks.
  *
  * Usage:
  *   import { componentClient } from './component-client.js';
  *
- *   // Manual dispatch
+ *   // Manual dispatch (optionally with a client-side optimistic patch)
  *   componentClient.dispatch('component-abc123', 'increment', { amount: 1 });
+ *   componentClient.dispatch('row-7', 'toggle', {}, { optimistic: { interested: true } });
  *
  *   // Auto-bind declarative markup:
  *   // <div id="component-abc123" data-component="counter"
  *   //      data-state='{"count": 0}' data-endpoint="/components/">
- *   //   <button data-event="increment" data-payload='{"amount": 1}'>+</button>
+ *   //   <button data-event="increment" data-payload='{"amount": 1}'
+ *   //           data-optimistic='{"count": 1}'>+</button>
  *   // </div>
  *
  * @module component-client
@@ -113,21 +128,25 @@ class ComponentClient {
    * Sequence:
    *   1. Locate the component element by `componentId`.
    *   2. Take a DOM snapshot for potential rollback.
-   *   3. POST the event to the server.
-   *   4. If the server response contains an `optimistic` patch, apply it
-   *      immediately (before the full render arrives — note: in the current
-   *      architecture the patch is returned in the same response; for future
-   *      streaming support the patch could arrive separately).
-   *   5. Replace the component HTML with the authoritative server render.
+   *   3. If an optimistic patch is supplied, apply it synchronously *now*
+   *      (before the request starts) so the UI reflects the predicted state
+   *      immediately.
+   *   4. POST the event to the server.
+   *   5. Replace the component HTML with the authoritative server render,
+   *      reconciling (and thereby discarding) the optimistic prediction.
    *   6. On network or server error, roll back to the snapshot and call
    *      `onError` if configured.
    *
    * @param {string} componentId - The `id` attribute of the component element.
    * @param {string} event - Event name to dispatch (e.g. "increment").
    * @param {object} [payload={}] - Arbitrary event payload.
+   * @param {object} [options={}] - Dispatch options.
+   * @param {object} [options.optimistic] - Predicted partial state patch to
+   *   apply immediately (client-side prediction). Reconciled by the server
+   *   render on success, rolled back on error.
    * @returns {Promise<object|null>} Server response data, or null on error.
    */
-  async dispatch(componentId, event, payload = {}) {
+  async dispatch(componentId, event, payload = {}, options = {}) {
     const element = document.getElementById(componentId);
     if (!element) {
       console.warn(`[ComponentClient] Element not found: #${componentId}`);
@@ -143,6 +162,13 @@ class ComponentClient {
     // Save snapshot before any mutations.
     this._snapshot(element, componentId);
     this._pending.add(componentId);
+
+    // Apply the client-side optimistic prediction *before* the request so the
+    // UI updates instantly. The authoritative server render reconciles it.
+    if (options.optimistic) {
+      this.applyOptimistic(element, options.optimistic);
+    }
+
     this._markLoading(element, true);
 
     const componentName = element.dataset.component;
@@ -208,16 +234,19 @@ class ComponentClient {
   }
 
   /**
-   * Apply an optimistic state patch to the component element immediately.
+   * Apply an optimistic (predicted) state patch to the component element
+   * immediately — before the server responds.
    *
-   * The patch is a partial state dict returned by the server alongside the
-   * normal render.  It is merged into the element's `data-state` attribute so
-   * that subsequent dispatches use the anticipated state rather than stale
-   * values.  The actual HTML is not changed here; `update()` does that once
-   * the full server render arrives.
+   * The patch is merged into the element's `data-state` attribute so that the
+   * anticipated state is in place, and the element is marked with
+   * `data-optimistic="true"` plus a `data-optimistic-<field>` attribute for
+   * each scalar field in the patch.  These attributes give CSS instant styling
+   * hooks (e.g. `[data-optimistic-interested="true"]`) without needing a
+   * client-side re-render.  The authoritative HTML arrives later via
+   * `update()`, which clears these markers.
    *
    * @param {Element} element - The component root element.
-   * @param {object} patch - Partial state dict from the server `optimistic` key.
+   * @param {object} patch - Predicted partial state dict.
    */
   applyOptimistic(element, patch) {
     if (!patch || typeof patch !== 'object') return;
@@ -232,6 +261,13 @@ class ComponentClient {
     const merged = { ...currentState, ...patch };
     element.dataset.state = JSON.stringify(merged);
     element.dataset.optimistic = 'true';
+
+    // Expose scalar predicted values as data-optimistic-<field> attributes so
+    // CSS attribute selectors can reflect the pending state instantly.
+    for (const [key, value] of Object.entries(patch)) {
+      if (value === null || typeof value === 'object') continue;
+      element.setAttribute(`data-optimistic-${this._kebab(key)}`, String(value));
+    }
   }
 
   /**
@@ -282,6 +318,9 @@ class ComponentClient {
 
     if (!newNode) {
       console.warn('[ComponentClient] Server returned empty HTML; skipping update.');
+      // The element is not replaced, so clear any optimistic markers we set so
+      // the component does not stay visually "pending" forever.
+      this._clearOptimistic(element);
       return;
     }
 
@@ -392,11 +431,85 @@ class ComponentClient {
         }
       }
 
-      this.dispatch(componentId, eventName, payload);
+      const optimistic = this._computeOptimistic(trigger, componentId);
+      this.dispatch(componentId, eventName, payload, optimistic ? { optimistic } : {});
     };
 
     trigger._cfHandler = handler;
     trigger.addEventListener(domEvent, handler);
+  }
+
+  /**
+   * Compute a client-side optimistic patch for a trigger, if declared.
+   *
+   * Supports two declarative forms on the trigger element:
+   *   - `data-optimistic='{"field": value, ...}'` — an explicit partial patch.
+   *   - `data-optimistic-toggle="field"` — flips the named boolean field based
+   *     on the component's current `data-state`.
+   *
+   * @param {Element} trigger - The element carrying the declarative attributes.
+   * @param {string} componentId - ID of the parent component element.
+   * @returns {object|null} The predicted patch, or null if none declared.
+   */
+  _computeOptimistic(trigger, componentId) {
+    // Explicit patch takes precedence.
+    if (trigger.dataset.optimistic) {
+      try {
+        const patch = JSON.parse(trigger.dataset.optimistic);
+        if (patch && typeof patch === 'object') return patch;
+      } catch {
+        console.warn('[ComponentClient] Invalid data-optimistic JSON:', trigger.dataset.optimistic);
+      }
+      return null;
+    }
+
+    // Toggle shorthand: flip a boolean field in the current component state.
+    const field = trigger.dataset.optimisticToggle;
+    if (field) {
+      const element = document.getElementById(componentId);
+      let state = {};
+      try {
+        state = JSON.parse((element && element.dataset.state) || '{}');
+      } catch {
+        state = {};
+      }
+      return { [field]: !state[field] };
+    }
+
+    return null;
+  }
+
+  /**
+   * Convert a camelCase or snake_case key to kebab-case for use in a
+   * `data-optimistic-<field>` attribute name.
+   *
+   * @param {string} key - State field name.
+   * @returns {string} The kebab-cased attribute fragment.
+   */
+  _kebab(key) {
+    return String(key)
+      .replace(/_/g, '-')
+      .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
+      .toLowerCase();
+  }
+
+  /**
+   * Remove optimistic styling markers (`data-optimistic` and every
+   * `data-optimistic-<field>`) from an element in place.  Normally these
+   * markers vanish because `update()`/`rollback()` replace the whole element;
+   * this is the fallback for paths where the element survives (e.g. an empty
+   * server render) so the component does not remain visually pending.
+   *
+   * @param {Element} element - The component root element.
+   */
+  _clearOptimistic(element) {
+    if (!element) return;
+    delete element.dataset.optimistic;
+    for (const name of element.getAttributeNames()) {
+      if (name.startsWith('data-optimistic-')) {
+        element.removeAttribute(name);
+      }
+    }
   }
 
   /**

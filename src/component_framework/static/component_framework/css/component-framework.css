@@ -1,0 +1,45 @@
+/*
+ * Component Framework — default styling hooks.
+ *
+ * These rules give optimistic-UI and loading states a visible default so a
+ * click produces immediate feedback before the server responds. They are
+ * intentionally minimal; override or replace them with your own design system.
+ *
+ * Hooks set by component-client.js:
+ *   [data-loading]              — present while a dispatch is in flight.
+ *   [data-optimistic]           — present while a predicted patch is applied.
+ *   [data-optimistic-<field>]   — predicted scalar value for a state field,
+ *                                 e.g. [data-optimistic-interested="true"].
+ */
+
+/* In-flight request: dim slightly and show a wait cursor. */
+[data-loading] {
+  opacity: 0.6;
+  cursor: progress;
+  transition: opacity 120ms ease-in-out;
+}
+
+/* Predicted (not-yet-confirmed) state: subtle pulse so users see the change
+ * is provisional until the server reconciles it. */
+[data-optimistic] {
+  animation: cf-optimistic-pulse 1s ease-in-out infinite;
+}
+
+@keyframes cf-optimistic-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/* Respect reduced-motion preferences. */
+@media (prefers-reduced-motion: reduce) {
+  [data-loading],
+  [data-optimistic] {
+    animation: none;
+    transition: none;
+  }
+}

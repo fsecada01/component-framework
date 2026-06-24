@@ -49,11 +49,15 @@ dev-base = [
     "pytest-django>=4.5.0",
     "httpx>=0.26.0",
     "ruff>=0.1.0",
-    "ty>=0.0.18",
+    # Pinned: ty is pre-1.0 and changed its exit code to fail on warnings in a
+    # version after 0.0.25, which breaks CI on the (intentionally warn-level)
+    # Django mixin/ORM diagnostics in [tool.ty.rules]. Bump deliberately.
+    "ty==0.0.25",
 ]
 dev = [
     "component-framework[dev-base,fastapi,django,litestar,websockets]",
     "pre-commit>=3.5.0",
+    "prek>=0.3",
     "pdoc>=14.0",
 ]
 all = [

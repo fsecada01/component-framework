@@ -116,22 +116,28 @@ class Component:
 
     def get_optimistic_patch(self, event: str, payload: dict) -> dict | None:
         """
-        Return a partial state dict that the client can apply immediately before the server
-        responds, for the given event and payload.
+        Return the anticipated partial state dict for the given event and payload.
 
-        This enables optimistic UI updates: the client shows the expected result right away
-        and reconciles with the actual server state once the response arrives. On error, the
-        client can roll back to the previous state.
+        When non-None, this patch is attached to the dispatch response under the
+        ``optimistic`` key. Because it is delivered *alongside* the authoritative render,
+        it does not by itself produce instant feedback — the full render overwrites the
+        DOM in the same response cycle. It is exposed for inspection (e.g. the client's
+        ``onUpdate`` callback) and for forward streaming support.
 
-        Override in subclasses to enable optimistic updates for specific events. Return None
-        (the default) to disable optimistic updates for a given event.
+        For genuine instant feedback, use the client-side declarative prediction in
+        ``component-client.js``: add ``data-optimistic='{...}'`` or
+        ``data-optimistic-toggle="field"`` to the trigger element. The client applies that
+        patch synchronously at click time and reconciles it with this server render.
+
+        Override in subclasses to advertise the predicted state for specific events. Return
+        None (the default) to omit the ``optimistic`` key for a given event.
 
         Args:
             event: The event name being dispatched (e.g., "increment").
             payload: The event payload dict.
 
         Returns:
-            A partial state dict to apply optimistically, or None to skip.
+            A partial state dict describing the anticipated state, or None to skip.
 
         Example::
 
