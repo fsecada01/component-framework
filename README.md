@@ -172,9 +172,8 @@ components see the same custom filters, globals (e.g. `url_for`), and extensions
 
 ```python
 # consts.py — your existing setup
-from jinjax import Catalog
-from jinjax import JinjaX
-from starlette.templating import Jinja2Templates
+from fastapi.templating import Jinja2Templates
+from jinjax import Catalog, JinjaX
 
 templates = Jinja2Templates(directory="templates")
 templates.env.add_extension(JinjaX)              # share one Jinja environment
