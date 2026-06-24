@@ -172,7 +172,15 @@ def create_component_blueprint(url_prefix: str = "/components") -> "Blueprint":
         app.register_blueprint(create_component_blueprint())
     """
     bp = Blueprint("components", __name__, url_prefix=url_prefix)
-    bp.add_url_rule("/<name>", endpoint="component", view_func=component_view, methods=["POST"])
+    # strict_slashes=False so both "/components/<name>" and "/components/<name>/"
+    # match — the bundled component-client.js posts to the trailing-slash form.
+    bp.add_url_rule(
+        "/<name>",
+        endpoint="component",
+        view_func=component_view,
+        methods=["POST"],
+        strict_slashes=False,
+    )
     return bp
 
 

@@ -127,8 +127,21 @@ class TestComponentEndpoint:
         # HTMX-style form-encoded request.
         resp = client.post(
             "/components/counter",
-            data={"event": "increment", "payload": json.dumps({"amount": 1}),
-                  "state": json.dumps({"count": 0})},
+            data={
+                "event": "increment",
+                "payload": json.dumps({"amount": 1}),
+                "state": json.dumps({"count": 0}),
+            },
+        )
+        assert resp.status_code == 200
+        assert json.loads(resp.get_json()["state"])["count"] == 1
+
+    def test_trailing_slash_matches(self, client):
+        # The bundled component-client.js posts to "/components/<name>/".
+        resp = client.post(
+            "/components/counter/",
+            data=json.dumps({"event": "increment", "state": json.dumps({"count": 0})}),
+            content_type="application/json",
         )
         assert resp.status_code == 200
         assert json.loads(resp.get_json()["state"])["count"] == 1
@@ -139,9 +152,7 @@ class TestComponentEndpoint:
         assert "not found" in resp.get_json()["error"]
 
     def test_invalid_json_400(self, client):
-        resp = client.post(
-            "/components/counter", data="{not json", content_type="application/json"
-        )
+        resp = client.post("/components/counter", data="{not json", content_type="application/json")
         assert resp.status_code == 400
 
     def test_handler_error_500(self, client):
