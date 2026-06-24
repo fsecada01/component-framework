@@ -568,12 +568,54 @@ just claude-prompt PROMPT_FILE=prompts/WORKFLOW.md
 - [x] State size guard — configurable warning (64 KB) and hard limit (512 KB)
 - [x] JS double-serialisation fix in `component-client.js`
 
-### 1.0 (Planned)
-- [ ] Stable, frozen public API
-- [ ] Performance benchmarks and optimisation
+### 0.5.0 (Complete)
+- [x] Flask adapter — `FlaskRenderer` + HTTP blueprint (`[flask]` extra)
+- [x] Optimistic UI patching in the client (`component-client.js` + `component-framework.css`)
+- [x] JinjaX catalog sharing guidance (reuse the host app's `Catalog`)
+
+### Path to 1.0 (Planned)
+
+The road to a **production-grade** 1.0 is scoped into milestones, derived from a
+[market & gap analysis](claudedocs/research_liveview_market_2026-06-24.md) against
+Phoenix LiveView, Livewire, and Hotwire. Full work breakdown (epics, dependencies,
+effort) is in the [development plan](claudedocs/dev_plan_production_grade_2026-06-24.md)
+and tracked via [GitHub milestones](https://github.com/fsecada01/component-framework/milestones)
+and [epic issues](https://github.com/fsecada01/component-framework/issues?q=is%3Aissue+label%3Aepic).
+
+> The two critical-path enablers are **signed state** (security gate — component state
+> currently round-trips to the client unsigned) and **DOM morphing** (today the client
+> does a full `innerHTML` replace, which unblocks navigation, forms fidelity, and
+> optimistic UI once it lands).
+
+**0.6.0b — Hardening Foundation** *(Tier 0: security & rendering fidelity)*
+- [ ] Signed / tamper-proof state (HMAC) — *security gate*
+- [ ] DOM morphing — preserve focus / scroll / in-flight input; stable list keys
+- [ ] CSRF coverage for FastAPI / Litestar / Flask HTTP paths (today Django-only)
+- [ ] 422 re-render on form-validation failure (adapters currently return 200)
+- [ ] Cross-adapter request-parse hardening
+
+**0.7.0b — Real-App Features** *(Tier 1: table-stakes app capabilities)*
+- [ ] Live SPA navigation — history / back-button, loading indicator, scroll restore
+- [ ] File uploads — progress, multiple files, size/type constraints
+- [ ] On-blur / real-time partial validation
+- [ ] WebSocket reconnection + automatic state resync
+- [ ] Flask WebSocket / SSE parity
+- [ ] Unified Redis pub/sub fan-out across adapters
+
+**0.8.0b — Mindshare** *(Tier 2: observability & DX)*
+- [ ] Telemetry / observability — lifecycle spans + timing hooks
+- [ ] Published benchmarks (latency, payload, memory/connection, concurrency)
+- [ ] Declarative optimistic-JS command DSL; JS interop hooks with lifecycle
+- [ ] Latency simulation; offline detection + visibility-throttled polling
+
+**1.0.0 — Stable**
+- [ ] Frozen, documented public API
+- [ ] Full narrative user guide and tutorials
+- [ ] Deployment guide (ASGI workers, load balancer, sticky sessions, WS termination)
 - [ ] Devtools / inspector
-- [ ] Component marketplace / registry
-- [ ] Full user guide and tutorials
+
+**Post-1.0 (deferred):** server-side change-tracked diffing, CRDT-style presence,
+direct-to-cloud (S3) uploads, request batching, component marketplace.
 
 ---
 
@@ -596,6 +638,7 @@ Optional extras:
 - `[fastapi]` — FastAPI 0.109+, Uvicorn, JinjaX 0.41+
 - `[django]` — Django 4.2+, Django Channels 4.0+, channels-redis 4.1+, django-cotton 0.9+
 - `[litestar]` — Litestar 2.0+, Jinja2 3.1+
+- `[flask]` — Flask 3.0+
 - `[websockets]` — websockets 12.0+
 - `[all]` — all of the above
 
