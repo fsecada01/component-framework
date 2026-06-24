@@ -318,6 +318,9 @@ class ComponentClient {
 
     if (!newNode) {
       console.warn('[ComponentClient] Server returned empty HTML; skipping update.');
+      // The element is not replaced, so clear any optimistic markers we set so
+      // the component does not stay visually "pending" forever.
+      this._clearOptimistic(element);
       return;
     }
 
@@ -488,6 +491,25 @@ class ComponentClient {
       .replace(/_/g, '-')
       .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
       .toLowerCase();
+  }
+
+  /**
+   * Remove optimistic styling markers (`data-optimistic` and every
+   * `data-optimistic-<field>`) from an element in place.  Normally these
+   * markers vanish because `update()`/`rollback()` replace the whole element;
+   * this is the fallback for paths where the element survives (e.g. an empty
+   * server render) so the component does not remain visually pending.
+   *
+   * @param {Element} element - The component root element.
+   */
+  _clearOptimistic(element) {
+    if (!element) return;
+    delete element.dataset.optimistic;
+    for (const name of element.getAttributeNames()) {
+      if (name.startsWith('data-optimistic-')) {
+        element.removeAttribute(name);
+      }
+    }
   }
 
   /**

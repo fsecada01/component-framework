@@ -10,11 +10,11 @@ default:
 
 # Install all dependencies (core + dev + django + websockets)
 install:
-    uv pip install -e ".[dev,django,websockets]"
+    uv pip install -e .[dev,django,websockets]
 
 # Install core dependencies only
 install-core:
-    uv pip install -e "."
+    uv pip install -e .
 
 # Run full test suite
 test *ARGS:
@@ -31,6 +31,13 @@ test-core:
 # Run only adapter tests
 test-adapters:
     pytest tests/test_fastapi_adapter.py tests/test_fastapi_websocket.py tests/test_django_views.py tests/test_django_model.py tests/test_django_renderer.py tests/test_django_websocket.py tests/test_templatetags.py -v
+
+# Run the client-side JavaScript tests (requires Node 21+ for glob support)
+test-js:
+    node --test "tests/js/**/*.test.mjs"
+
+# Run both Python and JavaScript test suites
+test-all: test test-js
 
 # Lint with ruff
 lint:

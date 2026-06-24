@@ -1,7 +1,7 @@
 /**
  * Node-native tests for client-side optimistic UI wiring in component-client.js.
  *
- * Run with: node --test tests/js/
+ * Run with: just test-js   (node's test runner over a tests/js glob)
  *
  * These use lightweight DOM stubs (no jsdom dependency) to verify the three
  * behaviours that issue #16 requires:
@@ -28,6 +28,12 @@ function makeEl(dataset = {}, extra = {}) {
     },
     getAttribute(k) {
       return k in this._attrs ? this._attrs[k] : null;
+    },
+    getAttributeNames() {
+      return Object.keys(this._attrs);
+    },
+    removeAttribute(k) {
+      delete this._attrs[k];
     },
     replaceWith(n) {
       this._replacedWith = n;
@@ -137,6 +143,17 @@ test('dispatch applies the prediction before fetch resolves, reconciles on succe
   assert.equal(updated, true, 'server render should reconcile');
   assert.equal(rolledBack, false, 'no rollback on success');
   delete registry.c1;
+});
+
+test('update clears optimistic markers when the server returns empty HTML', () => {
+  const client = new ComponentClient();
+  const el = makeEl({ state: '{"count":1}', optimistic: 'true' });
+  el.setAttribute('data-optimistic-count', '2');
+
+  client.update(el, ''); // empty render -> element survives, must be cleared
+
+  assert.equal(el.dataset.optimistic, undefined);
+  assert.equal(el.getAttribute('data-optimistic-count'), null);
 });
 
 test('dispatch rolls back when the request fails', async () => {
