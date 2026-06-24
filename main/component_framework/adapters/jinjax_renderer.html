@@ -86,20 +86,29 @@
 </span><span id="L-11"><a href="#L-11"><span class="linenos">11</span></a>
 </span><span id="L-12"><a href="#L-12"><span class="linenos">12</span></a>
 </span><span id="L-13"><a href="#L-13"><span class="linenos">13</span></a><span class="k">class</span><span class="w"> </span><span class="nc">JinjaxRenderer</span><span class="p">(</span><span class="n">Renderer</span><span class="p">):</span>
-</span><span id="L-14"><a href="#L-14"><span class="linenos">14</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Renderer using Jinjax component system.&quot;&quot;&quot;</span>
+</span><span id="L-14"><a href="#L-14"><span class="linenos">14</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Renderer using the JinjaX component system.&quot;&quot;&quot;</span>
 </span><span id="L-15"><a href="#L-15"><span class="linenos">15</span></a>
 </span><span id="L-16"><a href="#L-16"><span class="linenos">16</span></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">catalog</span><span class="p">:</span> <span class="n">Catalog</span><span class="p">):</span>
 </span><span id="L-17"><a href="#L-17"><span class="linenos">17</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-</span><span id="L-18"><a href="#L-18"><span class="linenos">18</span></a><span class="sd">        Initialize Jinjax renderer.</span>
+</span><span id="L-18"><a href="#L-18"><span class="linenos">18</span></a><span class="sd">        Initialize the JinjaX renderer.</span>
 </span><span id="L-19"><a href="#L-19"><span class="linenos">19</span></a>
-</span><span id="L-20"><a href="#L-20"><span class="linenos">20</span></a><span class="sd">        Args:</span>
-</span><span id="L-21"><a href="#L-21"><span class="linenos">21</span></a><span class="sd">            catalog: Jinjax Catalog instance</span>
-</span><span id="L-22"><a href="#L-22"><span class="linenos">22</span></a><span class="sd">        &quot;&quot;&quot;</span>
-</span><span id="L-23"><a href="#L-23"><span class="linenos">23</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">catalog</span> <span class="o">=</span> <span class="n">catalog</span>
-</span><span id="L-24"><a href="#L-24"><span class="linenos">24</span></a>
-</span><span id="L-25"><a href="#L-25"><span class="linenos">25</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">render</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">template_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-</span><span id="L-26"><a href="#L-26"><span class="linenos">26</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Render Jinjax component.&quot;&quot;&quot;</span>
-</span><span id="L-27"><a href="#L-27"><span class="linenos">27</span></a>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">catalog</span><span class="o">.</span><span class="n">render</span><span class="p">(</span><span class="n">template_name</span><span class="p">,</span> <span class="o">**</span><span class="n">context</span><span class="p">)</span>
+</span><span id="L-20"><a href="#L-20"><span class="linenos">20</span></a><span class="sd">        Pass the ``Catalog`` your application already configured rather than a</span>
+</span><span id="L-21"><a href="#L-21"><span class="linenos">21</span></a><span class="sd">        fresh one. The renderer renders through this catalog&#39;s Jinja</span>
+</span><span id="L-22"><a href="#L-22"><span class="linenos">22</span></a><span class="sd">        environment, so it inherits every custom filter, global (e.g.</span>
+</span><span id="L-23"><a href="#L-23"><span class="linenos">23</span></a><span class="sd">        ``url_for``), and extension registered on it. A brand-new ``Catalog()``</span>
+</span><span id="L-24"><a href="#L-24"><span class="linenos">24</span></a><span class="sd">        has its own empty environment, so component templates would silently</span>
+</span><span id="L-25"><a href="#L-25"><span class="linenos">25</span></a><span class="sd">        lose that context. When sharing with ``Jinja2Templates``, build the</span>
+</span><span id="L-26"><a href="#L-26"><span class="linenos">26</span></a><span class="sd">        catalog from the same env, e.g. ``Catalog(jinja_env=templates.env)``.</span>
+</span><span id="L-27"><a href="#L-27"><span class="linenos">27</span></a>
+</span><span id="L-28"><a href="#L-28"><span class="linenos">28</span></a><span class="sd">        Args:</span>
+</span><span id="L-29"><a href="#L-29"><span class="linenos">29</span></a><span class="sd">            catalog: The JinjaX ``Catalog`` instance to render through —</span>
+</span><span id="L-30"><a href="#L-30"><span class="linenos">30</span></a><span class="sd">                ideally the one shared with the rest of your app.</span>
+</span><span id="L-31"><a href="#L-31"><span class="linenos">31</span></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="L-32"><a href="#L-32"><span class="linenos">32</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">catalog</span> <span class="o">=</span> <span class="n">catalog</span>
+</span><span id="L-33"><a href="#L-33"><span class="linenos">33</span></a>
+</span><span id="L-34"><a href="#L-34"><span class="linenos">34</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">render</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">template_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span><span id="L-35"><a href="#L-35"><span class="linenos">35</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Render Jinjax component.&quot;&quot;&quot;</span>
+</span><span id="L-36"><a href="#L-36"><span class="linenos">36</span></a>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">catalog</span><span class="o">.</span><span class="n">render</span><span class="p">(</span><span class="n">template_name</span><span class="p">,</span> <span class="o">**</span><span class="n">context</span><span class="p">)</span>
 </span></pre></div>
 
 
@@ -116,24 +125,33 @@
     </div>
     <a class="headerlink" href="#JinjaxRenderer"></a>
             <div class="pdoc-code codehilite"><pre><span></span><span id="JinjaxRenderer-14"><a href="#JinjaxRenderer-14"><span class="linenos">14</span></a><span class="k">class</span><span class="w"> </span><span class="nc">JinjaxRenderer</span><span class="p">(</span><span class="n">Renderer</span><span class="p">):</span>
-</span><span id="JinjaxRenderer-15"><a href="#JinjaxRenderer-15"><span class="linenos">15</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Renderer using Jinjax component system.&quot;&quot;&quot;</span>
+</span><span id="JinjaxRenderer-15"><a href="#JinjaxRenderer-15"><span class="linenos">15</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Renderer using the JinjaX component system.&quot;&quot;&quot;</span>
 </span><span id="JinjaxRenderer-16"><a href="#JinjaxRenderer-16"><span class="linenos">16</span></a>
 </span><span id="JinjaxRenderer-17"><a href="#JinjaxRenderer-17"><span class="linenos">17</span></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">catalog</span><span class="p">:</span> <span class="n">Catalog</span><span class="p">):</span>
 </span><span id="JinjaxRenderer-18"><a href="#JinjaxRenderer-18"><span class="linenos">18</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-</span><span id="JinjaxRenderer-19"><a href="#JinjaxRenderer-19"><span class="linenos">19</span></a><span class="sd">        Initialize Jinjax renderer.</span>
+</span><span id="JinjaxRenderer-19"><a href="#JinjaxRenderer-19"><span class="linenos">19</span></a><span class="sd">        Initialize the JinjaX renderer.</span>
 </span><span id="JinjaxRenderer-20"><a href="#JinjaxRenderer-20"><span class="linenos">20</span></a>
-</span><span id="JinjaxRenderer-21"><a href="#JinjaxRenderer-21"><span class="linenos">21</span></a><span class="sd">        Args:</span>
-</span><span id="JinjaxRenderer-22"><a href="#JinjaxRenderer-22"><span class="linenos">22</span></a><span class="sd">            catalog: Jinjax Catalog instance</span>
-</span><span id="JinjaxRenderer-23"><a href="#JinjaxRenderer-23"><span class="linenos">23</span></a><span class="sd">        &quot;&quot;&quot;</span>
-</span><span id="JinjaxRenderer-24"><a href="#JinjaxRenderer-24"><span class="linenos">24</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">catalog</span> <span class="o">=</span> <span class="n">catalog</span>
-</span><span id="JinjaxRenderer-25"><a href="#JinjaxRenderer-25"><span class="linenos">25</span></a>
-</span><span id="JinjaxRenderer-26"><a href="#JinjaxRenderer-26"><span class="linenos">26</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">render</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">template_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-</span><span id="JinjaxRenderer-27"><a href="#JinjaxRenderer-27"><span class="linenos">27</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Render Jinjax component.&quot;&quot;&quot;</span>
-</span><span id="JinjaxRenderer-28"><a href="#JinjaxRenderer-28"><span class="linenos">28</span></a>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">catalog</span><span class="o">.</span><span class="n">render</span><span class="p">(</span><span class="n">template_name</span><span class="p">,</span> <span class="o">**</span><span class="n">context</span><span class="p">)</span>
+</span><span id="JinjaxRenderer-21"><a href="#JinjaxRenderer-21"><span class="linenos">21</span></a><span class="sd">        Pass the ``Catalog`` your application already configured rather than a</span>
+</span><span id="JinjaxRenderer-22"><a href="#JinjaxRenderer-22"><span class="linenos">22</span></a><span class="sd">        fresh one. The renderer renders through this catalog&#39;s Jinja</span>
+</span><span id="JinjaxRenderer-23"><a href="#JinjaxRenderer-23"><span class="linenos">23</span></a><span class="sd">        environment, so it inherits every custom filter, global (e.g.</span>
+</span><span id="JinjaxRenderer-24"><a href="#JinjaxRenderer-24"><span class="linenos">24</span></a><span class="sd">        ``url_for``), and extension registered on it. A brand-new ``Catalog()``</span>
+</span><span id="JinjaxRenderer-25"><a href="#JinjaxRenderer-25"><span class="linenos">25</span></a><span class="sd">        has its own empty environment, so component templates would silently</span>
+</span><span id="JinjaxRenderer-26"><a href="#JinjaxRenderer-26"><span class="linenos">26</span></a><span class="sd">        lose that context. When sharing with ``Jinja2Templates``, build the</span>
+</span><span id="JinjaxRenderer-27"><a href="#JinjaxRenderer-27"><span class="linenos">27</span></a><span class="sd">        catalog from the same env, e.g. ``Catalog(jinja_env=templates.env)``.</span>
+</span><span id="JinjaxRenderer-28"><a href="#JinjaxRenderer-28"><span class="linenos">28</span></a>
+</span><span id="JinjaxRenderer-29"><a href="#JinjaxRenderer-29"><span class="linenos">29</span></a><span class="sd">        Args:</span>
+</span><span id="JinjaxRenderer-30"><a href="#JinjaxRenderer-30"><span class="linenos">30</span></a><span class="sd">            catalog: The JinjaX ``Catalog`` instance to render through —</span>
+</span><span id="JinjaxRenderer-31"><a href="#JinjaxRenderer-31"><span class="linenos">31</span></a><span class="sd">                ideally the one shared with the rest of your app.</span>
+</span><span id="JinjaxRenderer-32"><a href="#JinjaxRenderer-32"><span class="linenos">32</span></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="JinjaxRenderer-33"><a href="#JinjaxRenderer-33"><span class="linenos">33</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">catalog</span> <span class="o">=</span> <span class="n">catalog</span>
+</span><span id="JinjaxRenderer-34"><a href="#JinjaxRenderer-34"><span class="linenos">34</span></a>
+</span><span id="JinjaxRenderer-35"><a href="#JinjaxRenderer-35"><span class="linenos">35</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">render</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">template_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span><span id="JinjaxRenderer-36"><a href="#JinjaxRenderer-36"><span class="linenos">36</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Render Jinjax component.&quot;&quot;&quot;</span>
+</span><span id="JinjaxRenderer-37"><a href="#JinjaxRenderer-37"><span class="linenos">37</span></a>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">catalog</span><span class="o">.</span><span class="n">render</span><span class="p">(</span><span class="n">template_name</span><span class="p">,</span> <span class="o">**</span><span class="n">context</span><span class="p">)</span>
 </span></pre></div>
 
 
-            <div class="docstring"><p>Renderer using Jinjax component system.</p>
+            <div class="docstring"><p>Renderer using the JinjaX component system.</p>
 </div>
 
 
@@ -149,21 +167,39 @@
     <a class="headerlink" href="#JinjaxRenderer.__init__"></a>
             <div class="pdoc-code codehilite"><pre><span></span><span id="JinjaxRenderer.__init__-17"><a href="#JinjaxRenderer.__init__-17"><span class="linenos">17</span></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">catalog</span><span class="p">:</span> <span class="n">Catalog</span><span class="p">):</span>
 </span><span id="JinjaxRenderer.__init__-18"><a href="#JinjaxRenderer.__init__-18"><span class="linenos">18</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-</span><span id="JinjaxRenderer.__init__-19"><a href="#JinjaxRenderer.__init__-19"><span class="linenos">19</span></a><span class="sd">        Initialize Jinjax renderer.</span>
+</span><span id="JinjaxRenderer.__init__-19"><a href="#JinjaxRenderer.__init__-19"><span class="linenos">19</span></a><span class="sd">        Initialize the JinjaX renderer.</span>
 </span><span id="JinjaxRenderer.__init__-20"><a href="#JinjaxRenderer.__init__-20"><span class="linenos">20</span></a>
-</span><span id="JinjaxRenderer.__init__-21"><a href="#JinjaxRenderer.__init__-21"><span class="linenos">21</span></a><span class="sd">        Args:</span>
-</span><span id="JinjaxRenderer.__init__-22"><a href="#JinjaxRenderer.__init__-22"><span class="linenos">22</span></a><span class="sd">            catalog: Jinjax Catalog instance</span>
-</span><span id="JinjaxRenderer.__init__-23"><a href="#JinjaxRenderer.__init__-23"><span class="linenos">23</span></a><span class="sd">        &quot;&quot;&quot;</span>
-</span><span id="JinjaxRenderer.__init__-24"><a href="#JinjaxRenderer.__init__-24"><span class="linenos">24</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">catalog</span> <span class="o">=</span> <span class="n">catalog</span>
+</span><span id="JinjaxRenderer.__init__-21"><a href="#JinjaxRenderer.__init__-21"><span class="linenos">21</span></a><span class="sd">        Pass the ``Catalog`` your application already configured rather than a</span>
+</span><span id="JinjaxRenderer.__init__-22"><a href="#JinjaxRenderer.__init__-22"><span class="linenos">22</span></a><span class="sd">        fresh one. The renderer renders through this catalog&#39;s Jinja</span>
+</span><span id="JinjaxRenderer.__init__-23"><a href="#JinjaxRenderer.__init__-23"><span class="linenos">23</span></a><span class="sd">        environment, so it inherits every custom filter, global (e.g.</span>
+</span><span id="JinjaxRenderer.__init__-24"><a href="#JinjaxRenderer.__init__-24"><span class="linenos">24</span></a><span class="sd">        ``url_for``), and extension registered on it. A brand-new ``Catalog()``</span>
+</span><span id="JinjaxRenderer.__init__-25"><a href="#JinjaxRenderer.__init__-25"><span class="linenos">25</span></a><span class="sd">        has its own empty environment, so component templates would silently</span>
+</span><span id="JinjaxRenderer.__init__-26"><a href="#JinjaxRenderer.__init__-26"><span class="linenos">26</span></a><span class="sd">        lose that context. When sharing with ``Jinja2Templates``, build the</span>
+</span><span id="JinjaxRenderer.__init__-27"><a href="#JinjaxRenderer.__init__-27"><span class="linenos">27</span></a><span class="sd">        catalog from the same env, e.g. ``Catalog(jinja_env=templates.env)``.</span>
+</span><span id="JinjaxRenderer.__init__-28"><a href="#JinjaxRenderer.__init__-28"><span class="linenos">28</span></a>
+</span><span id="JinjaxRenderer.__init__-29"><a href="#JinjaxRenderer.__init__-29"><span class="linenos">29</span></a><span class="sd">        Args:</span>
+</span><span id="JinjaxRenderer.__init__-30"><a href="#JinjaxRenderer.__init__-30"><span class="linenos">30</span></a><span class="sd">            catalog: The JinjaX ``Catalog`` instance to render through —</span>
+</span><span id="JinjaxRenderer.__init__-31"><a href="#JinjaxRenderer.__init__-31"><span class="linenos">31</span></a><span class="sd">                ideally the one shared with the rest of your app.</span>
+</span><span id="JinjaxRenderer.__init__-32"><a href="#JinjaxRenderer.__init__-32"><span class="linenos">32</span></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="JinjaxRenderer.__init__-33"><a href="#JinjaxRenderer.__init__-33"><span class="linenos">33</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">catalog</span> <span class="o">=</span> <span class="n">catalog</span>
 </span></pre></div>
 
 
-            <div class="docstring"><p>Initialize Jinjax renderer.</p>
+            <div class="docstring"><p>Initialize the JinjaX renderer.</p>
+
+<p>Pass the <code>Catalog</code> your application already configured rather than a
+fresh one. The renderer renders through this catalog's Jinja
+environment, so it inherits every custom filter, global (e.g.
+<code>url_for</code>), and extension registered on it. A brand-new <code>Catalog()</code>
+has its own empty environment, so component templates would silently
+lose that context. When sharing with <code>Jinja2Templates</code>, build the
+catalog from the same env, e.g. <code>Catalog(jinja_env=templates.env)</code>.</p>
 
 <h6 id="arguments">Arguments:</h6>
 
 <ul>
-<li><strong>catalog:</strong>  Jinjax Catalog instance</li>
+<li><strong>catalog:</strong>  The JinjaX <code>Catalog</code> instance to render through —
+ideally the one shared with the rest of your app.</li>
 </ul>
 </div>
 
@@ -191,9 +227,9 @@
 
     </div>
     <a class="headerlink" href="#JinjaxRenderer.render"></a>
-            <div class="pdoc-code codehilite"><pre><span></span><span id="JinjaxRenderer.render-26"><a href="#JinjaxRenderer.render-26"><span class="linenos">26</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">render</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">template_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-</span><span id="JinjaxRenderer.render-27"><a href="#JinjaxRenderer.render-27"><span class="linenos">27</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Render Jinjax component.&quot;&quot;&quot;</span>
-</span><span id="JinjaxRenderer.render-28"><a href="#JinjaxRenderer.render-28"><span class="linenos">28</span></a>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">catalog</span><span class="o">.</span><span class="n">render</span><span class="p">(</span><span class="n">template_name</span><span class="p">,</span> <span class="o">**</span><span class="n">context</span><span class="p">)</span>
+            <div class="pdoc-code codehilite"><pre><span></span><span id="JinjaxRenderer.render-35"><a href="#JinjaxRenderer.render-35"><span class="linenos">35</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">render</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">template_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span><span id="JinjaxRenderer.render-36"><a href="#JinjaxRenderer.render-36"><span class="linenos">36</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Render Jinjax component.&quot;&quot;&quot;</span>
+</span><span id="JinjaxRenderer.render-37"><a href="#JinjaxRenderer.render-37"><span class="linenos">37</span></a>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">catalog</span><span class="o">.</span><span class="n">render</span><span class="p">(</span><span class="n">template_name</span><span class="p">,</span> <span class="o">**</span><span class="n">context</span><span class="p">)</span>
 </span></pre></div>
 
 
