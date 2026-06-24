@@ -28,7 +28,7 @@ The framework has a complete, tested feature set covering the full Beta roadmap.
 | **FastAPI** | ✅ Supported | `[fastapi]` | Includes JinjaX renderer and WebSocket adapter |
 | **Django** | ✅ Supported | `[django]` | Includes Channels, Cotton, and template renderer |
 | **Litestar** | ✅ Supported | `[litestar]` | HTTP + WebSocket adapters (0.4.0+) |
-| **Flask** | 🗓 Planned | — | [Tracking issue #5](https://github.com/fsecada01/component-framework/issues/5) |
+| **Flask** | ✅ Supported | `[flask]` | Jinja2 renderer + HTTP blueprint |
 
 ---
 
@@ -46,8 +46,11 @@ pip install "component-framework[fastapi]"
 # Litestar projects
 pip install "component-framework[litestar]"
 
+# Flask projects
+pip install "component-framework[flask]"
+
 # Multiple adapters
-pip install "component-framework[fastapi,django,litestar]"
+pip install "component-framework[fastapi,django,litestar,flask]"
 
 # Everything
 pip install "component-framework[all]"
@@ -200,6 +203,26 @@ cd examples/django_example
 python manage.py migrate
 python manage.py runserver
 # Open http://localhost:8000
+```
+
+### Flask Example
+
+```bash
+pip install "component-framework[flask]"
+python examples/flask_example.py
+# Open http://localhost:5000
+```
+
+Wire the endpoint and a shared renderer into your own app:
+
+```python
+from flask import Flask
+from component_framework.adapters.flask import FlaskRenderer, register_component_routes
+from component_framework.core.component import Component
+
+app = Flask(__name__)
+Component.renderer = FlaskRenderer(app)   # shares app.jinja_env (filters/globals)
+register_component_routes(app)            # POST /components/<name>
 ```
 
 ---

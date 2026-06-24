@@ -137,6 +137,20 @@ class TestFastapiAdapterGuard:
 
 
 # ---------------------------------------------------------------------------
+# T001d — Flask adapter ImportError guard
+# ---------------------------------------------------------------------------
+
+
+class TestFlaskAdapterGuard:
+    """Verify adapters/flask.py raises an actionable ImportError when flask absent."""
+
+    def test_flask_adapter_raises_on_missing_flask(self):
+        err = _reload_adapter("component_framework.adapters.flask", "flask")
+        assert "flask" in str(err).lower()
+        assert "component-framework[flask]" in str(err)
+
+
+# ---------------------------------------------------------------------------
 # T001c — Django adapter ImportError guards
 # ---------------------------------------------------------------------------
 

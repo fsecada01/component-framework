@@ -40,6 +40,9 @@ litestar = [
     "litestar>=2.0",
     "jinja2>=3.1",
 ]
+flask = [
+    "flask>=3.0",
+]
 websockets = [
     "websockets>=12.0",
 ]
@@ -55,13 +58,13 @@ dev-base = [
     "ty==0.0.25",
 ]
 dev = [
-    "component-framework[dev-base,fastapi,django,litestar,websockets]",
+    "component-framework[dev-base,fastapi,django,litestar,flask,websockets]",
     "pre-commit>=3.5.0",
     "prek>=0.3",
     "pdoc>=14.0",
 ]
 all = [
-    "component-framework[fastapi,django,litestar,websockets]",
+    "component-framework[fastapi,django,litestar,flask,websockets]",
 ]
 
 [project.urls]
