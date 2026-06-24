@@ -11,14 +11,23 @@ from ..core import Renderer
 
 
 class JinjaxRenderer(Renderer):
-    """Renderer using Jinjax component system."""
+    """Renderer using the JinjaX component system."""
 
     def __init__(self, catalog: Catalog):
         """
-        Initialize Jinjax renderer.
+        Initialize the JinjaX renderer.
+
+        Pass the ``Catalog`` your application already configured rather than a
+        fresh one. The renderer renders through this catalog's Jinja
+        environment, so it inherits every custom filter, global (e.g.
+        ``url_for``), and extension registered on it. A brand-new ``Catalog()``
+        has its own empty environment, so component templates would silently
+        lose that context. When sharing with ``Jinja2Templates``, build the
+        catalog from the same env, e.g. ``Catalog(jinja_env=templates.env)``.
 
         Args:
-            catalog: Jinjax Catalog instance
+            catalog: The JinjaX ``Catalog`` instance to render through —
+                ideally the one shared with the rest of your app.
         """
         self.catalog = catalog
 
