@@ -60,8 +60,24 @@ export interface ComponentResponse {
    * Optional optimistic state patch.
    *
    * Present when the component's `get_optimistic_patch()` returned a non-None
-   * value.  The patch is a partial state dict representing the anticipated
-   * post-event state that the client may apply immediately for a snappy UX.
+   * value.  Because it is delivered alongside the full render it does not by
+   * itself produce instant feedback; for that, declare `data-optimistic` on the
+   * trigger (see {@link DispatchOptions}).  It is exposed here for inspection
+   * via the `onUpdate` callback and for forward streaming support.
+   */
+  optimistic?: Record<string, unknown>;
+}
+
+// ---------------------------------------------------------------------------
+// Dispatch options
+// ---------------------------------------------------------------------------
+
+/** Per-call options for {@link ComponentClient.dispatch}. */
+export interface DispatchOptions {
+  /**
+   * Predicted partial state patch applied synchronously *before* the request
+   * starts (client-side prediction), then reconciled by the authoritative
+   * server render on success or rolled back on error.
    */
   optimistic?: Record<string, unknown>;
 }
@@ -117,28 +133,31 @@ export declare class ComponentClient {
   /**
    * Send an event to a component and update the DOM.
    *
-   * Applies any optimistic patch from the server response immediately, then
-   * replaces the component HTML with the authoritative server render.  On
-   * failure the DOM is rolled back to the pre-dispatch snapshot.
+   * When `options.optimistic` is supplied, applies the predicted patch
+   * synchronously *before* the request starts, then replaces the component HTML
+   * with the authoritative server render.  On failure the DOM is rolled back to
+   * the pre-dispatch snapshot.
    *
    * @param componentId - The `id` attribute of the target component element.
    * @param event - Event name to dispatch (e.g. `"increment"`).
    * @param payload - Arbitrary event payload object.
+   * @param options - Per-call dispatch options (e.g. an optimistic patch).
    * @returns The parsed server response, or `null` on error or missing element.
    */
   dispatch(
     componentId: string,
     event: string,
     payload?: Record<string, unknown>,
+    options?: DispatchOptions,
   ): Promise<ComponentResponse | null>;
 
   /**
-   * Merge an optimistic state patch into the component element's `data-state`
-   * attribute so subsequent dispatches use the anticipated state.
+   * Apply a predicted optimistic patch to the component element immediately:
+   * merges it into `data-state` and sets `data-optimistic` /
+   * `data-optimistic-<field>` attributes as CSS styling hooks.
    *
    * @param element - The component root element.
-   * @param patch - Partial state dict (the `optimistic` key from the server
-   *   response).
+   * @param patch - Predicted partial state dict.
    */
   applyOptimistic(element: Element, patch: Record<string, unknown>): void;
 
