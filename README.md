@@ -162,6 +162,37 @@ python examples/fastapi_example.py
 # Open http://localhost:8000
 ```
 
+#### Sharing an existing JinjaX catalog
+
+Most FastAPI + JinjaX projects already create a `Catalog` at startup — often
+sharing its Jinja environment with `Jinja2Templates` so page templates and
+components see the same custom filters, globals (e.g. `url_for`), and extensions.
+
+**Pass that existing catalog to `JinjaxRenderer`** — do not create a new one:
+
+```python
+# consts.py — your existing setup
+from fastapi.templating import Jinja2Templates
+from jinjax import Catalog, JinjaX
+
+templates = Jinja2Templates(directory="templates")
+templates.env.add_extension(JinjaX)              # share one Jinja environment
+templates.env.globals["url_for"] = my_url_for    # custom global
+catalog = Catalog(jinja_env=templates.env)       # catalog reuses that env
+catalog.add_folder("templates/components")
+
+# Wire the component framework to the SAME catalog
+from component_framework.adapters.jinjax_renderer import JinjaxRenderer
+from component_framework.core.component import Component
+
+Component.renderer = JinjaxRenderer(catalog)     # ✅ inherits filters/globals/extensions
+```
+
+> ⚠️ Creating a **fresh** `Catalog()` (as in minimal examples) gives it a *new,
+> empty* Jinja environment. Component templates then silently lose your
+> `url_for`, custom filters, and extensions and render incorrectly. Always hand
+> `JinjaxRenderer` the catalog your app already configured.
+
 ### Django Example
 
 ```bash
