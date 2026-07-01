@@ -239,6 +239,7 @@ Generated from docstrings by pdoc and deployed to GitHub Pages on every push to 
 | [Django Implementation](docs/DJANGO_IMPLEMENTATION.md) | Django adapter setup and patterns |
 | [Class-Based Views](docs/CBV_GUIDE.md) | CBV auth/permission patterns |
 | [State Signing](docs/STATE_SIGNING.md) | HMAC-signed client state: setup per adapter + key rotation |
+| [Locked Fields](docs/LOCKED_FIELDS.md) | Server-trusted state fields the client can never influence (replay/rollback defense) |
 | [E-Commerce Example](docs/examples/ecommerce.md) | Real-time cart + product demo |
 | [Multi-Step Wizard](docs/examples/wizard.md) | FastAPI wizard recipe (enable [state signing](docs/STATE_SIGNING.md) in production) |
 | [CSRF & CSWSH Guide](docs/SECURITY_CSRF.md) | Per-adapter CSRF coverage audit + WebSocket hijacking guidance |

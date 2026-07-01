@@ -47,6 +47,16 @@ class Component:
     permission_classes: ClassVar[list[type["BasePermission"]]] = []
     slots: ClassVar[list[str]] = []
     """Slot names this component accepts. Empty list means *any* slot name is accepted."""
+    locked_fields: ClassVar[frozenset[str] | list[str] | tuple[str, ...]] = frozenset()
+    """Server-trusted top-level state fields the client must never influence.
+
+    Locked fields are excluded from :meth:`dehydrate` (they never reach the
+    client) and stripped from inbound state in :meth:`hydrate` (a replayed or
+    forged value is ignored, with a warning). Components must (re)establish
+    locked values server-side on every request — in a ``hydrate()`` override,
+    in ``before_render()``, or from server-supplied ``params``.
+    See ``docs/LOCKED_FIELDS.md``.
+    """
 
     def __init__(self, **params):
         self.params = params
@@ -67,13 +77,56 @@ class Component:
         self._mounted = True
 
     def hydrate(self, state: dict):
-        """Restore component from serialized state."""
+        """Restore component from serialized state.
+
+        Fields declared in :attr:`locked_fields` are removed from *state*
+        (in place, so ``hydrate()`` overrides that read the raw argument
+        after ``super().hydrate()`` cannot see them either) and a warning is
+        logged — locked fields are server-trusted and never accepted from
+        the client.
+        """
+        self._strip_locked_fields(state)
         self.state.update(state)
         self._mounted = True
 
     def dehydrate(self) -> dict:
-        """Serialize component state for persistence."""
-        return self.state.copy()
+        """Serialize component state for persistence.
+
+        Fields declared in :attr:`locked_fields` are excluded — they never
+        round-trip through the client. ``self.state`` itself is untouched,
+        so locked values remain available server-side for the rest of the
+        request.
+        """
+        state = self.state.copy()
+        for field in self._locked_field_set().intersection(state):
+            del state[field]
+        return state
+
+    @classmethod
+    def _locked_field_set(cls) -> frozenset[str]:
+        """Return :attr:`locked_fields` normalized to a frozenset."""
+        return frozenset(cls.locked_fields)
+
+    def _strip_locked_fields(self, state: dict) -> None:
+        """Remove locked fields from inbound client *state*, in place.
+
+        Logs a warning naming the stripped fields (values are deliberately
+        not logged). No-op when :attr:`locked_fields` is empty.
+        """
+        locked = self._locked_field_set()
+        if not locked:
+            return
+        stripped = sorted(locked.intersection(state))
+        if not stripped:
+            return
+        for field in stripped:
+            del state[field]
+        logger.warning(
+            "Ignoring locked state field(s) %s in inbound client state for %s — "
+            "locked fields are server-trusted and never accepted from the client.",
+            stripped,
+            self.__class__.__name__,
+        )
 
     def before_render(self):
         """Called before rendering. Use for derived state computation."""

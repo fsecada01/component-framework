@@ -145,4 +145,6 @@ bundled adapters map it to:
   readable by the client. Never put secrets in component state.
 - **Does not prevent replay of a stale-but-valid token** for the same
   component. Treat state as untrusted input in handlers and enforce
-  authorization server-side (see Epic A3, locked fields, for the follow-up).
+  authorization server-side. For fields the server owns (roles, IDs,
+  pricing), declare them as [locked fields](LOCKED_FIELDS.md) — they never
+  round-trip through the client, so replayed blobs cannot roll them back.
