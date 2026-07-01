@@ -238,8 +238,9 @@ Generated from docstrings by pdoc and deployed to GitHub Pages on every push to 
 | [Architecture Overview](docs/server_component_spec.md) | Core design and component lifecycle |
 | [Django Implementation](docs/DJANGO_IMPLEMENTATION.md) | Django adapter setup and patterns |
 | [Class-Based Views](docs/CBV_GUIDE.md) | CBV auth/permission patterns |
+| [State Signing](docs/STATE_SIGNING.md) | HMAC-signed client state: setup per adapter + key rotation |
 | [E-Commerce Example](docs/examples/ecommerce.md) | Real-time cart + product demo |
-| [Multi-Step Wizard](docs/examples/wizard.md) | FastAPI wizard recipe (unsigned state — pending Epic A1) |
+| [Multi-Step Wizard](docs/examples/wizard.md) | FastAPI wizard recipe (enable [state signing](docs/STATE_SIGNING.md) in production) |
 | [CSRF & CSWSH Guide](docs/SECURITY_CSRF.md) | Per-adapter CSRF coverage audit + WebSocket hijacking guidance |
 
 ### AI / LLM Context
@@ -593,7 +594,7 @@ and [epic issues](https://github.com/fsecada01/component-framework/issues?q=is%3
 > optimistic UI once it lands).
 
 **0.6.0b — Hardening Foundation** *(Tier 0: security & rendering fidelity)*
-- [ ] Signed / tamper-proof state (HMAC) — *security gate*
+- [x] Signed / tamper-proof state (HMAC) — *security gate* — see [State Signing](docs/STATE_SIGNING.md)
 - [ ] DOM morphing — preserve focus / scroll / in-flight input; stable list keys
 - [ ] CSRF coverage for FastAPI / Litestar / Flask HTTP paths (today Django-only)
 - [ ] 422 re-render on form-validation failure (adapters currently return 200)

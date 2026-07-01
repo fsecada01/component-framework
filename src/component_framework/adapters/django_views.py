@@ -75,13 +75,11 @@ def component_view(request: HttpRequest, name: str) -> JsonResponse:
         except json.JSONDecodeError as e:
             return JsonResponse({"error": f"Invalid JSON in payload/params: {e}"}, status=400)
 
-        # Deserialize state
-        state = None
-        if state_str:
-            try:
-                state = StateSerializer.deserialize(state_str)
-            except Exception as e:
-                return JsonResponse({"error": f"Invalid state: {e}"}, status=400)
+        # Deserialize state (verified against the signing key when enabled)
+        try:
+            state = StateSerializer.load_untrusted(state_str)
+        except Exception as e:
+            return JsonResponse({"error": f"Invalid state: {e}"}, status=400)
 
         # Compute optimistic patch BEFORE dispatch (uses pre-dispatch state).
         # Hydrate state so get_optimistic_patch can access current state values.
@@ -254,12 +252,14 @@ class ComponentView(View):
         except json.JSONDecodeError as e:
             raise ValueError(f"Invalid payload JSON: {e}")
 
-    def parse_state(self, state_str: str | None) -> dict | None:
-        """Parse state JSON string."""
-        if not state_str:
-            return None
+    def parse_state(self, state_raw: str | dict | None) -> dict | None:
+        """Parse client-supplied state (signed token, JSON string, or dict).
+
+        Routes through :meth:`StateSerializer.load_untrusted` so raw dicts
+        cannot bypass signature verification when signing is enabled.
+        """
         try:
-            return StateSerializer.deserialize(state_str)
+            return StateSerializer.load_untrusted(state_raw)
         except Exception as e:
             raise ValueError(f"Invalid state: {e}")
 
@@ -304,7 +304,14 @@ class ComponentView(View):
         return JsonResponse({"error": f"Component '{name}' not found"}, status=404)
 
     def handle_error(self, error: Exception, name: str) -> JsonResponse:
-        """Handle errors."""
+        """Handle errors.
+
+        Client input errors (bad JSON, tampered/corrupt state) map to 400;
+        everything else maps to 500.
+        """
+        if isinstance(error, ValueError):
+            logger.warning("Bad request for component '%s': %s", name, error)
+            return JsonResponse({"error": str(error)}, status=400)
         logger.exception(f"Error processing component '{name}'")
         return JsonResponse({"error": "Internal server error"}, status=500)
 

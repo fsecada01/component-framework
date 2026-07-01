@@ -116,7 +116,7 @@ class ComponentWebSocketManager:
             component_id: str | None = message.get("component_id")
             event: str | None = message.get("event")
             payload: dict = message.get("payload", {})
-            state_str: str | None = message.get("state")
+            state_str: str | dict | None = message.get("state")
 
             # Get component class
             component_cls = registry.get(component_name)
@@ -129,10 +129,8 @@ class ComponentWebSocketManager:
                 )
                 return
 
-            # Deserialize state
-            state = None
-            if state_str:
-                state = StateSerializer.deserialize(state_str)
+            # Deserialize state (verified against the signing key when enabled)
+            state = StateSerializer.load_untrusted(state_str)
 
             # Create and dispatch component (async to support async on_* handlers)
             params = {"component_id": component_id}
