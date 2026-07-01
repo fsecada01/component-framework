@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Multi-Step Wizard Recipe — component-framework</title>
+  <meta name="description" content="Build a multi-step wizard (contact info → target role → review) on the FastAPI adapter using a single stateful FormComponent that swaps its active step and schema." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* ── TERMINAL MODERN — shared design system ─────────────────────────── */
+    :root {
+      --bg:          #0c1117;
+      --panel:       #161c26;
+      --panel-lit:   #1e2637;
+      --code-bg:     #090e18;
+      --border:      #1e2a3c;
+      --border-lit:  #29394f;
+
+      --green:       #4ade80;
+      --green-dim:   rgba(74,222,128,0.10);
+      --green-glow:  rgba(74,222,128,0.18);
+      --amber:       #fbbf24;
+      --amber-dim:   rgba(251,191,36,0.09);
+      --sky:         #38bdf8;
+      --sky-dim:     rgba(56,189,248,0.09);
+      --violet:      #a78bfa;
+      --rose:        #fb7185;
+
+      --text:        #cbd5e1;
+      --muted:       #64748b;
+      --dim:         #334155;
+      --white:       #f1f5f9;
+
+      --mono:        'IBM Plex Mono', 'Courier New', monospace;
+      --sans:        'Inter', system-ui, -apple-system, sans-serif;
+      --radius:      6px;
+      --radius-sm:   3px;
+      --bar-h:       42px;
+      --toc-w:       220px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 15px;
+      line-height: 1.75;
+      min-height: 100vh;
+    }
+
+    ::-webkit-scrollbar              { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-thumb        { background: var(--border-lit); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover  { background: var(--muted); }
+
+    /* ── TOP BAR ────────────────────────────────────────────────────────── */
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 200;
+      height: var(--bar-h);
+      display: flex;
+      align-items: center;
+      padding: 0 clamp(1rem, 4vw, 2.5rem);
+      background: linear-gradient(to right, #1a2232 0%, var(--panel) 60%);
+      border-bottom: 1px solid var(--border);
+      gap: 1rem;
+    }
+    .topbar__logo {
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--green);
+      text-decoration: none;
+      letter-spacing: 0.02em;
+      flex-shrink: 0;
+    }
+    .topbar__logo::before { content: "> "; color: var(--amber); }
+    .topbar__badge {
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 0.12em;
+      color: var(--amber);
+      border: 1px solid rgba(251,191,36,0.4);
+      background: rgba(251,191,36,0.06);
+      padding: 2px 6px;
+      border-radius: var(--radius-sm);
+    }
+    .topbar__nav {
+      margin-left: auto;
+      display: flex;
+      gap: 1.5rem;
+      list-style: none;
+      align-items: center;
+    }
+    .topbar__nav a {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--muted);
+      text-decoration: none;
+      letter-spacing: 0.03em;
+      transition: color 0.15s;
+    }
+    .topbar__nav a:hover         { color: var(--green); }
+    .topbar__nav a.nav-active    { color: var(--green); }
+    .topbar__nav a.nav-api       { color: var(--sky); }
+    .topbar__nav a.nav-api:hover { color: var(--green); }
+    @media (max-width: 640px) { .topbar__nav .nav-hide { display: none; } }
+
+    /* ── DOC HERO ───────────────────────────────────────────────────────── */
+    .doc-hero {
+      background: linear-gradient(180deg, #111926 0%, var(--bg) 100%);
+      border-bottom: 1px solid var(--border);
+      padding: clamp(2.5rem, 6vw, 4rem) clamp(1.5rem, 6vw, 4rem);
+    }
+    .doc-hero__inner {
+      max-width: 860px;
+      margin: 0 auto;
+    }
+    .doc-hero__eyebrow {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--amber);
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+    .doc-hero__eyebrow::before {
+      content: '';
+      display: block;
+      width: 20px;
+      height: 1px;
+      background: var(--amber);
+      opacity: 0.6;
+    }
+    .doc-hero__title {
+      font-family: var(--mono);
+      font-size: clamp(1.75rem, 4vw, 2.75rem);
+      font-weight: 600;
+      color: var(--white);
+      line-height: 1.1;
+      margin-bottom: 1rem;
+      letter-spacing: -0.02em;
+    }
+    .doc-hero__lead {
+      font-size: 16px;
+      color: var(--muted);
+      max-width: 680px;
+      line-height: 1.8;
+      margin-bottom: 1.75rem;
+    }
+    .doc-hero__tags {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .tag {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      padding: 3px 8px;
+      border-radius: var(--radius-sm);
+      text-transform: uppercase;
+    }
+    .tag--green  { color: var(--green); border: 1px solid rgba(74,222,128,0.3); background: var(--green-dim); }
+    .tag--sky    { color: var(--sky);   border: 1px solid rgba(56,189,248,0.3); background: var(--sky-dim);   }
+    .tag--amber  { color: var(--amber); border: 1px solid rgba(251,191,36,0.3); background: var(--amber-dim); }
+    .tag--violet { color: var(--violet);border: 1px solid rgba(167,139,250,0.3);background: rgba(167,139,250,0.08); }
+
+    /* ── DOC LAYOUT ─────────────────────────────────────────────────────── */
+    .doc-layout {
+      display: flex;
+      align-items: flex-start;
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 0 clamp(1rem, 3vw, 2rem);
+      gap: 3rem;
+    }
+
+    /* ── TOC ─────────────────────────────────────────────────────────────── */
+    .doc-toc {
+      flex-shrink: 0;
+      width: var(--toc-w);
+      position: sticky;
+      top: calc(var(--bar-h) + 1.5rem);
+      align-self: flex-start;
+      padding: 1.5rem 0;
+    }
+    .doc-toc__heading {
+      font-family: var(--mono);
+      font-size: 9px;
+      color: var(--dim);
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      margin-bottom: 0.75rem;
+    }
+    .doc-toc__heading::before { content: "// "; color: var(--amber); }
+    .doc-toc__list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+    .doc-toc__list li a {
+      display: block;
+      font-family: var(--mono);
+      font-size: 11.5px;
+      color: var(--muted);
+      text-decoration: none;
+      padding: 0.3rem 0.75rem;
+      border-left: 2px solid var(--border);
+      transition: color 0.12s, border-color 0.12s, background 0.12s;
+      line-height: 1.4;
+    }
+    .doc-toc__list li a:hover {
+      color: var(--green);
+      border-left-color: var(--green);
+      background: var(--green-dim);
+    }
+    .doc-toc__list li.toc-sub a {
+      font-size: 10.5px;
+      padding-left: 1.25rem;
+      color: var(--dim);
+    }
+    .doc-toc__list li.toc-sub a:hover { color: var(--sky); border-left-color: var(--sky); background: var(--sky-dim); }
+    @media (max-width: 900px) { .doc-toc { display: none; } }
+
+    /* ── CONTENT ────────────────────────────────────────────────────────── */
+    .doc-content {
+      flex: 1;
+      min-width: 0;
+      padding: 2.5rem 0 4rem;
+    }
+
+    .doc-content h2 {
+      font-family: var(--mono);
+      font-size: clamp(1.1rem, 2.5vw, 1.4rem);
+      font-weight: 600;
+      color: var(--white);
+      margin: 3rem 0 0.85rem;
+      padding-top: 1rem;
+      scroll-margin-top: calc(var(--bar-h) + 1rem);
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+    .doc-content h2::before {
+      content: attr(data-n);
+      font-size: 10px;
+      color: var(--amber);
+      border: 1px solid rgba(251,191,36,0.35);
+      background: var(--amber-dim);
+      padding: 1px 6px;
+      border-radius: var(--radius-sm);
+      letter-spacing: 0.1em;
+      flex-shrink: 0;
+    }
+    .doc-content h2:first-of-type { margin-top: 0; }
+
+    .doc-content h3 {
+      font-family: var(--mono);
+      font-size: 13.5px;
+      font-weight: 600;
+      color: var(--sky);
+      margin: 2rem 0 0.65rem;
+      scroll-margin-top: calc(var(--bar-h) + 1rem);
+      letter-spacing: 0.02em;
+    }
+    .doc-content h3::before { content: "→ "; color: var(--dim); }
+
+    .doc-content p {
+      color: var(--text);
+      margin-bottom: 1.1rem;
+      max-width: 72ch;
+    }
+    .doc-content p:last-child { margin-bottom: 0; }
+
+    .doc-content ul {
+      margin: 0.5rem 0 1.1rem 1.25rem;
+      color: var(--muted);
+    }
+    .doc-content ul li { margin-bottom: 0.3rem; }
+    .doc-content ul li strong { color: var(--text); }
+
+    .doc-content strong { color: var(--white); font-weight: 600; }
+
+    .doc-content code {
+      font-family: var(--mono);
+      font-size: 11.5px;
+      color: var(--green);
+      background: var(--green-dim);
+      padding: 0.1em 0.4em;
+      border-radius: var(--radius-sm);
+    }
+
+    /* ── CODE BLOCKS ────────────────────────────────────────────────────── */
+    .code-block {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      margin: 1.25rem 0;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+    .code-block__header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.55rem 1rem;
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+    }
+    .code-block__filename {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .code-block__lang {
+      font-family: var(--mono);
+      font-size: 9px;
+      color: var(--dim);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+    .code-block pre {
+      margin: 0;
+      padding: 1.1rem 1.25rem;
+      overflow-x: auto;
+      font-family: var(--mono);
+      font-size: 12.5px;
+      line-height: 1.7;
+    }
+    .code-block pre code { color: var(--text); background: none; padding: 0; border-radius: 0; font-size: inherit; }
+
+    /* ── SYNTAX TOKENS ──────────────────────────────────────────────────── */
+    .kw  { color: var(--amber); }
+    .fn  { color: var(--sky); }
+    .cls { color: var(--sky); font-weight: 600; }
+    .dec { color: var(--amber); opacity: 0.85; }
+    .str { color: var(--green); }
+    .cm  { color: var(--dim); font-style: italic; }
+    .num { color: var(--green); }
+    .typ { color: var(--violet); }
+
+    /* ── CALLOUT BOXES ──────────────────────────────────────────────────── */
+    .callout {
+      border-left: 3px solid;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      padding: 0.9rem 1.1rem;
+      margin: 1.25rem 0;
+      font-size: 14px;
+      line-height: 1.65;
+    }
+    .callout--insight {
+      border-color: var(--green);
+      background: var(--green-dim);
+      color: var(--text);
+    }
+    .callout--insight strong { color: var(--green); }
+    .callout--note {
+      border-color: var(--sky);
+      background: var(--sky-dim);
+      color: var(--text);
+    }
+    .callout--note strong { color: var(--sky); }
+    .callout--warn {
+      border-color: var(--amber);
+      background: var(--amber-dim);
+      color: var(--text);
+    }
+    .callout--warn strong { color: var(--amber); }
+
+    /* ── SUMMARY TABLE ──────────────────────────────────────────────────── */
+    .summary-table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 1.5rem 0; }
+    .summary-table th { text-align: left; padding: 0.5rem 0.85rem; font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; border-bottom: 2px solid var(--border-lit); color: var(--muted); }
+    .summary-table td { padding: 0.5rem 0.85rem; border-bottom: 1px solid var(--border); color: var(--text); font-size: 13px; }
+    .summary-table td:first-child  { color: var(--sky); font-family: var(--mono); font-size: 12px; }
+    .summary-table td:nth-child(2) { color: var(--green); font-family: var(--mono); font-size: 11.5px; }
+    .summary-table tr:hover td { background: rgba(74,222,128,0.02); }
+
+    /* ── STEP INLINE ────────────────────────────────────────────────────── */
+    .run-steps { list-style: none; counter-reset: run-step; display: flex; flex-direction: column; gap: 0.85rem; margin: 1.25rem 0; }
+    .run-steps li { counter-increment: run-step; display: flex; gap: 0.9rem; align-items: flex-start; }
+    .run-steps li::before {
+      content: counter(run-step, decimal-leading-zero);
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--amber);
+      border: 1px solid rgba(251,191,36,0.35);
+      background: var(--amber-dim);
+      padding: 1px 6px;
+      border-radius: var(--radius-sm);
+      flex-shrink: 0;
+      line-height: 1.8;
+    }
+    .run-steps li .step-text { color: var(--muted); font-size: 13.5px; }
+    .run-steps li .step-text code { font-family: var(--mono); font-size: 11px; color: var(--sky); background: var(--sky-dim); padding: 0.1em 0.4em; border-radius: 2px; }
+
+    /* ── FOOTER ─────────────────────────────────────────────────────────── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 1.25rem clamp(1.5rem, 6vw, 4rem);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--dim);
+      background: var(--panel);
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+    footer a { color: var(--dim); text-decoration: none; transition: color 0.15s; }
+    footer a:hover { color: var(--green); }
+    footer .sep { margin: 0 0.45rem; }
+
+    /* ── NAV DROPDOWN ──────────────────────────────────────────────────────── */
+    .nav-dropdown { position: relative; cursor: default; }
+    .nav-dropdown > span {
+      color: var(--text); font-size: 13px; font-family: var(--mono);
+      letter-spacing: 0.03em; padding: 0 0.1rem; cursor: pointer;
+      display: flex; align-items: center; gap: 0.25rem;
+    }
+    .nav-dropdown__menu {
+      display: none; position: absolute; top: calc(100% + 8px); left: 50%;
+      transform: translateX(-50%);
+      background: var(--panel); border: 1px solid var(--border-lit);
+      border-radius: var(--radius); padding: 0.35rem 0; min-width: 190px;
+      list-style: none; z-index: 100;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    }
+    .nav-dropdown:hover .nav-dropdown__menu { display: block; }
+    .nav-dropdown::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: -1rem;
+      right: -1rem;
+      height: 10px;
+    }
+    .nav-dropdown__menu li a {
+      display: block; padding: 0.4rem 1rem;
+      font-size: 13px; font-family: var(--mono); color: var(--text);
+      text-decoration: none; letter-spacing: 0.03em;
+    }
+    .nav-dropdown__menu li a:hover,
+    .nav-dropdown__menu li a.nav-active { color: var(--green); }
+  </style>
+</head>
+<body>
+
+<!-- ── TOP BAR ──────────────────────────────────────────────────────────── -->
+<header class="topbar">
+  <a href="index.html" class="topbar__logo">component-framework</a>
+  <span class="topbar__badge">BETA</span>
+  <nav aria-label="Main navigation">
+    <ul class="topbar__nav">
+      <li><a href="index.html">Home</a></li>
+      <li class="nav-dropdown">
+        <span>Examples ▾</span>
+        <ul class="nav-dropdown__menu">
+          <li><a href="ecommerce.html">E-Commerce</a></li>
+          <li><a href="admin-panel.html">Admin Panel</a></li>
+          <li><a href="customer-support.html">Customer Support</a></li>
+          <li><a href="education-lms.html">Education / LMS</a></li>
+          <li><a href="financial-dashboard.html">Financial Dashboard</a></li>
+          <li><a href="litestar-guide.html">Litestar Guide</a></li>
+          <li><a href="wizard.html" class="nav-active">Wizard Recipe</a></li>
+        </ul>
+      </li>
+      <li><a href="component_framework.html" class="nav-api">API Ref</a></li>
+      <li class="nav-hide"><a href="https://github.com/fsecada01/component-framework" target="_blank" rel="noopener">GitHub ↗</a></li>
+    </ul>
+  </nav>
+</header>
+
+<!-- ── DOC HERO ─────────────────────────────────────────────────────────── -->
+<div class="doc-hero">
+  <div class="doc-hero__inner">
+    <p class="doc-hero__eyebrow">Recipe · FastAPI · Forms &amp; Validation · State</p>
+    <h1 class="doc-hero__title">Multi-Step Wizard</h1>
+    <p class="doc-hero__lead">
+      A guided, multi-step form — collect a few fields, validate them, move on, let
+      the user go back and see what they already entered, then do something with
+      the accumulated data on the final step. Built from a single stateful
+      <code>FormComponent</code> that swaps its active schema per step.
+    </p>
+    <div class="doc-hero__tags">
+      <span class="tag tag--green">FastAPI</span>
+      <span class="tag tag--sky">FormComponent</span>
+      <span class="tag tag--amber">Pydantic</span>
+      <span class="tag tag--violet">HTMX</span>
+    </div>
+  </div>
+</div>
+
+<!-- ── MAIN ─────────────────────────────────────────────────────────────── -->
+<div class="doc-layout">
+
+  <!-- ── TOC ─────────────────────────────────────────────────────────────── -->
+  <aside class="doc-toc" aria-label="Table of contents">
+    <div class="doc-toc__heading">On this page</div>
+    <ul class="doc-toc__list">
+      <li><a href="#state-security">Before You Build One</a></li>
+      <li><a href="#why-not-composite">Why Not CompositeComponent?</a></li>
+      <li><a href="#the-component">The Component</a></li>
+      <li><a href="#the-template">The Template</a></li>
+      <li><a href="#state-lifecycle">State on Navigation</a></li>
+      <li><a href="#running-it">Running It</a></li>
+      <li><a href="#summary">Summary</a></li>
+    </ul>
+  </aside>
+
+  <!-- ── CONTENT ──────────────────────────────────────────────────────────── -->
+  <article class="doc-content">
+
+    <!-- STATE SECURITY -->
+    <h2 id="state-security" data-n="01">Before You Build One</h2>
+    <p>Every component-framework request round-trips the component's state to the browser and back — <code>dispatch(state=...)</code> in, <code>result["state"]</code> out. Today that round-trip is <strong>unsigned</strong>: nothing stops a client from editing the serialized state blob before posting it back.</p>
+    <p>For a single counter that's harmless. For a wizard that accumulates several steps of validated data, a tampered state blob could let a client skip validation on an earlier step, or submit the final step with fabricated <code>collected</code> data for a step it never actually passed.</p>
+
+    <div class="callout callout--warn">
+      <strong>Signed state (Epic A1) doesn't exist yet.</strong> No <code>CorruptStateError</code>, no <code>sign_state</code>, nothing in <code>core/component.py</code>'s <code>StateSerializer</code> as of this writing. CSRF coverage for the FastAPI adapter (A4) is also outstanding — unlike Django, FastAPI has no CSRF handling at all right now. This recipe is written against the current, unsigned model so you can build a wizard today; swap in the signed-state API once A1 lands (no change to the component's own logic should be needed), and add app-level CSRF protection for the wizard's POST route until A4 ships.
+    </div>
+
+    <p>Until then: <strong>don't put anything in a wizard's accumulated state that you wouldn't be comfortable with a malicious client tampering with.</strong> If the final step's handler is about to write to your database, re-validate the data you actually need server-side rather than trusting <code>collected</code> blindly — re-check foreign keys exist, re-check ownership.</p>
+
+    <!-- WHY NOT COMPOSITE -->
+    <h2 id="why-not-composite" data-n="02">Why Not CompositeComponent?</h2>
+    <p>If you've read the framework's docs or README, you may expect a <code>CompositeComponent</code> host with one child <code>FormComponent</code> per step, wired via slots. <strong>That primitive doesn't exist in the codebase today</strong> — only <code>Component.fill_slot()</code> / <code>render_slots()</code> and the <code>compose()</code> helper in <code>core/composition.py</code>, which compose components for <strong>rendering</strong> (a parent template with pre-rendered child HTML dropped into named slots).</p>
+    <p>That's a fundamentally different problem than a wizard's needs. Each POST to <code>/components/{name}</code> dispatches <strong>exactly one</strong> registered component — hydrate → handle event → render → dehydrate — for that one component only. There's no framework machinery that would hydrate a parent <em>and</em> an independently addressable per-step child component in the same request and keep both in sync across steps.</p>
+
+    <div class="callout callout--note">
+      <strong>The pattern that actually works:</strong> one component owns the whole wizard. It tracks which step is active and the data collected so far, and swaps which schema it validates against based on the active step. Modeling this as a parent + slotted children would mean inventing your own protocol for shuttling child state through the parent's state anyway — at which point you've just built the pattern below with extra ceremony.
+    </div>
+
+    <!-- THE COMPONENT -->
+    <h2 id="the-component" data-n="03">The Component</h2>
+    <p>Three-step scenario: contact info → target role → review/generate. The first two steps each validate against their own Pydantic schema; the review step has no fields of its own.</p>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">examples/fastapi_wizard_example.py</span>
+        <span class="code-block__lang">Python</span>
+      </div>
+      <pre><code><span class="kw">from</span> typing <span class="kw">import</span> <span class="cls">ClassVar</span>
+<span class="kw">from</span> pydantic <span class="kw">import</span> <span class="cls">BaseModel</span>, <span class="cls">EmailStr</span>, <span class="cls">Field</span>
+<span class="kw">from</span> component_framework.core <span class="kw">import</span> <span class="cls">FormComponent</span>, registry
+
+
+<span class="kw">class</span> <span class="cls">ContactStepSchema</span>(<span class="cls">BaseModel</span>):
+    name: <span class="typ">str</span> = <span class="fn">Field</span>(min_length=<span class="num">2</span>, max_length=<span class="num">100</span>)
+    email: <span class="cls">EmailStr</span>
+
+
+<span class="kw">class</span> <span class="cls">TargetRoleStepSchema</span>(<span class="cls">BaseModel</span>):
+    job_title: <span class="typ">str</span> = <span class="fn">Field</span>(min_length=<span class="num">2</span>, max_length=<span class="num">100</span>)
+    company: <span class="typ">str</span> = <span class="fn">Field</span>(min_length=<span class="num">2</span>, max_length=<span class="num">100</span>)
+
+
+<span class="cm"># The final "review" step has no fields to validate, so no schema.</span>
+STEPS: <span class="typ">list</span>[<span class="typ">dict</span>] = [
+    {<span class="str">"key"</span>: <span class="str">"contact"</span>, <span class="str">"title"</span>: <span class="str">"Contact Info"</span>, <span class="str">"schema"</span>: ContactStepSchema},
+    {<span class="str">"key"</span>: <span class="str">"target_role"</span>, <span class="str">"title"</span>: <span class="str">"Target Role"</span>, <span class="str">"schema"</span>: TargetRoleStepSchema},
+    {<span class="str">"key"</span>: <span class="str">"review"</span>, <span class="str">"title"</span>: <span class="str">"Review &amp; Generate"</span>, <span class="str">"schema"</span>: <span class="kw">None</span>},
+]
+
+
+<span class="dec">@registry.register(<span class="str">"resume_wizard"</span>)</span>
+<span class="kw">class</span> <span class="cls">ResumeWizard</span>(<span class="cls">FormComponent</span>):
+    steps: <span class="cls">ClassVar</span>[<span class="typ">list</span>[<span class="typ">dict</span>]] = STEPS
+    template_name = <span class="str">"Wizard"</span>
+
+    <span class="kw">def</span> <span class="fn">mount</span>(<span class="kw">self</span>):
+        <span class="kw">super</span>().<span class="fn">mount</span>()
+        <span class="kw">self</span>.state.<span class="fn">setdefault</span>(<span class="str">"step_index"</span>, <span class="num">0</span>)
+        <span class="kw">self</span>.state.<span class="fn">setdefault</span>(<span class="str">"collected"</span>, {})
+        <span class="kw">self</span>.<span class="fn">_load_current_step_form_data</span>()
+
+    <span class="kw">def</span> <span class="fn">_current_step</span>(<span class="kw">self</span>) -> <span class="typ">dict</span>:
+        <span class="kw">return</span> <span class="kw">self</span>.steps[<span class="kw">self</span>.state[<span class="str">"step_index"</span>]]
+
+    <span class="kw">def</span> <span class="fn">_load_current_step_form_data</span>(<span class="kw">self</span>):
+        <span class="cm">"""Pre-fill from previously-entered data when navigating back."""</span>
+        step = <span class="kw">self</span>.<span class="fn">_current_step</span>()
+        <span class="kw">self</span>.state[<span class="str">"form_data"</span>] = <span class="kw">self</span>.state[<span class="str">"collected"</span>].<span class="fn">get</span>(step[<span class="str">"key"</span>], {})
+        <span class="kw">self</span>.field_errors = {}
+
+    <span class="dec">@property</span>
+    <span class="kw">def</span> <span class="fn">schema</span>(<span class="kw">self</span>):
+        <span class="cm">"""FormComponent.validate() reads this — point it at the active step."""</span>
+        <span class="kw">return</span> <span class="kw">self</span>.<span class="fn">_current_step</span>().<span class="fn">get</span>(<span class="str">"schema"</span>)
+
+    <span class="kw">def</span> <span class="fn">on_advance</span>(<span class="kw">self</span>, form_data: <span class="typ">dict</span>):
+        step = <span class="kw">self</span>.<span class="fn">_current_step</span>()
+        <span class="kw">self</span>.state[<span class="str">"form_data"</span>] = form_data
+
+        <span class="kw">if</span> step.<span class="fn">get</span>(<span class="str">"schema"</span>) <span class="kw">and not</span> <span class="kw">self</span>.<span class="fn">validate</span>(form_data):
+            <span class="kw">return</span>  <span class="cm"># field_errors populated by validate(); stay on this step</span>
+
+        <span class="kw">if</span> step.<span class="fn">get</span>(<span class="str">"schema"</span>):
+            <span class="kw">self</span>.state[<span class="str">"collected"</span>][step[<span class="str">"key"</span>]] = <span class="kw">self</span>.validated_data
+
+        <span class="kw">if</span> <span class="kw">self</span>.state[<span class="str">"step_index"</span>] &lt; <span class="fn">len</span>(<span class="kw">self</span>.steps) - <span class="num">1</span>:
+            <span class="kw">self</span>.state[<span class="str">"step_index"</span>] += <span class="num">1</span>
+            <span class="kw">self</span>.<span class="fn">_load_current_step_form_data</span>()
+
+    <span class="kw">def</span> <span class="fn">on_back</span>(<span class="kw">self</span>):
+        <span class="kw">if</span> <span class="kw">self</span>.state[<span class="str">"step_index"</span>] &gt; <span class="num">0</span>:
+            <span class="kw">self</span>.state[<span class="str">"step_index"</span>] -= <span class="num">1</span>
+            <span class="kw">self</span>.<span class="fn">_load_current_step_form_data</span>()
+
+    <span class="kw">def</span> <span class="fn">on_submit</span>(<span class="kw">self</span>):
+        <span class="cm">"""Final step — the app persists self.state["collected"], not the framework."""</span>
+        <span class="kw">self</span>.state[<span class="str">"completed"</span>] = <span class="kw">True</span></code></pre>
+    </div>
+
+    <p>Three things make this work:</p>
+    <ul>
+      <li><strong>Schema becomes a property, not a fixed <code>ClassVar</code>.</strong> <code>FormComponent.validate()</code> reads <code>self.schema</code> — overriding it as a property lets each step supply its own Pydantic model without per-step component subclasses.</li>
+      <li><strong><code>on_advance</code> validates, then decides whether to move.</strong> A failed validation leaves <code>step_index</code> untouched and populates <code>field_errors</code> exactly like a single-page <code>FormComponent</code> would.</li>
+      <li><strong>The last step reuses <code>"submit"</code>, not <code>"advance"</code>.</strong> Since the review step has <code>schema: None</code>, <code>FormComponent.handle_event</code>'s existing <code>"submit"</code> handling (validate → call <code>on_submit</code>) works unchanged.</li>
+    </ul>
+
+    <!-- THE TEMPLATE -->
+    <h2 id="the-template" data-n="04">The Template</h2>
+    <p>The template switches which fields it renders based on <code>step_key</code>, and posts each field's live value explicitly via <code>hx-vals='js:{...}'</code> — rather than relying on <code>hx-include</code>, which doesn't nest into the component endpoint's <code>payload.form_data</code> shape.</p>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">templates/components/Wizard.jinja (Next button, step 1)</span>
+        <span class="code-block__lang">HTML</span>
+      </div>
+      <pre><code>&lt;button
+  type=<span class="str">"button"</span>
+  hx-post=<span class="str">"/components/resume_wizard"</span>
+  hx-vals=<span class="str">'js:{"event": "advance", "payload": {"form_data": {"name": document.getElementById("wiz-name").value, "email": document.getElementById("wiz-email").value}}, "state": {{ state | tojson }}, "params": {"component_id": "{{ component_id }}"}}'</span>
+  hx-target=<span class="str">"#{{ component_id }}"</span>
+  hx-swap=<span class="str">"outerHTML"</span>
+&gt;Next&lt;/button&gt;</code></pre>
+    </div>
+
+    <p>"Back" posts a <code>"back"</code> event with an empty payload; the final step's "Generate" button posts <code>"submit"</code>.</p>
+
+    <!-- STATE LIFECYCLE -->
+    <h2 id="state-lifecycle" data-n="05">State on Navigation</h2>
+    <ul>
+      <li><strong>In-flight wizard data lives entirely in the client-held state blob</strong> (unsigned today, signed once A1 lands) — not on the server, not in a database. If the user closes the tab mid-wizard, everything they entered is gone unless your app persists it somewhere.</li>
+      <li><strong>Going back doesn't discard anything.</strong> <code>on_back</code> only moves <code>step_index</code>; <code>collected</code> is untouched, so <code>_load_current_step_form_data</code> re-populates the earlier step's fields from what's already stored.</li>
+      <li><strong>The framework never writes anything server-side.</strong> <code>on_submit</code> is where <em>your app</em> takes <code>self.state["collected"]</code> and does something durable with it — component-framework's job ends at handing you validated, accumulated data.</li>
+    </ul>
+
+    <!-- RUNNING IT -->
+    <h2 id="running-it" data-n="06">Running It</h2>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">terminal</span>
+        <span class="code-block__lang">Shell</span>
+      </div>
+      <pre><code>uv run python examples/fastapi_wizard_example.py</code></pre>
+    </div>
+
+    <ol class="run-steps">
+      <li><span class="step-text">Open <code>http://localhost:8000</code> — fill in contact info and target role.</span></li>
+      <li><span class="step-text">Try an invalid email — see per-field validation without losing your place.</span></li>
+      <li><span class="step-text">Click Back — confirm your earlier answers are still there.</span></li>
+      <li><span class="step-text">Click Generate on the review step to complete the wizard.</span></li>
+    </ol>
+
+    <!-- SUMMARY -->
+    <h2 id="summary" data-n="07">Summary</h2>
+    <p>One component, one template, no invented composition protocol.</p>
+
+    <table class="summary-table">
+      <thead>
+        <tr>
+          <th>Concern</th>
+          <th>Handled by</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Active step</td>
+          <td>state["step_index"]</td>
+          <td>Advances/retreats via on_advance / on_back</td>
+        </tr>
+        <tr>
+          <td>Per-step validation</td>
+          <td>schema property</td>
+          <td>Points FormComponent.validate() at the active step's model</td>
+        </tr>
+        <tr>
+          <td>Accumulated data</td>
+          <td>state["collected"]</td>
+          <td>Keyed by step, untouched by Back navigation</td>
+        </tr>
+        <tr>
+          <td>Final persistence</td>
+          <td>on_submit (app-level)</td>
+          <td>Framework hands you the data; saving it is your code</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout callout--note">
+      <strong>Other adapters.</strong> Litestar's dispatch model mirrors FastAPI's closely enough that porting this recipe should be close to mechanical (tracked separately). Django and Flask need adapter-specific design — Django already has CSRF and session infrastructure worth showing instead of bypassing, and Flask's adapter is newer and less battle-tested — so those are tracked as their own follow-ups rather than bundled here.
+    </div>
+
+  </article>
+</div>
+
+<!-- ── FOOTER ─────────────────────────────────────────────────────────────── -->
+<footer>
+  <span>component-framework — MIT license</span>
+  <span>
+    <a href="https://github.com/fsecada01/component-framework" target="_blank" rel="noopener">GitHub</a>
+    <span class="sep">·</span>
+    <a href="https://pypi.org/project/component-framework/" target="_blank" rel="noopener">PyPI</a>
+    <span class="sep">·</span>
+    built with <a href="https://pdoc.dev" target="_blank" rel="noopener">pdoc</a>
+  </span>
+</footer>
+</body>
+</html>
