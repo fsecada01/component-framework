@@ -208,7 +208,7 @@ Below: the production-grade checklist synthesized from Phoenix LiveView (gold st
 
 ## 5. Competitor Weaknesses to Exploit (Confidence: Medium-High)
 
-- **Reflex** ($5M seed): compiles to a Next.js SPA with a **mandatory live WS to Python** (scaling/latency), steep learning curve, **standalone (can't drop into an existing app)**, dashboard-leaning, Pydantic-v1 internals → **Python 3.14 build failures** (#5964). 
+- **Reflex** ($5M seed): compiles to a Next.js SPA with a **mandatory live WS to Python** (scaling/latency), steep learning curve, **standalone (can't drop into an existing app)**, dashboard-leaning, Pydantic-v1 internals → **Python 3.14 build failures** (#5964).
 - **Django Unicorn / Tetra / Reactor / Sockpuppet** — **Django-only**; several require Channels/Redis; small bus factors; "unknown" production maturity.
 - **FastUI** — Pydantic-backed but **officially dormant** (#368) — a *funded project that stalled*, leaving the segment open.
 - **ReactPy** — every interaction is a server round-trip + VDOM diff → less responsive than client React.

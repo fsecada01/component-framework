@@ -1,0 +1,187 @@
+{#def state, errors, component_id, form_data, field_errors, is_valid, submitted, step_index, step_key, step_title, step_titles, is_last_step, collected, completed #}
+<div id="{{ component_id }}" class="wizard">
+
+  {% if completed %}
+    <div class="wizard-done">
+      <h2>Done!</h2>
+      <p>Collected data:</p>
+      <pre>{{ collected | tojson(indent=2) }}</pre>
+    </div>
+  {% else %}
+
+    {# ---------- Progress indicator ---------- #}
+    <ol class="wizard-steps">
+      {% for title in step_titles %}
+        <li class="{% if loop.index0 == step_index %}active{% elif loop.index0 < step_index %}done{% endif %}">
+          {{ title }}
+        </li>
+      {% endfor %}
+    </ol>
+
+    <h2>{{ step_title }}</h2>
+
+    <form>
+
+      {# ---------- Step 1: Contact Info ---------- #}
+      {% if step_key == "contact" %}
+        <div class="field">
+          <label for="wiz-name">Name</label>
+          <input type="text" id="wiz-name" name="name" value="{{ form_data.get('name', '') }}" />
+          {% if field_errors.get("name") %}
+            <span class="error">{{ field_errors["name"][0] }}</span>
+          {% endif %}
+        </div>
+        <div class="field">
+          <label for="wiz-email">Email</label>
+          <input type="email" id="wiz-email" name="email" value="{{ form_data.get('email', '') }}" />
+          {% if field_errors.get("email") %}
+            <span class="error">{{ field_errors["email"][0] }}</span>
+          {% endif %}
+        </div>
+      {% endif %}
+
+      {# ---------- Step 2: Target Role ---------- #}
+      {% if step_key == "target_role" %}
+        <div class="field">
+          <label for="wiz-job-title">Job Title</label>
+          <input type="text" id="wiz-job-title" name="job_title" value="{{ form_data.get('job_title', '') }}" />
+          {% if field_errors.get("job_title") %}
+            <span class="error">{{ field_errors["job_title"][0] }}</span>
+          {% endif %}
+        </div>
+        <div class="field">
+          <label for="wiz-company">Company</label>
+          <input type="text" id="wiz-company" name="company" value="{{ form_data.get('company', '') }}" />
+          {% if field_errors.get("company") %}
+            <span class="error">{{ field_errors["company"][0] }}</span>
+          {% endif %}
+        </div>
+      {% endif %}
+
+      {# ---------- Step 3: Review ---------- #}
+      {% if step_key == "review" %}
+        <div class="review">
+          <p><strong>Name:</strong> {{ collected.get("contact", {}).get("name", "") }}</p>
+          <p><strong>Email:</strong> {{ collected.get("contact", {}).get("email", "") }}</p>
+          <p><strong>Job Title:</strong> {{ collected.get("target_role", {}).get("job_title", "") }}</p>
+          <p><strong>Company:</strong> {{ collected.get("target_role", {}).get("company", "") }}</p>
+        </div>
+      {% endif %}
+
+      {% if submitted and not is_valid %}
+        <div class="form-error">Please fix the errors above.</div>
+      {% endif %}
+
+      <div class="wizard-nav">
+        {% if step_index > 0 %}
+          <button
+            type="button"
+            hx-post="/components/resume_wizard"
+            hx-vals='js:{"event": "back", "payload": {}, "state": {{ state | tojson }}, "params": {"component_id": "{{ component_id }}"}}'
+            hx-target="#{{ component_id }}"
+            hx-swap="outerHTML"
+          >Back</button>
+        {% endif %}
+
+        {% if not is_last_step %}
+          {% if step_key == "contact" %}
+            <button
+              type="button"
+              hx-post="/components/resume_wizard"
+              hx-vals='js:{"event": "advance", "payload": {"form_data": {"name": document.getElementById("wiz-name").value, "email": document.getElementById("wiz-email").value}}, "state": {{ state | tojson }}, "params": {"component_id": "{{ component_id }}"}}'
+              hx-target="#{{ component_id }}"
+              hx-swap="outerHTML"
+            >Next</button>
+          {% elif step_key == "target_role" %}
+            <button
+              type="button"
+              hx-post="/components/resume_wizard"
+              hx-vals='js:{"event": "advance", "payload": {"form_data": {"job_title": document.getElementById("wiz-job-title").value, "company": document.getElementById("wiz-company").value}}, "state": {{ state | tojson }}, "params": {"component_id": "{{ component_id }}"}}'
+              hx-target="#{{ component_id }}"
+              hx-swap="outerHTML"
+            >Next</button>
+          {% endif %}
+        {% else %}
+          <button
+            type="button"
+            hx-post="/components/resume_wizard"
+            hx-vals='js:{"event": "submit", "payload": {"form_data": {}}, "state": {{ state | tojson }}, "params": {"component_id": "{{ component_id }}"}}'
+            hx-target="#{{ component_id }}"
+            hx-swap="outerHTML"
+          >Generate</button>
+        {% endif %}
+      </div>
+    </form>
+  {% endif %}
+</div>
+
+<style>
+.wizard {
+  padding: 20px;
+  border: 2px solid #333;
+  border-radius: 8px;
+  background: #f9f9f9;
+}
+.wizard-steps {
+  display: flex;
+  gap: 12px;
+  list-style: none;
+  padding: 0;
+  margin: 0 0 20px;
+}
+.wizard-steps li {
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: #e0e0e0;
+  font-size: 13px;
+  color: #666;
+}
+.wizard-steps li.active {
+  background: #1976d2;
+  color: white;
+  font-weight: 600;
+}
+.wizard-steps li.done {
+  background: #c8e6c9;
+  color: #2e7d32;
+}
+.wizard .field {
+  margin-bottom: 16px;
+}
+.wizard label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.wizard input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+.wizard .error {
+  color: #d32f2f;
+  font-size: 13px;
+}
+.wizard .form-error {
+  color: #d32f2f;
+  margin-top: 12px;
+  font-weight: 600;
+}
+.wizard-nav {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 20px;
+}
+.wizard-done {
+  text-align: center;
+}
+.wizard-done pre {
+  text-align: left;
+  background: white;
+  padding: 12px;
+  border-radius: 4px;
+}
+</style>
