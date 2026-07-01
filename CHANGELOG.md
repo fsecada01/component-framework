@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.1b0] - 2026-07-01
+
 ### Added
 
 - **HMAC-signed client state (Epic A, A1 — #21)** — new stdlib-only
@@ -39,6 +41,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   validly-signed but stale state blob (or any state in signing-disabled
   deployments) can no longer roll back server-owned fields — inbound locked
   values are ignored and the server re-derives them each request.
+
+### Documentation
+
+- **CSRF/CSWSH coverage audit (Epic A, A4 — #21)** — new
+  `docs/SECURITY_CSRF.md`: per-adapter CSRF enforcement table (Django-only
+  today; FastAPI/Litestar/Flask require host-level integration), the
+  form-encoded no-preflight CSRF vector, Cross-Site WebSocket Hijacking
+  guidance for all WS adapters, and prioritized follow-up work.
+- `docs/STATE_SIGNING.md` (A2) — per-adapter `STATE_SIGNING_KEY` setup and
+  key-rotation procedure.
+- `docs/LOCKED_FIELDS.md` (A3) — threat model and usage for server-trusted
+  fields.
 
 ## [0.5.0b0] - 2026-06-24
 
