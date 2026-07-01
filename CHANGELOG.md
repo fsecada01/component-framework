@@ -18,6 +18,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   inbound state must be a valid token — tampered, unsigned, or raw-dict state
   is rejected with HTTP 400. When disabled, legacy plain-JSON behavior is
   preserved and a one-time warning is logged. See `docs/STATE_SIGNING.md`.
+- **Locked server-trusted state fields (Epic A, A3 — #21)** — components can
+  declare `locked_fields: ClassVar[frozenset[str]]` for top-level state keys
+  the client must never influence (roles, user IDs, pricing). Locked fields
+  are excluded from `dehydrate()` (they never round-trip through the client)
+  and stripped in place from inbound state in `hydrate()` with a warning.
+  Enforcement lives in the core lifecycle, so all adapters are covered
+  without changes. Defaults to empty — existing components are unaffected.
+  See `docs/LOCKED_FIELDS.md`.
 
 ### Security
 
@@ -27,6 +35,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   as a raw JSON object to skip deserialization/verification.
 - Django `ComponentView.handle_error()` now maps client input errors
   (`ValueError`, including corrupt state) to `400` instead of `500`.
+- Locked fields close the **replay/rollback gap** left by A1: even a
+  validly-signed but stale state blob (or any state in signing-disabled
+  deployments) can no longer roll back server-owned fields — inbound locked
+  values are ignored and the server re-derives them each request.
 
 ## [0.5.0b0] - 2026-06-24
 
