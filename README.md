@@ -239,6 +239,7 @@ Generated from docstrings by pdoc and deployed to GitHub Pages on every push to 
 | [Django Implementation](docs/DJANGO_IMPLEMENTATION.md) | Django adapter setup and patterns |
 | [Class-Based Views](docs/CBV_GUIDE.md) | CBV auth/permission patterns |
 | [E-Commerce Example](docs/examples/ecommerce.md) | Real-time cart + product demo |
+| [Multi-Step Wizard](docs/examples/wizard.md) | FastAPI wizard recipe (unsigned state — pending Epic A1) |
 
 ### AI / LLM Context
 
@@ -404,6 +405,7 @@ component-framework/
 │
 ├── examples/
 │   ├── fastapi_example.py           # FastAPI demo
+│   ├── fastapi_wizard_example.py    # Multi-step wizard demo
 │   ├── litestar_example.py          # Litestar demo
 │   └── django_example/              # Complete Django app
 │
@@ -437,7 +439,9 @@ component-framework/
 │   ├── docs_settings.py             # Minimal Django settings for pdoc
 │   ├── pdoc_templates/              # Custom pdoc templates (terminal brutalism)
 │   ├── update_gh_pages.py           # CI helper: versions.json + root index
-│   └── examples/ecommerce.md        # Real-time e-commerce walkthrough
+│   └── examples/
+│       ├── ecommerce.md             # Real-time e-commerce walkthrough
+│       └── wizard.md                # Multi-step wizard recipe (FastAPI)
 │
 ├── .github/workflows/
 │   ├── ci.yml                       # Tests, lint, type check (Python 3.11–3.14)
