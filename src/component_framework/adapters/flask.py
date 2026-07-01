@@ -98,16 +98,10 @@ def _extract_params(data: dict) -> tuple[dict, str | None, dict, dict | None]:
     params = _parse_json_str(data.get("params"), default={}) or {}
     event = data.get("event")
     payload = _parse_json_str(data.get("payload"), default={}) or {}
-    state_raw = data.get("state")
-
-    state = None
-    if state_raw:
-        try:
-            state = (
-                StateSerializer.deserialize(state_raw) if isinstance(state_raw, str) else state_raw
-            )
-        except Exception as e:
-            raise ValueError(f"Invalid state: {e}")
+    try:
+        state = StateSerializer.load_untrusted(data.get("state"))
+    except Exception as e:
+        raise ValueError(f"Invalid state: {e}")
 
     return params, event, payload, state
 

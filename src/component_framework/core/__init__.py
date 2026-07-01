@@ -13,6 +13,7 @@ from .permissions import (
 )
 from .registry import ComponentRegistry, registry
 from .renderer import Renderer
+from .signing import CorruptStateError, StateSigner
 from .state import InMemoryStateStore, StateStore
 from .streaming import StreamingComponent, format_sse_frame
 from .websocket import ComponentWebSocketManager, WebSocketConnection, ws_manager
@@ -20,8 +21,10 @@ from .websocket import ComponentWebSocketManager, WebSocketConnection, ws_manage
 __all__ = [
     "Component",
     "ComponentError",
+    "CorruptStateError",
     "EventNotFoundError",
     "StateSerializer",
+    "StateSigner",
     "compose",
     "SlotRenderer",
     "FormComponent",

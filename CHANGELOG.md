@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **HMAC-signed client state (Epic A, A1 — #21)** — new stdlib-only
+  `core/signing.py` with `StateSigner` (HMAC-SHA256, versioned
+  `cfs1.<payload>.<mac>` token format) and `CorruptStateError`. Enable via
+  `StateSigner.configure(secret)` or the `STATE_SIGNING_KEY` environment
+  variable; comma-separated / sequence values enable key rotation (first key
+  signs, all keys verify). When enabled, all outbound state is signed and
+  inbound state must be a valid token — tampered, unsigned, or raw-dict state
+  is rejected with HTTP 400. When disabled, legacy plain-JSON behavior is
+  preserved and a one-time warning is logged. See `docs/STATE_SIGNING.md`.
+
+### Security
+
+- Closed the **dict bypass**: all adapters (FastAPI, Flask, Litestar, Django
+  FBV/CBV, WebSocket) now route inbound state through
+  `StateSerializer.load_untrusted()`, so a client can no longer submit state
+  as a raw JSON object to skip deserialization/verification.
+- Django `ComponentView.handle_error()` now maps client input errors
+  (`ValueError`, including corrupt state) to `400` instead of `500`.
+
 ## [0.5.0b0] - 2026-06-24
 
 ### Added

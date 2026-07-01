@@ -343,6 +343,13 @@ class Component:
 class StateSerializer:
     """Handles safe serialization/deserialization of component state.
 
+    When state signing is enabled (see
+    :class:`~component_framework.core.signing.StateSigner`), outbound state is
+    HMAC-signed into a ``cfs1`` token and inbound state MUST be a valid signed
+    token — plain JSON strings and raw dicts from the client are rejected with
+    :class:`~component_framework.core.signing.CorruptStateError`. When signing
+    is disabled, legacy plain-JSON behavior applies (with a one-time warning).
+
     Class attributes:
         warn_bytes: Emit a warning when serialised state exceeds this size
             (default 64 KB).  Set to ``0`` to disable warnings.
@@ -355,11 +362,15 @@ class StateSerializer:
 
     @staticmethod
     def serialize(state: dict) -> str:
-        """Serialize state to JSON string.
+        """Serialize state to a JSON string, signing it when enabled.
 
-        Emits a warning if the result exceeds :attr:`warn_bytes` and raises
-        :class:`ComponentError` if it exceeds :attr:`max_bytes`.
+        Emits a warning if the raw JSON exceeds :attr:`warn_bytes` and raises
+        :class:`ComponentError` if it exceeds :attr:`max_bytes` (size guards
+        always operate on the unsigned JSON).
         """
+        # Local import: signing imports ComponentError from this module.
+        from .signing import StateSigner
+
         serialized = json.dumps(state, default=str)
         size = len(serialized)
 
@@ -379,11 +390,71 @@ class StateSerializer:
                 f"{StateSerializer.warn_bytes:,}",
             )
 
+        if StateSigner.enabled():
+            return StateSigner.sign(serialized)
+
+        StateSigner.warn_unsigned_once()
         return serialized
 
     @staticmethod
     def deserialize(data: str) -> dict:
-        """Deserialize state from JSON string."""
+        """Deserialize state from a JSON string or signed ``cfs1`` token.
+
+        When signing is enabled, *data* must be a valid signed token;
+        anything else raises
+        :class:`~component_framework.core.signing.CorruptStateError`.
+        """
+        from .signing import CorruptStateError, StateSigner
+
         if not data:
             return {}
+
+        if StateSigner.enabled():
+            payload = StateSigner.verify(data)
+            try:
+                parsed = json.loads(payload)
+            except (json.JSONDecodeError, ValueError) as e:
+                raise CorruptStateError("Signed state payload is not valid JSON") from e
+            if not isinstance(parsed, dict):
+                raise CorruptStateError("Signed state payload is not a JSON object")
+            return parsed
+
         return json.loads(data)
+
+    @classmethod
+    def load_untrusted(cls, raw: "str | dict | None") -> dict | None:
+        """Single inbound entry point for client-supplied state.
+
+        Adapters MUST route all inbound state through this method so that raw
+        dicts cannot bypass signature verification.
+
+        Args:
+            raw: Client-supplied state — a signed token, a JSON string, a raw
+                dict (legacy clients only), or None/empty.
+
+        Returns:
+            The state dict, or None when *raw* is empty/absent.
+
+        Raises:
+            CorruptStateError: When signing is enabled and *raw* is not a
+                valid signed token (including raw dicts and plain JSON).
+            json.JSONDecodeError: When signing is disabled and *raw* is an
+                invalid JSON string (legacy behavior).
+        """
+        from .signing import CorruptStateError, StateSigner
+
+        if not raw:
+            return None
+
+        if StateSigner.enabled():
+            if not isinstance(raw, str):
+                raise CorruptStateError(
+                    "State signing is enabled: state must be a signed token "
+                    f"string, got {type(raw).__name__}"
+                )
+            return cls.deserialize(raw)
+
+        # Legacy (unsigned) behavior: dicts pass through, strings are parsed.
+        if isinstance(raw, dict):
+            return raw
+        return cls.deserialize(raw)
