@@ -240,6 +240,7 @@ Generated from docstrings by pdoc and deployed to GitHub Pages on every push to 
 | [Class-Based Views](docs/CBV_GUIDE.md) | CBV auth/permission patterns |
 | [E-Commerce Example](docs/examples/ecommerce.md) | Real-time cart + product demo |
 | [Multi-Step Wizard](docs/examples/wizard.md) | FastAPI wizard recipe (unsigned state — pending Epic A1) |
+| [CSRF & CSWSH Guide](docs/SECURITY_CSRF.md) | Per-adapter CSRF coverage audit + WebSocket hijacking guidance |
 
 ### AI / LLM Context
 

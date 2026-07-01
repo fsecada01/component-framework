@@ -252,7 +252,7 @@ Optimize:
 
 ## Security Considerations
 
-- CSRF protection required for mutations
+- CSRF: enforced automatically only on the Django adapter (via CsrfViewMiddleware); FastAPI/Litestar/Flask require host-level integration — see docs/SECURITY_CSRF.md
 - Input validation (Pydantic schemas)
 - State validation (don't trust client)
 - Permission checks (use Django permissions/FastAPI dependencies)
