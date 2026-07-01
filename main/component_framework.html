@@ -23,18 +23,42 @@
         <input id="togglestate" type="checkbox" aria-hidden="true" tabindex="-1">
         <div>
 
-            <input type="search" placeholder="Search..." role="searchbox" aria-label="search"
-                   pattern=".+" required>
 
 
-            <h2>Submodules</h2>
-            <ul>
-                    <li><a href="component_framework/adapters.html">adapters</a></li>
-                    <li><a href="component_framework/components.html">components</a></li>
-                    <li><a href="component_framework/core.html">core</a></li>
-                    <li><a href="component_framework/templatetags.html">templatetags</a></li>
-                    <li><a href="component_framework/testing.html">testing</a></li>
-            </ul>
+
+            <h2>API Documentation</h2>
+                <ul class="memberlist">
+            <li>
+                    <a class="class" href="#CorruptStateError">CorruptStateError</a>
+                            <ul class="memberlist">
+                </ul>
+
+            </li>
+            <li>
+                    <a class="class" href="#StateSigner">StateSigner</a>
+                            <ul class="memberlist">
+                        <li>
+                                <a class="function" href="#StateSigner.configure">configure</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#StateSigner.reset">reset</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#StateSigner.enabled">enabled</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#StateSigner.sign">sign</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#StateSigner.verify">verify</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#StateSigner.warn_unsigned_once">warn_unsigned_once</a>
+                        </li>
+                </ul>
+
+            </li>
+    </ul>
 
 
 
@@ -50,192 +74,547 @@
                     <h1 class="modulename">
 component_framework    </h1>
 
-                
-                
-                
-                
+                        <div class="docstring"><p>Component Framework — server-driven components for Python web frameworks.</p>
+</div>
+
+                        <input id="mod-component_framework-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
+
+                        <label class="view-source-button" for="mod-component_framework-view-source"><span>View Source</span></label>
+
+                        <div class="pdoc-code codehilite"><pre><span></span><span id="L-1"><a href="#L-1"><span class="linenos">1</span></a><span class="sd">&quot;&quot;&quot;Component Framework — server-driven components for Python web frameworks.&quot;&quot;&quot;</span>
+</span><span id="L-2"><a href="#L-2"><span class="linenos">2</span></a>
+</span><span id="L-3"><a href="#L-3"><span class="linenos">3</span></a><span class="kn">from</span><span class="w"> </span><span class="nn">.core.signing</span><span class="w"> </span><span class="kn">import</span> <span class="n">CorruptStateError</span><span class="p">,</span> <span class="n">StateSigner</span>
+</span><span id="L-4"><a href="#L-4"><span class="linenos">4</span></a>
+</span><span id="L-5"><a href="#L-5"><span class="linenos">5</span></a><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+</span><span id="L-6"><a href="#L-6"><span class="linenos">6</span></a>    <span class="s2">&quot;CorruptStateError&quot;</span><span class="p">,</span>
+</span><span id="L-7"><a href="#L-7"><span class="linenos">7</span></a>    <span class="s2">&quot;StateSigner&quot;</span><span class="p">,</span>
+</span><span id="L-8"><a href="#L-8"><span class="linenos">8</span></a><span class="p">]</span>
+</span></pre></div>
+
+
             </section>
+                <section id="CorruptStateError">
+                            <input id="CorruptStateError-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
+<div class="attr class">
+            
+    <span class="def">class</span>
+    <span class="name">CorruptStateError</span><wbr>(<span class="base">component_framework.core.component.ComponentError</span>):
+
+                <label class="view-source-button" for="CorruptStateError-view-source"><span>View Source</span></label>
+
+    </div>
+    <a class="headerlink" href="#CorruptStateError"></a>
+            <div class="pdoc-code codehilite"><pre><span></span><span id="CorruptStateError-44"><a href="#CorruptStateError-44"><span class="linenos">44</span></a><span class="k">class</span><span class="w"> </span><span class="nc">CorruptStateError</span><span class="p">(</span><span class="n">ComponentError</span><span class="p">):</span>
+</span><span id="CorruptStateError-45"><a href="#CorruptStateError-45"><span class="linenos">45</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Raised when inbound state fails signature verification.</span>
+</span><span id="CorruptStateError-46"><a href="#CorruptStateError-46"><span class="linenos">46</span></a>
+</span><span id="CorruptStateError-47"><a href="#CorruptStateError-47"><span class="linenos">47</span></a><span class="sd">    Covers tampered payloads, tampered/invalid MACs, malformed or truncated</span>
+</span><span id="CorruptStateError-48"><a href="#CorruptStateError-48"><span class="linenos">48</span></a><span class="sd">    tokens, unsigned input (plain JSON or raw dicts) while signing is</span>
+</span><span id="CorruptStateError-49"><a href="#CorruptStateError-49"><span class="linenos">49</span></a><span class="sd">    enabled, and tokens signed with an unknown key.</span>
+</span><span id="CorruptStateError-50"><a href="#CorruptStateError-50"><span class="linenos">50</span></a><span class="sd">    &quot;&quot;&quot;</span>
+</span></pre></div>
+
+
+            <div class="docstring"><p>Raised when inbound state fails signature verification.</p>
+
+<p>Covers tampered payloads, tampered/invalid MACs, malformed or truncated
+tokens, unsigned input (plain JSON or raw dicts) while signing is
+enabled, and tokens signed with an unknown key.</p>
+</div>
+
+
+                </section>
+                <section id="StateSigner">
+                            <input id="StateSigner-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
+<div class="attr class">
+            
+    <span class="def">class</span>
+    <span class="name">StateSigner</span>:
+
+                <label class="view-source-button" for="StateSigner-view-source"><span>View Source</span></label>
+
+    </div>
+    <a class="headerlink" href="#StateSigner"></a>
+            <div class="pdoc-code codehilite"><pre><span></span><span id="StateSigner-64"><a href="#StateSigner-64"><span class="linenos"> 64</span></a><span class="k">class</span><span class="w"> </span><span class="nc">StateSigner</span><span class="p">:</span>
+</span><span id="StateSigner-65"><a href="#StateSigner-65"><span class="linenos"> 65</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;HMAC-SHA256 signer/verifier for serialized component state.</span>
+</span><span id="StateSigner-66"><a href="#StateSigner-66"><span class="linenos"> 66</span></a>
+</span><span id="StateSigner-67"><a href="#StateSigner-67"><span class="linenos"> 67</span></a><span class="sd">    Key resolution order:</span>
+</span><span id="StateSigner-68"><a href="#StateSigner-68"><span class="linenos"> 68</span></a><span class="sd">        1. Keys set via :meth:`configure` (including an explicit ``None`` to</span>
+</span><span id="StateSigner-69"><a href="#StateSigner-69"><span class="linenos"> 69</span></a><span class="sd">           disable signing regardless of the environment).</span>
+</span><span id="StateSigner-70"><a href="#StateSigner-70"><span class="linenos"> 70</span></a><span class="sd">        2. The ``STATE_SIGNING_KEY`` environment variable (comma-separated</span>
+</span><span id="StateSigner-71"><a href="#StateSigner-71"><span class="linenos"> 71</span></a><span class="sd">           values enable rotation).</span>
+</span><span id="StateSigner-72"><a href="#StateSigner-72"><span class="linenos"> 72</span></a><span class="sd">        3. Nothing configured: signing is disabled (legacy pass-through) and</span>
+</span><span id="StateSigner-73"><a href="#StateSigner-73"><span class="linenos"> 73</span></a><span class="sd">           a one-time warning is logged on first serialization.</span>
+</span><span id="StateSigner-74"><a href="#StateSigner-74"><span class="linenos"> 74</span></a>
+</span><span id="StateSigner-75"><a href="#StateSigner-75"><span class="linenos"> 75</span></a><span class="sd">    Rotation: the first key signs, all keys verify. To rotate, prepend the</span>
+</span><span id="StateSigner-76"><a href="#StateSigner-76"><span class="linenos"> 76</span></a><span class="sd">    new key, keep the old key until in-flight client states have expired,</span>
+</span><span id="StateSigner-77"><a href="#StateSigner-77"><span class="linenos"> 77</span></a><span class="sd">    then drop it.</span>
+</span><span id="StateSigner-78"><a href="#StateSigner-78"><span class="linenos"> 78</span></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="StateSigner-79"><a href="#StateSigner-79"><span class="linenos"> 79</span></a>
+</span><span id="StateSigner-80"><a href="#StateSigner-80"><span class="linenos"> 80</span></a>    <span class="n">_keys</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">bytes</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span id="StateSigner-81"><a href="#StateSigner-81"><span class="linenos"> 81</span></a>    <span class="n">_configured</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+</span><span id="StateSigner-82"><a href="#StateSigner-82"><span class="linenos"> 82</span></a>    <span class="n">_warned_unsigned</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+</span><span id="StateSigner-83"><a href="#StateSigner-83"><span class="linenos"> 83</span></a>
+</span><span id="StateSigner-84"><a href="#StateSigner-84"><span class="linenos"> 84</span></a>    <span class="c1"># ---------- Configuration ----------</span>
+</span><span id="StateSigner-85"><a href="#StateSigner-85"><span class="linenos"> 85</span></a>
+</span><span id="StateSigner-86"><a href="#StateSigner-86"><span class="linenos"> 86</span></a>    <span class="nd">@classmethod</span>
+</span><span id="StateSigner-87"><a href="#StateSigner-87"><span class="linenos"> 87</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">configure</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">secret</span><span class="p">:</span> <span class="n">SecretInput</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="StateSigner-88"><a href="#StateSigner-88"><span class="linenos"> 88</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Configure signing keys.</span>
+</span><span id="StateSigner-89"><a href="#StateSigner-89"><span class="linenos"> 89</span></a>
+</span><span id="StateSigner-90"><a href="#StateSigner-90"><span class="linenos"> 90</span></a><span class="sd">        Args:</span>
+</span><span id="StateSigner-91"><a href="#StateSigner-91"><span class="linenos"> 91</span></a><span class="sd">            secret: A single key (``str`` or ``bytes``), a sequence of keys</span>
+</span><span id="StateSigner-92"><a href="#StateSigner-92"><span class="linenos"> 92</span></a><span class="sd">                for rotation (first signs, all verify), or ``None`` to</span>
+</span><span id="StateSigner-93"><a href="#StateSigner-93"><span class="linenos"> 93</span></a><span class="sd">                explicitly disable signing (overrides the environment</span>
+</span><span id="StateSigner-94"><a href="#StateSigner-94"><span class="linenos"> 94</span></a><span class="sd">                variable).</span>
+</span><span id="StateSigner-95"><a href="#StateSigner-95"><span class="linenos"> 95</span></a>
+</span><span id="StateSigner-96"><a href="#StateSigner-96"><span class="linenos"> 96</span></a><span class="sd">        Raises:</span>
+</span><span id="StateSigner-97"><a href="#StateSigner-97"><span class="linenos"> 97</span></a><span class="sd">            ValueError: If a key is empty or an empty sequence is given.</span>
+</span><span id="StateSigner-98"><a href="#StateSigner-98"><span class="linenos"> 98</span></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="StateSigner-99"><a href="#StateSigner-99"><span class="linenos"> 99</span></a>        <span class="bp">cls</span><span class="o">.</span><span class="n">_keys</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">secret</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_normalize</span><span class="p">(</span><span class="n">secret</span><span class="p">)</span>
+</span><span id="StateSigner-100"><a href="#StateSigner-100"><span class="linenos">100</span></a>        <span class="bp">cls</span><span class="o">.</span><span class="n">_configured</span> <span class="o">=</span> <span class="kc">True</span>
+</span><span id="StateSigner-101"><a href="#StateSigner-101"><span class="linenos">101</span></a>        <span class="bp">cls</span><span class="o">.</span><span class="n">_warned_unsigned</span> <span class="o">=</span> <span class="kc">False</span>
+</span><span id="StateSigner-102"><a href="#StateSigner-102"><span class="linenos">102</span></a>
+</span><span id="StateSigner-103"><a href="#StateSigner-103"><span class="linenos">103</span></a>    <span class="nd">@classmethod</span>
+</span><span id="StateSigner-104"><a href="#StateSigner-104"><span class="linenos">104</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">reset</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="StateSigner-105"><a href="#StateSigner-105"><span class="linenos">105</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Reset to the unconfigured default (env-var fallback).</span>
+</span><span id="StateSigner-106"><a href="#StateSigner-106"><span class="linenos">106</span></a>
+</span><span id="StateSigner-107"><a href="#StateSigner-107"><span class="linenos">107</span></a><span class="sd">        Intended for tests and application teardown.</span>
+</span><span id="StateSigner-108"><a href="#StateSigner-108"><span class="linenos">108</span></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="StateSigner-109"><a href="#StateSigner-109"><span class="linenos">109</span></a>        <span class="bp">cls</span><span class="o">.</span><span class="n">_keys</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span id="StateSigner-110"><a href="#StateSigner-110"><span class="linenos">110</span></a>        <span class="bp">cls</span><span class="o">.</span><span class="n">_configured</span> <span class="o">=</span> <span class="kc">False</span>
+</span><span id="StateSigner-111"><a href="#StateSigner-111"><span class="linenos">111</span></a>        <span class="bp">cls</span><span class="o">.</span><span class="n">_warned_unsigned</span> <span class="o">=</span> <span class="kc">False</span>
+</span><span id="StateSigner-112"><a href="#StateSigner-112"><span class="linenos">112</span></a>
+</span><span id="StateSigner-113"><a href="#StateSigner-113"><span class="linenos">113</span></a>    <span class="nd">@classmethod</span>
+</span><span id="StateSigner-114"><a href="#StateSigner-114"><span class="linenos">114</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">enabled</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+</span><span id="StateSigner-115"><a href="#StateSigner-115"><span class="linenos">115</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Return True when at least one signing key is available.&quot;&quot;&quot;</span>
+</span><span id="StateSigner-116"><a href="#StateSigner-116"><span class="linenos">116</span></a>        <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">_resolve_keys</span><span class="p">())</span>
+</span><span id="StateSigner-117"><a href="#StateSigner-117"><span class="linenos">117</span></a>
+</span><span id="StateSigner-118"><a href="#StateSigner-118"><span class="linenos">118</span></a>    <span class="nd">@classmethod</span>
+</span><span id="StateSigner-119"><a href="#StateSigner-119"><span class="linenos">119</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_normalize</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">secret</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">bytes</span> <span class="o">|</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span> <span class="o">|</span> <span class="nb">bytes</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">bytes</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
+</span><span id="StateSigner-120"><a href="#StateSigner-120"><span class="linenos">120</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Normalize a secret (or sequence of secrets) into key bytes.&quot;&quot;&quot;</span>
+</span><span id="StateSigner-121"><a href="#StateSigner-121"><span class="linenos">121</span></a>        <span class="n">raw</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span> <span class="o">|</span> <span class="nb">bytes</span><span class="p">]</span>
+</span><span id="StateSigner-122"><a href="#StateSigner-122"><span class="linenos">122</span></a>        <span class="n">raw</span> <span class="o">=</span> <span class="p">[</span><span class="n">secret</span><span class="p">]</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">secret</span><span class="p">,</span> <span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">))</span> <span class="k">else</span> <span class="nb">list</span><span class="p">(</span><span class="n">secret</span><span class="p">)</span>
+</span><span id="StateSigner-123"><a href="#StateSigner-123"><span class="linenos">123</span></a>        <span class="k">if</span> <span class="ow">not</span> <span class="n">raw</span><span class="p">:</span>
+</span><span id="StateSigner-124"><a href="#StateSigner-124"><span class="linenos">124</span></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;StateSigner.configure() requires at least one signing key&quot;</span><span class="p">)</span>
+</span><span id="StateSigner-125"><a href="#StateSigner-125"><span class="linenos">125</span></a>        <span class="n">keys</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">bytes</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+</span><span id="StateSigner-126"><a href="#StateSigner-126"><span class="linenos">126</span></a>        <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">raw</span><span class="p">:</span>
+</span><span id="StateSigner-127"><a href="#StateSigner-127"><span class="linenos">127</span></a>            <span class="n">key</span> <span class="o">=</span> <span class="n">item</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="k">else</span> <span class="nb">bytes</span><span class="p">(</span><span class="n">item</span><span class="p">)</span>
+</span><span id="StateSigner-128"><a href="#StateSigner-128"><span class="linenos">128</span></a>            <span class="k">if</span> <span class="ow">not</span> <span class="n">key</span><span class="p">:</span>
+</span><span id="StateSigner-129"><a href="#StateSigner-129"><span class="linenos">129</span></a>                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Signing keys must be non-empty&quot;</span><span class="p">)</span>
+</span><span id="StateSigner-130"><a href="#StateSigner-130"><span class="linenos">130</span></a>            <span class="n">keys</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+</span><span id="StateSigner-131"><a href="#StateSigner-131"><span class="linenos">131</span></a>        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">keys</span><span class="p">)</span>
+</span><span id="StateSigner-132"><a href="#StateSigner-132"><span class="linenos">132</span></a>
+</span><span id="StateSigner-133"><a href="#StateSigner-133"><span class="linenos">133</span></a>    <span class="nd">@classmethod</span>
+</span><span id="StateSigner-134"><a href="#StateSigner-134"><span class="linenos">134</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_resolve_keys</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">bytes</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="StateSigner-135"><a href="#StateSigner-135"><span class="linenos">135</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Resolve active keys from explicit config or the environment.&quot;&quot;&quot;</span>
+</span><span id="StateSigner-136"><a href="#StateSigner-136"><span class="linenos">136</span></a>        <span class="k">if</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_configured</span><span class="p">:</span>
+</span><span id="StateSigner-137"><a href="#StateSigner-137"><span class="linenos">137</span></a>            <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_keys</span>
+</span><span id="StateSigner-138"><a href="#StateSigner-138"><span class="linenos">138</span></a>        <span class="n">env_value</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">ENV_VAR</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+</span><span id="StateSigner-139"><a href="#StateSigner-139"><span class="linenos">139</span></a>        <span class="n">parts</span> <span class="o">=</span> <span class="p">[</span><span class="n">part</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">part</span> <span class="ow">in</span> <span class="n">env_value</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">)</span> <span class="k">if</span> <span class="n">part</span><span class="o">.</span><span class="n">strip</span><span class="p">()]</span>
+</span><span id="StateSigner-140"><a href="#StateSigner-140"><span class="linenos">140</span></a>        <span class="k">if</span> <span class="ow">not</span> <span class="n">parts</span><span class="p">:</span>
+</span><span id="StateSigner-141"><a href="#StateSigner-141"><span class="linenos">141</span></a>            <span class="k">return</span> <span class="kc">None</span>
+</span><span id="StateSigner-142"><a href="#StateSigner-142"><span class="linenos">142</span></a>        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">part</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span> <span class="k">for</span> <span class="n">part</span> <span class="ow">in</span> <span class="n">parts</span><span class="p">)</span>
+</span><span id="StateSigner-143"><a href="#StateSigner-143"><span class="linenos">143</span></a>
+</span><span id="StateSigner-144"><a href="#StateSigner-144"><span class="linenos">144</span></a>    <span class="c1"># ---------- Signing / verification ----------</span>
+</span><span id="StateSigner-145"><a href="#StateSigner-145"><span class="linenos">145</span></a>
+</span><span id="StateSigner-146"><a href="#StateSigner-146"><span class="linenos">146</span></a>    <span class="nd">@classmethod</span>
+</span><span id="StateSigner-147"><a href="#StateSigner-147"><span class="linenos">147</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">sign</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">payload_json</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span><span id="StateSigner-148"><a href="#StateSigner-148"><span class="linenos">148</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Sign a JSON payload string into a ``cfs1`` token.</span>
+</span><span id="StateSigner-149"><a href="#StateSigner-149"><span class="linenos">149</span></a>
+</span><span id="StateSigner-150"><a href="#StateSigner-150"><span class="linenos">150</span></a><span class="sd">        Args:</span>
+</span><span id="StateSigner-151"><a href="#StateSigner-151"><span class="linenos">151</span></a><span class="sd">            payload_json: The serialized (JSON) state to protect.</span>
+</span><span id="StateSigner-152"><a href="#StateSigner-152"><span class="linenos">152</span></a>
+</span><span id="StateSigner-153"><a href="#StateSigner-153"><span class="linenos">153</span></a><span class="sd">        Returns:</span>
+</span><span id="StateSigner-154"><a href="#StateSigner-154"><span class="linenos">154</span></a><span class="sd">            A ``cfs1.&lt;payload_b64&gt;.&lt;mac_b64&gt;`` token string.</span>
+</span><span id="StateSigner-155"><a href="#StateSigner-155"><span class="linenos">155</span></a>
+</span><span id="StateSigner-156"><a href="#StateSigner-156"><span class="linenos">156</span></a><span class="sd">        Raises:</span>
+</span><span id="StateSigner-157"><a href="#StateSigner-157"><span class="linenos">157</span></a><span class="sd">            ComponentError: If no signing key is configured.</span>
+</span><span id="StateSigner-158"><a href="#StateSigner-158"><span class="linenos">158</span></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="StateSigner-159"><a href="#StateSigner-159"><span class="linenos">159</span></a>        <span class="n">keys</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_resolve_keys</span><span class="p">()</span>
+</span><span id="StateSigner-160"><a href="#StateSigner-160"><span class="linenos">160</span></a>        <span class="k">if</span> <span class="ow">not</span> <span class="n">keys</span><span class="p">:</span>
+</span><span id="StateSigner-161"><a href="#StateSigner-161"><span class="linenos">161</span></a>            <span class="k">raise</span> <span class="n">ComponentError</span><span class="p">(</span><span class="s2">&quot;StateSigner.sign() called but no signing key is configured&quot;</span><span class="p">)</span>
+</span><span id="StateSigner-162"><a href="#StateSigner-162"><span class="linenos">162</span></a>        <span class="n">payload_b64</span> <span class="o">=</span> <span class="n">_b64url_encode</span><span class="p">(</span><span class="n">payload_json</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">&quot;utf-8&quot;</span><span class="p">))</span>
+</span><span id="StateSigner-163"><a href="#StateSigner-163"><span class="linenos">163</span></a>        <span class="n">mac</span> <span class="o">=</span> <span class="n">hmac</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">keys</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_signing_input</span><span class="p">(</span><span class="n">payload_b64</span><span class="p">),</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">)</span><span class="o">.</span><span class="n">digest</span><span class="p">()</span>
+</span><span id="StateSigner-164"><a href="#StateSigner-164"><span class="linenos">164</span></a>        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">TOKEN_VERSION</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">payload_b64</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">_b64url_encode</span><span class="p">(</span><span class="n">mac</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+</span><span id="StateSigner-165"><a href="#StateSigner-165"><span class="linenos">165</span></a>
+</span><span id="StateSigner-166"><a href="#StateSigner-166"><span class="linenos">166</span></a>    <span class="nd">@classmethod</span>
+</span><span id="StateSigner-167"><a href="#StateSigner-167"><span class="linenos">167</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">verify</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">token</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span><span id="StateSigner-168"><a href="#StateSigner-168"><span class="linenos">168</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Verify a ``cfs1`` token and return the embedded JSON payload.</span>
+</span><span id="StateSigner-169"><a href="#StateSigner-169"><span class="linenos">169</span></a>
+</span><span id="StateSigner-170"><a href="#StateSigner-170"><span class="linenos">170</span></a><span class="sd">        All configured keys are tried (rotation support), using</span>
+</span><span id="StateSigner-171"><a href="#StateSigner-171"><span class="linenos">171</span></a><span class="sd">        :func:`hmac.compare_digest` for constant-time comparison.</span>
+</span><span id="StateSigner-172"><a href="#StateSigner-172"><span class="linenos">172</span></a>
+</span><span id="StateSigner-173"><a href="#StateSigner-173"><span class="linenos">173</span></a><span class="sd">        Args:</span>
+</span><span id="StateSigner-174"><a href="#StateSigner-174"><span class="linenos">174</span></a><span class="sd">            token: The inbound token string.</span>
+</span><span id="StateSigner-175"><a href="#StateSigner-175"><span class="linenos">175</span></a>
+</span><span id="StateSigner-176"><a href="#StateSigner-176"><span class="linenos">176</span></a><span class="sd">        Returns:</span>
+</span><span id="StateSigner-177"><a href="#StateSigner-177"><span class="linenos">177</span></a><span class="sd">            The verified JSON payload string.</span>
+</span><span id="StateSigner-178"><a href="#StateSigner-178"><span class="linenos">178</span></a>
+</span><span id="StateSigner-179"><a href="#StateSigner-179"><span class="linenos">179</span></a><span class="sd">        Raises:</span>
+</span><span id="StateSigner-180"><a href="#StateSigner-180"><span class="linenos">180</span></a><span class="sd">            CorruptStateError: If the token is malformed, unsigned, tampered</span>
+</span><span id="StateSigner-181"><a href="#StateSigner-181"><span class="linenos">181</span></a><span class="sd">                with, or signed with an unknown key.</span>
+</span><span id="StateSigner-182"><a href="#StateSigner-182"><span class="linenos">182</span></a><span class="sd">            ComponentError: If no signing key is configured.</span>
+</span><span id="StateSigner-183"><a href="#StateSigner-183"><span class="linenos">183</span></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="StateSigner-184"><a href="#StateSigner-184"><span class="linenos">184</span></a>        <span class="n">keys</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_resolve_keys</span><span class="p">()</span>
+</span><span id="StateSigner-185"><a href="#StateSigner-185"><span class="linenos">185</span></a>        <span class="k">if</span> <span class="ow">not</span> <span class="n">keys</span><span class="p">:</span>
+</span><span id="StateSigner-186"><a href="#StateSigner-186"><span class="linenos">186</span></a>            <span class="k">raise</span> <span class="n">ComponentError</span><span class="p">(</span><span class="s2">&quot;StateSigner.verify() called but no signing key is configured&quot;</span><span class="p">)</span>
+</span><span id="StateSigner-187"><a href="#StateSigner-187"><span class="linenos">187</span></a>
+</span><span id="StateSigner-188"><a href="#StateSigner-188"><span class="linenos">188</span></a>        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">token</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+</span><span id="StateSigner-189"><a href="#StateSigner-189"><span class="linenos">189</span></a>            <span class="k">raise</span> <span class="n">CorruptStateError</span><span class="p">(</span>
+</span><span id="StateSigner-190"><a href="#StateSigner-190"><span class="linenos">190</span></a>                <span class="sa">f</span><span class="s2">&quot;Signed state token must be a string, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">token</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&quot;</span>
+</span><span id="StateSigner-191"><a href="#StateSigner-191"><span class="linenos">191</span></a>            <span class="p">)</span>
+</span><span id="StateSigner-192"><a href="#StateSigner-192"><span class="linenos">192</span></a>
+</span><span id="StateSigner-193"><a href="#StateSigner-193"><span class="linenos">193</span></a>        <span class="n">parts</span> <span class="o">=</span> <span class="n">token</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)</span>
+</span><span id="StateSigner-194"><a href="#StateSigner-194"><span class="linenos">194</span></a>        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">3</span> <span class="ow">or</span> <span class="n">parts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="n">TOKEN_VERSION</span><span class="p">:</span>
+</span><span id="StateSigner-195"><a href="#StateSigner-195"><span class="linenos">195</span></a>            <span class="k">raise</span> <span class="n">CorruptStateError</span><span class="p">(</span><span class="s2">&quot;State token is malformed or unsigned&quot;</span><span class="p">)</span>
+</span><span id="StateSigner-196"><a href="#StateSigner-196"><span class="linenos">196</span></a>        <span class="n">_</span><span class="p">,</span> <span class="n">payload_b64</span><span class="p">,</span> <span class="n">mac_b64</span> <span class="o">=</span> <span class="n">parts</span>
+</span><span id="StateSigner-197"><a href="#StateSigner-197"><span class="linenos">197</span></a>
+</span><span id="StateSigner-198"><a href="#StateSigner-198"><span class="linenos">198</span></a>        <span class="k">try</span><span class="p">:</span>
+</span><span id="StateSigner-199"><a href="#StateSigner-199"><span class="linenos">199</span></a>            <span class="n">provided_mac</span> <span class="o">=</span> <span class="n">_b64url_decode</span><span class="p">(</span><span class="n">mac_b64</span><span class="p">)</span>
+</span><span id="StateSigner-200"><a href="#StateSigner-200"><span class="linenos">200</span></a>        <span class="k">except</span> <span class="p">(</span><span class="n">binascii</span><span class="o">.</span><span class="n">Error</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">)</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+</span><span id="StateSigner-201"><a href="#StateSigner-201"><span class="linenos">201</span></a>            <span class="k">raise</span> <span class="n">CorruptStateError</span><span class="p">(</span><span class="s2">&quot;State token MAC is not valid base64&quot;</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
+</span><span id="StateSigner-202"><a href="#StateSigner-202"><span class="linenos">202</span></a>
+</span><span id="StateSigner-203"><a href="#StateSigner-203"><span class="linenos">203</span></a>        <span class="n">signing_input</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_signing_input</span><span class="p">(</span><span class="n">payload_b64</span><span class="p">)</span>
+</span><span id="StateSigner-204"><a href="#StateSigner-204"><span class="linenos">204</span></a>        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
+</span><span id="StateSigner-205"><a href="#StateSigner-205"><span class="linenos">205</span></a>            <span class="n">expected_mac</span> <span class="o">=</span> <span class="n">hmac</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">signing_input</span><span class="p">,</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">)</span><span class="o">.</span><span class="n">digest</span><span class="p">()</span>
+</span><span id="StateSigner-206"><a href="#StateSigner-206"><span class="linenos">206</span></a>            <span class="k">if</span> <span class="n">hmac</span><span class="o">.</span><span class="n">compare_digest</span><span class="p">(</span><span class="n">expected_mac</span><span class="p">,</span> <span class="n">provided_mac</span><span class="p">):</span>
+</span><span id="StateSigner-207"><a href="#StateSigner-207"><span class="linenos">207</span></a>                <span class="k">try</span><span class="p">:</span>
+</span><span id="StateSigner-208"><a href="#StateSigner-208"><span class="linenos">208</span></a>                    <span class="k">return</span> <span class="n">_b64url_decode</span><span class="p">(</span><span class="n">payload_b64</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span>
+</span><span id="StateSigner-209"><a href="#StateSigner-209"><span class="linenos">209</span></a>                <span class="k">except</span> <span class="p">(</span><span class="n">binascii</span><span class="o">.</span><span class="n">Error</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">,</span> <span class="ne">UnicodeDecodeError</span><span class="p">)</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+</span><span id="StateSigner-210"><a href="#StateSigner-210"><span class="linenos">210</span></a>                    <span class="k">raise</span> <span class="n">CorruptStateError</span><span class="p">(</span><span class="s2">&quot;State token payload is not decodable&quot;</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
+</span><span id="StateSigner-211"><a href="#StateSigner-211"><span class="linenos">211</span></a>
+</span><span id="StateSigner-212"><a href="#StateSigner-212"><span class="linenos">212</span></a>        <span class="k">raise</span> <span class="n">CorruptStateError</span><span class="p">(</span><span class="s2">&quot;State signature verification failed&quot;</span><span class="p">)</span>
+</span><span id="StateSigner-213"><a href="#StateSigner-213"><span class="linenos">213</span></a>
+</span><span id="StateSigner-214"><a href="#StateSigner-214"><span class="linenos">214</span></a>    <span class="nd">@staticmethod</span>
+</span><span id="StateSigner-215"><a href="#StateSigner-215"><span class="linenos">215</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_signing_input</span><span class="p">(</span><span class="n">payload_b64</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span>
+</span><span id="StateSigner-216"><a href="#StateSigner-216"><span class="linenos">216</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Build the MAC input, binding the version prefix to the payload.&quot;&quot;&quot;</span>
+</span><span id="StateSigner-217"><a href="#StateSigner-217"><span class="linenos">217</span></a>        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">TOKEN_VERSION</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">payload_b64</span><span class="si">}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">&quot;ascii&quot;</span><span class="p">)</span>
+</span><span id="StateSigner-218"><a href="#StateSigner-218"><span class="linenos">218</span></a>
+</span><span id="StateSigner-219"><a href="#StateSigner-219"><span class="linenos">219</span></a>    <span class="c1"># ---------- Diagnostics ----------</span>
+</span><span id="StateSigner-220"><a href="#StateSigner-220"><span class="linenos">220</span></a>
+</span><span id="StateSigner-221"><a href="#StateSigner-221"><span class="linenos">221</span></a>    <span class="nd">@classmethod</span>
+</span><span id="StateSigner-222"><a href="#StateSigner-222"><span class="linenos">222</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">warn_unsigned_once</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="StateSigner-223"><a href="#StateSigner-223"><span class="linenos">223</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Log a one-time prominent warning that state is unsigned.&quot;&quot;&quot;</span>
+</span><span id="StateSigner-224"><a href="#StateSigner-224"><span class="linenos">224</span></a>        <span class="k">if</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_warned_unsigned</span><span class="p">:</span>
+</span><span id="StateSigner-225"><a href="#StateSigner-225"><span class="linenos">225</span></a>            <span class="k">return</span>
+</span><span id="StateSigner-226"><a href="#StateSigner-226"><span class="linenos">226</span></a>        <span class="bp">cls</span><span class="o">.</span><span class="n">_warned_unsigned</span> <span class="o">=</span> <span class="kc">True</span>
+</span><span id="StateSigner-227"><a href="#StateSigner-227"><span class="linenos">227</span></a>        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+</span><span id="StateSigner-228"><a href="#StateSigner-228"><span class="linenos">228</span></a>            <span class="s2">&quot;SECURITY: component state signing is DISABLED — client-carried &quot;</span>
+</span><span id="StateSigner-229"><a href="#StateSigner-229"><span class="linenos">229</span></a>            <span class="s2">&quot;state is unsigned and can be tampered with. Set the &quot;</span>
+</span><span id="StateSigner-230"><a href="#StateSigner-230"><span class="linenos">230</span></a>            <span class="s2">&quot;</span><span class="si">%s</span><span class="s2"> environment variable or call StateSigner.configure() &quot;</span>
+</span><span id="StateSigner-231"><a href="#StateSigner-231"><span class="linenos">231</span></a>            <span class="s2">&quot;with a secret key before deploying to production.&quot;</span><span class="p">,</span>
+</span><span id="StateSigner-232"><a href="#StateSigner-232"><span class="linenos">232</span></a>            <span class="n">ENV_VAR</span><span class="p">,</span>
+</span><span id="StateSigner-233"><a href="#StateSigner-233"><span class="linenos">233</span></a>        <span class="p">)</span>
+</span></pre></div>
+
+
+            <div class="docstring"><p>HMAC-SHA256 signer/verifier for serialized component state.</p>
+
+<h6 id="key-resolution-order">Key resolution order:</h6>
+
+<blockquote>
+  <ol>
+  <li>Keys set via <code><a href="#StateSigner.configure">configure()</a></code> (including an explicit <code>None</code> to
+  disable signing regardless of the environment).</li>
+  <li>The <code>STATE_SIGNING_KEY</code> environment variable (comma-separated
+  values enable rotation).</li>
+  <li>Nothing configured: signing is disabled (legacy pass-through) and
+  a one-time warning is logged on first serialization.</li>
+  </ol>
+</blockquote>
+
+<p>Rotation: the first key signs, all keys verify. To rotate, prepend the
+new key, keep the old key until in-flight client states have expired,
+then drop it.</p>
+</div>
+
+
+                            <div id="StateSigner.configure" class="classattr">
+                                        <input id="StateSigner.configure-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
+<div class="attr function">
+                    <div class="decorator decorator-classmethod">@classmethod</div>
+
+        <span class="def">def</span>
+        <span class="name">configure</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">cls</span>, </span><span class="param"><span class="n">secret</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">bytes</span> <span class="o">|</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span> <span class="o">|</span> <span class="nb">bytes</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="kc">None</span>:</span></span>
+
+                <label class="view-source-button" for="StateSigner.configure-view-source"><span>View Source</span></label>
+
+    </div>
+    <a class="headerlink" href="#StateSigner.configure"></a>
+            <div class="pdoc-code codehilite"><pre><span></span><span id="StateSigner.configure-86"><a href="#StateSigner.configure-86"><span class="linenos"> 86</span></a>    <span class="nd">@classmethod</span>
+</span><span id="StateSigner.configure-87"><a href="#StateSigner.configure-87"><span class="linenos"> 87</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">configure</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">secret</span><span class="p">:</span> <span class="n">SecretInput</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="StateSigner.configure-88"><a href="#StateSigner.configure-88"><span class="linenos"> 88</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Configure signing keys.</span>
+</span><span id="StateSigner.configure-89"><a href="#StateSigner.configure-89"><span class="linenos"> 89</span></a>
+</span><span id="StateSigner.configure-90"><a href="#StateSigner.configure-90"><span class="linenos"> 90</span></a><span class="sd">        Args:</span>
+</span><span id="StateSigner.configure-91"><a href="#StateSigner.configure-91"><span class="linenos"> 91</span></a><span class="sd">            secret: A single key (``str`` or ``bytes``), a sequence of keys</span>
+</span><span id="StateSigner.configure-92"><a href="#StateSigner.configure-92"><span class="linenos"> 92</span></a><span class="sd">                for rotation (first signs, all verify), or ``None`` to</span>
+</span><span id="StateSigner.configure-93"><a href="#StateSigner.configure-93"><span class="linenos"> 93</span></a><span class="sd">                explicitly disable signing (overrides the environment</span>
+</span><span id="StateSigner.configure-94"><a href="#StateSigner.configure-94"><span class="linenos"> 94</span></a><span class="sd">                variable).</span>
+</span><span id="StateSigner.configure-95"><a href="#StateSigner.configure-95"><span class="linenos"> 95</span></a>
+</span><span id="StateSigner.configure-96"><a href="#StateSigner.configure-96"><span class="linenos"> 96</span></a><span class="sd">        Raises:</span>
+</span><span id="StateSigner.configure-97"><a href="#StateSigner.configure-97"><span class="linenos"> 97</span></a><span class="sd">            ValueError: If a key is empty or an empty sequence is given.</span>
+</span><span id="StateSigner.configure-98"><a href="#StateSigner.configure-98"><span class="linenos"> 98</span></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="StateSigner.configure-99"><a href="#StateSigner.configure-99"><span class="linenos"> 99</span></a>        <span class="bp">cls</span><span class="o">.</span><span class="n">_keys</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">secret</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_normalize</span><span class="p">(</span><span class="n">secret</span><span class="p">)</span>
+</span><span id="StateSigner.configure-100"><a href="#StateSigner.configure-100"><span class="linenos">100</span></a>        <span class="bp">cls</span><span class="o">.</span><span class="n">_configured</span> <span class="o">=</span> <span class="kc">True</span>
+</span><span id="StateSigner.configure-101"><a href="#StateSigner.configure-101"><span class="linenos">101</span></a>        <span class="bp">cls</span><span class="o">.</span><span class="n">_warned_unsigned</span> <span class="o">=</span> <span class="kc">False</span>
+</span></pre></div>
+
+
+            <div class="docstring"><p>Configure signing keys.</p>
+
+<h6 id="arguments">Arguments:</h6>
+
+<ul>
+<li><strong>secret:</strong>  A single key (<code>str</code> or <code>bytes</code>), a sequence of keys
+for rotation (first signs, all verify), or <code>None</code> to
+explicitly disable signing (overrides the environment
+variable).</li>
+</ul>
+
+<h6 id="raises">Raises:</h6>
+
+<ul>
+<li><strong>ValueError:</strong>  If a key is empty or an empty sequence is given.</li>
+</ul>
+</div>
+
+
+                            </div>
+                            <div id="StateSigner.reset" class="classattr">
+                                        <input id="StateSigner.reset-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
+<div class="attr function">
+                    <div class="decorator decorator-classmethod">@classmethod</div>
+
+        <span class="def">def</span>
+        <span class="name">reset</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">cls</span></span><span class="return-annotation">) -> <span class="kc">None</span>:</span></span>
+
+                <label class="view-source-button" for="StateSigner.reset-view-source"><span>View Source</span></label>
+
+    </div>
+    <a class="headerlink" href="#StateSigner.reset"></a>
+            <div class="pdoc-code codehilite"><pre><span></span><span id="StateSigner.reset-103"><a href="#StateSigner.reset-103"><span class="linenos">103</span></a>    <span class="nd">@classmethod</span>
+</span><span id="StateSigner.reset-104"><a href="#StateSigner.reset-104"><span class="linenos">104</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">reset</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="StateSigner.reset-105"><a href="#StateSigner.reset-105"><span class="linenos">105</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Reset to the unconfigured default (env-var fallback).</span>
+</span><span id="StateSigner.reset-106"><a href="#StateSigner.reset-106"><span class="linenos">106</span></a>
+</span><span id="StateSigner.reset-107"><a href="#StateSigner.reset-107"><span class="linenos">107</span></a><span class="sd">        Intended for tests and application teardown.</span>
+</span><span id="StateSigner.reset-108"><a href="#StateSigner.reset-108"><span class="linenos">108</span></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="StateSigner.reset-109"><a href="#StateSigner.reset-109"><span class="linenos">109</span></a>        <span class="bp">cls</span><span class="o">.</span><span class="n">_keys</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span id="StateSigner.reset-110"><a href="#StateSigner.reset-110"><span class="linenos">110</span></a>        <span class="bp">cls</span><span class="o">.</span><span class="n">_configured</span> <span class="o">=</span> <span class="kc">False</span>
+</span><span id="StateSigner.reset-111"><a href="#StateSigner.reset-111"><span class="linenos">111</span></a>        <span class="bp">cls</span><span class="o">.</span><span class="n">_warned_unsigned</span> <span class="o">=</span> <span class="kc">False</span>
+</span></pre></div>
+
+
+            <div class="docstring"><p>Reset to the unconfigured default (env-var fallback).</p>
+
+<p>Intended for tests and application teardown.</p>
+</div>
+
+
+                            </div>
+                            <div id="StateSigner.enabled" class="classattr">
+                                        <input id="StateSigner.enabled-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
+<div class="attr function">
+                    <div class="decorator decorator-classmethod">@classmethod</div>
+
+        <span class="def">def</span>
+        <span class="name">enabled</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">cls</span></span><span class="return-annotation">) -> <span class="nb">bool</span>:</span></span>
+
+                <label class="view-source-button" for="StateSigner.enabled-view-source"><span>View Source</span></label>
+
+    </div>
+    <a class="headerlink" href="#StateSigner.enabled"></a>
+            <div class="pdoc-code codehilite"><pre><span></span><span id="StateSigner.enabled-113"><a href="#StateSigner.enabled-113"><span class="linenos">113</span></a>    <span class="nd">@classmethod</span>
+</span><span id="StateSigner.enabled-114"><a href="#StateSigner.enabled-114"><span class="linenos">114</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">enabled</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+</span><span id="StateSigner.enabled-115"><a href="#StateSigner.enabled-115"><span class="linenos">115</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Return True when at least one signing key is available.&quot;&quot;&quot;</span>
+</span><span id="StateSigner.enabled-116"><a href="#StateSigner.enabled-116"><span class="linenos">116</span></a>        <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">_resolve_keys</span><span class="p">())</span>
+</span></pre></div>
+
+
+            <div class="docstring"><p>Return True when at least one signing key is available.</p>
+</div>
+
+
+                            </div>
+                            <div id="StateSigner.sign" class="classattr">
+                                        <input id="StateSigner.sign-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
+<div class="attr function">
+                    <div class="decorator decorator-classmethod">@classmethod</div>
+
+        <span class="def">def</span>
+        <span class="name">sign</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">cls</span>, </span><span class="param"><span class="n">payload_json</span><span class="p">:</span> <span class="nb">str</span></span><span class="return-annotation">) -> <span class="nb">str</span>:</span></span>
+
+                <label class="view-source-button" for="StateSigner.sign-view-source"><span>View Source</span></label>
+
+    </div>
+    <a class="headerlink" href="#StateSigner.sign"></a>
+            <div class="pdoc-code codehilite"><pre><span></span><span id="StateSigner.sign-146"><a href="#StateSigner.sign-146"><span class="linenos">146</span></a>    <span class="nd">@classmethod</span>
+</span><span id="StateSigner.sign-147"><a href="#StateSigner.sign-147"><span class="linenos">147</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">sign</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">payload_json</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span><span id="StateSigner.sign-148"><a href="#StateSigner.sign-148"><span class="linenos">148</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Sign a JSON payload string into a ``cfs1`` token.</span>
+</span><span id="StateSigner.sign-149"><a href="#StateSigner.sign-149"><span class="linenos">149</span></a>
+</span><span id="StateSigner.sign-150"><a href="#StateSigner.sign-150"><span class="linenos">150</span></a><span class="sd">        Args:</span>
+</span><span id="StateSigner.sign-151"><a href="#StateSigner.sign-151"><span class="linenos">151</span></a><span class="sd">            payload_json: The serialized (JSON) state to protect.</span>
+</span><span id="StateSigner.sign-152"><a href="#StateSigner.sign-152"><span class="linenos">152</span></a>
+</span><span id="StateSigner.sign-153"><a href="#StateSigner.sign-153"><span class="linenos">153</span></a><span class="sd">        Returns:</span>
+</span><span id="StateSigner.sign-154"><a href="#StateSigner.sign-154"><span class="linenos">154</span></a><span class="sd">            A ``cfs1.&lt;payload_b64&gt;.&lt;mac_b64&gt;`` token string.</span>
+</span><span id="StateSigner.sign-155"><a href="#StateSigner.sign-155"><span class="linenos">155</span></a>
+</span><span id="StateSigner.sign-156"><a href="#StateSigner.sign-156"><span class="linenos">156</span></a><span class="sd">        Raises:</span>
+</span><span id="StateSigner.sign-157"><a href="#StateSigner.sign-157"><span class="linenos">157</span></a><span class="sd">            ComponentError: If no signing key is configured.</span>
+</span><span id="StateSigner.sign-158"><a href="#StateSigner.sign-158"><span class="linenos">158</span></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="StateSigner.sign-159"><a href="#StateSigner.sign-159"><span class="linenos">159</span></a>        <span class="n">keys</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_resolve_keys</span><span class="p">()</span>
+</span><span id="StateSigner.sign-160"><a href="#StateSigner.sign-160"><span class="linenos">160</span></a>        <span class="k">if</span> <span class="ow">not</span> <span class="n">keys</span><span class="p">:</span>
+</span><span id="StateSigner.sign-161"><a href="#StateSigner.sign-161"><span class="linenos">161</span></a>            <span class="k">raise</span> <span class="n">ComponentError</span><span class="p">(</span><span class="s2">&quot;StateSigner.sign() called but no signing key is configured&quot;</span><span class="p">)</span>
+</span><span id="StateSigner.sign-162"><a href="#StateSigner.sign-162"><span class="linenos">162</span></a>        <span class="n">payload_b64</span> <span class="o">=</span> <span class="n">_b64url_encode</span><span class="p">(</span><span class="n">payload_json</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">&quot;utf-8&quot;</span><span class="p">))</span>
+</span><span id="StateSigner.sign-163"><a href="#StateSigner.sign-163"><span class="linenos">163</span></a>        <span class="n">mac</span> <span class="o">=</span> <span class="n">hmac</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">keys</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_signing_input</span><span class="p">(</span><span class="n">payload_b64</span><span class="p">),</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">)</span><span class="o">.</span><span class="n">digest</span><span class="p">()</span>
+</span><span id="StateSigner.sign-164"><a href="#StateSigner.sign-164"><span class="linenos">164</span></a>        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">TOKEN_VERSION</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">payload_b64</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">_b64url_encode</span><span class="p">(</span><span class="n">mac</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+</span></pre></div>
+
+
+            <div class="docstring"><p>Sign a JSON payload string into a <code>cfs1</code> token.</p>
+
+<h6 id="arguments">Arguments:</h6>
+
+<ul>
+<li><strong>payload_json:</strong>  The serialized (JSON) state to protect.</li>
+</ul>
+
+<h6 id="returns">Returns:</h6>
+
+<blockquote>
+  <p>A <code>cfs1.&lt;payload_b64&gt;.&lt;mac_b64&gt;</code> token string.</p>
+</blockquote>
+
+<h6 id="raises">Raises:</h6>
+
+<ul>
+<li><strong>ComponentError:</strong>  If no signing key is configured.</li>
+</ul>
+</div>
+
+
+                            </div>
+                            <div id="StateSigner.verify" class="classattr">
+                                        <input id="StateSigner.verify-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
+<div class="attr function">
+                    <div class="decorator decorator-classmethod">@classmethod</div>
+
+        <span class="def">def</span>
+        <span class="name">verify</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">cls</span>, </span><span class="param"><span class="n">token</span><span class="p">:</span> <span class="nb">str</span></span><span class="return-annotation">) -> <span class="nb">str</span>:</span></span>
+
+                <label class="view-source-button" for="StateSigner.verify-view-source"><span>View Source</span></label>
+
+    </div>
+    <a class="headerlink" href="#StateSigner.verify"></a>
+            <div class="pdoc-code codehilite"><pre><span></span><span id="StateSigner.verify-166"><a href="#StateSigner.verify-166"><span class="linenos">166</span></a>    <span class="nd">@classmethod</span>
+</span><span id="StateSigner.verify-167"><a href="#StateSigner.verify-167"><span class="linenos">167</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">verify</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">token</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span><span id="StateSigner.verify-168"><a href="#StateSigner.verify-168"><span class="linenos">168</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Verify a ``cfs1`` token and return the embedded JSON payload.</span>
+</span><span id="StateSigner.verify-169"><a href="#StateSigner.verify-169"><span class="linenos">169</span></a>
+</span><span id="StateSigner.verify-170"><a href="#StateSigner.verify-170"><span class="linenos">170</span></a><span class="sd">        All configured keys are tried (rotation support), using</span>
+</span><span id="StateSigner.verify-171"><a href="#StateSigner.verify-171"><span class="linenos">171</span></a><span class="sd">        :func:`hmac.compare_digest` for constant-time comparison.</span>
+</span><span id="StateSigner.verify-172"><a href="#StateSigner.verify-172"><span class="linenos">172</span></a>
+</span><span id="StateSigner.verify-173"><a href="#StateSigner.verify-173"><span class="linenos">173</span></a><span class="sd">        Args:</span>
+</span><span id="StateSigner.verify-174"><a href="#StateSigner.verify-174"><span class="linenos">174</span></a><span class="sd">            token: The inbound token string.</span>
+</span><span id="StateSigner.verify-175"><a href="#StateSigner.verify-175"><span class="linenos">175</span></a>
+</span><span id="StateSigner.verify-176"><a href="#StateSigner.verify-176"><span class="linenos">176</span></a><span class="sd">        Returns:</span>
+</span><span id="StateSigner.verify-177"><a href="#StateSigner.verify-177"><span class="linenos">177</span></a><span class="sd">            The verified JSON payload string.</span>
+</span><span id="StateSigner.verify-178"><a href="#StateSigner.verify-178"><span class="linenos">178</span></a>
+</span><span id="StateSigner.verify-179"><a href="#StateSigner.verify-179"><span class="linenos">179</span></a><span class="sd">        Raises:</span>
+</span><span id="StateSigner.verify-180"><a href="#StateSigner.verify-180"><span class="linenos">180</span></a><span class="sd">            CorruptStateError: If the token is malformed, unsigned, tampered</span>
+</span><span id="StateSigner.verify-181"><a href="#StateSigner.verify-181"><span class="linenos">181</span></a><span class="sd">                with, or signed with an unknown key.</span>
+</span><span id="StateSigner.verify-182"><a href="#StateSigner.verify-182"><span class="linenos">182</span></a><span class="sd">            ComponentError: If no signing key is configured.</span>
+</span><span id="StateSigner.verify-183"><a href="#StateSigner.verify-183"><span class="linenos">183</span></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="StateSigner.verify-184"><a href="#StateSigner.verify-184"><span class="linenos">184</span></a>        <span class="n">keys</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_resolve_keys</span><span class="p">()</span>
+</span><span id="StateSigner.verify-185"><a href="#StateSigner.verify-185"><span class="linenos">185</span></a>        <span class="k">if</span> <span class="ow">not</span> <span class="n">keys</span><span class="p">:</span>
+</span><span id="StateSigner.verify-186"><a href="#StateSigner.verify-186"><span class="linenos">186</span></a>            <span class="k">raise</span> <span class="n">ComponentError</span><span class="p">(</span><span class="s2">&quot;StateSigner.verify() called but no signing key is configured&quot;</span><span class="p">)</span>
+</span><span id="StateSigner.verify-187"><a href="#StateSigner.verify-187"><span class="linenos">187</span></a>
+</span><span id="StateSigner.verify-188"><a href="#StateSigner.verify-188"><span class="linenos">188</span></a>        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">token</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+</span><span id="StateSigner.verify-189"><a href="#StateSigner.verify-189"><span class="linenos">189</span></a>            <span class="k">raise</span> <span class="n">CorruptStateError</span><span class="p">(</span>
+</span><span id="StateSigner.verify-190"><a href="#StateSigner.verify-190"><span class="linenos">190</span></a>                <span class="sa">f</span><span class="s2">&quot;Signed state token must be a string, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">token</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&quot;</span>
+</span><span id="StateSigner.verify-191"><a href="#StateSigner.verify-191"><span class="linenos">191</span></a>            <span class="p">)</span>
+</span><span id="StateSigner.verify-192"><a href="#StateSigner.verify-192"><span class="linenos">192</span></a>
+</span><span id="StateSigner.verify-193"><a href="#StateSigner.verify-193"><span class="linenos">193</span></a>        <span class="n">parts</span> <span class="o">=</span> <span class="n">token</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)</span>
+</span><span id="StateSigner.verify-194"><a href="#StateSigner.verify-194"><span class="linenos">194</span></a>        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">3</span> <span class="ow">or</span> <span class="n">parts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="n">TOKEN_VERSION</span><span class="p">:</span>
+</span><span id="StateSigner.verify-195"><a href="#StateSigner.verify-195"><span class="linenos">195</span></a>            <span class="k">raise</span> <span class="n">CorruptStateError</span><span class="p">(</span><span class="s2">&quot;State token is malformed or unsigned&quot;</span><span class="p">)</span>
+</span><span id="StateSigner.verify-196"><a href="#StateSigner.verify-196"><span class="linenos">196</span></a>        <span class="n">_</span><span class="p">,</span> <span class="n">payload_b64</span><span class="p">,</span> <span class="n">mac_b64</span> <span class="o">=</span> <span class="n">parts</span>
+</span><span id="StateSigner.verify-197"><a href="#StateSigner.verify-197"><span class="linenos">197</span></a>
+</span><span id="StateSigner.verify-198"><a href="#StateSigner.verify-198"><span class="linenos">198</span></a>        <span class="k">try</span><span class="p">:</span>
+</span><span id="StateSigner.verify-199"><a href="#StateSigner.verify-199"><span class="linenos">199</span></a>            <span class="n">provided_mac</span> <span class="o">=</span> <span class="n">_b64url_decode</span><span class="p">(</span><span class="n">mac_b64</span><span class="p">)</span>
+</span><span id="StateSigner.verify-200"><a href="#StateSigner.verify-200"><span class="linenos">200</span></a>        <span class="k">except</span> <span class="p">(</span><span class="n">binascii</span><span class="o">.</span><span class="n">Error</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">)</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+</span><span id="StateSigner.verify-201"><a href="#StateSigner.verify-201"><span class="linenos">201</span></a>            <span class="k">raise</span> <span class="n">CorruptStateError</span><span class="p">(</span><span class="s2">&quot;State token MAC is not valid base64&quot;</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
+</span><span id="StateSigner.verify-202"><a href="#StateSigner.verify-202"><span class="linenos">202</span></a>
+</span><span id="StateSigner.verify-203"><a href="#StateSigner.verify-203"><span class="linenos">203</span></a>        <span class="n">signing_input</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_signing_input</span><span class="p">(</span><span class="n">payload_b64</span><span class="p">)</span>
+</span><span id="StateSigner.verify-204"><a href="#StateSigner.verify-204"><span class="linenos">204</span></a>        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
+</span><span id="StateSigner.verify-205"><a href="#StateSigner.verify-205"><span class="linenos">205</span></a>            <span class="n">expected_mac</span> <span class="o">=</span> <span class="n">hmac</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">signing_input</span><span class="p">,</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">)</span><span class="o">.</span><span class="n">digest</span><span class="p">()</span>
+</span><span id="StateSigner.verify-206"><a href="#StateSigner.verify-206"><span class="linenos">206</span></a>            <span class="k">if</span> <span class="n">hmac</span><span class="o">.</span><span class="n">compare_digest</span><span class="p">(</span><span class="n">expected_mac</span><span class="p">,</span> <span class="n">provided_mac</span><span class="p">):</span>
+</span><span id="StateSigner.verify-207"><a href="#StateSigner.verify-207"><span class="linenos">207</span></a>                <span class="k">try</span><span class="p">:</span>
+</span><span id="StateSigner.verify-208"><a href="#StateSigner.verify-208"><span class="linenos">208</span></a>                    <span class="k">return</span> <span class="n">_b64url_decode</span><span class="p">(</span><span class="n">payload_b64</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span>
+</span><span id="StateSigner.verify-209"><a href="#StateSigner.verify-209"><span class="linenos">209</span></a>                <span class="k">except</span> <span class="p">(</span><span class="n">binascii</span><span class="o">.</span><span class="n">Error</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">,</span> <span class="ne">UnicodeDecodeError</span><span class="p">)</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+</span><span id="StateSigner.verify-210"><a href="#StateSigner.verify-210"><span class="linenos">210</span></a>                    <span class="k">raise</span> <span class="n">CorruptStateError</span><span class="p">(</span><span class="s2">&quot;State token payload is not decodable&quot;</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
+</span><span id="StateSigner.verify-211"><a href="#StateSigner.verify-211"><span class="linenos">211</span></a>
+</span><span id="StateSigner.verify-212"><a href="#StateSigner.verify-212"><span class="linenos">212</span></a>        <span class="k">raise</span> <span class="n">CorruptStateError</span><span class="p">(</span><span class="s2">&quot;State signature verification failed&quot;</span><span class="p">)</span>
+</span></pre></div>
+
+
+            <div class="docstring"><p>Verify a <code>cfs1</code> token and return the embedded JSON payload.</p>
+
+<p>All configured keys are tried (rotation support), using
+<code>hmac.compare_digest()</code> for constant-time comparison.</p>
+
+<h6 id="arguments">Arguments:</h6>
+
+<ul>
+<li><strong>token:</strong>  The inbound token string.</li>
+</ul>
+
+<h6 id="returns">Returns:</h6>
+
+<blockquote>
+  <p>The verified JSON payload string.</p>
+</blockquote>
+
+<h6 id="raises">Raises:</h6>
+
+<ul>
+<li><strong>CorruptStateError:</strong>  If the token is malformed, unsigned, tampered
+with, or signed with an unknown key.</li>
+<li><strong>ComponentError:</strong>  If no signing key is configured.</li>
+</ul>
+</div>
+
+
+                            </div>
+                            <div id="StateSigner.warn_unsigned_once" class="classattr">
+                                        <input id="StateSigner.warn_unsigned_once-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
+<div class="attr function">
+                    <div class="decorator decorator-classmethod">@classmethod</div>
+
+        <span class="def">def</span>
+        <span class="name">warn_unsigned_once</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">cls</span></span><span class="return-annotation">) -> <span class="kc">None</span>:</span></span>
+
+                <label class="view-source-button" for="StateSigner.warn_unsigned_once-view-source"><span>View Source</span></label>
+
+    </div>
+    <a class="headerlink" href="#StateSigner.warn_unsigned_once"></a>
+            <div class="pdoc-code codehilite"><pre><span></span><span id="StateSigner.warn_unsigned_once-221"><a href="#StateSigner.warn_unsigned_once-221"><span class="linenos">221</span></a>    <span class="nd">@classmethod</span>
+</span><span id="StateSigner.warn_unsigned_once-222"><a href="#StateSigner.warn_unsigned_once-222"><span class="linenos">222</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">warn_unsigned_once</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="StateSigner.warn_unsigned_once-223"><a href="#StateSigner.warn_unsigned_once-223"><span class="linenos">223</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Log a one-time prominent warning that state is unsigned.&quot;&quot;&quot;</span>
+</span><span id="StateSigner.warn_unsigned_once-224"><a href="#StateSigner.warn_unsigned_once-224"><span class="linenos">224</span></a>        <span class="k">if</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_warned_unsigned</span><span class="p">:</span>
+</span><span id="StateSigner.warn_unsigned_once-225"><a href="#StateSigner.warn_unsigned_once-225"><span class="linenos">225</span></a>            <span class="k">return</span>
+</span><span id="StateSigner.warn_unsigned_once-226"><a href="#StateSigner.warn_unsigned_once-226"><span class="linenos">226</span></a>        <span class="bp">cls</span><span class="o">.</span><span class="n">_warned_unsigned</span> <span class="o">=</span> <span class="kc">True</span>
+</span><span id="StateSigner.warn_unsigned_once-227"><a href="#StateSigner.warn_unsigned_once-227"><span class="linenos">227</span></a>        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+</span><span id="StateSigner.warn_unsigned_once-228"><a href="#StateSigner.warn_unsigned_once-228"><span class="linenos">228</span></a>            <span class="s2">&quot;SECURITY: component state signing is DISABLED — client-carried &quot;</span>
+</span><span id="StateSigner.warn_unsigned_once-229"><a href="#StateSigner.warn_unsigned_once-229"><span class="linenos">229</span></a>            <span class="s2">&quot;state is unsigned and can be tampered with. Set the &quot;</span>
+</span><span id="StateSigner.warn_unsigned_once-230"><a href="#StateSigner.warn_unsigned_once-230"><span class="linenos">230</span></a>            <span class="s2">&quot;</span><span class="si">%s</span><span class="s2"> environment variable or call StateSigner.configure() &quot;</span>
+</span><span id="StateSigner.warn_unsigned_once-231"><a href="#StateSigner.warn_unsigned_once-231"><span class="linenos">231</span></a>            <span class="s2">&quot;with a secret key before deploying to production.&quot;</span><span class="p">,</span>
+</span><span id="StateSigner.warn_unsigned_once-232"><a href="#StateSigner.warn_unsigned_once-232"><span class="linenos">232</span></a>            <span class="n">ENV_VAR</span><span class="p">,</span>
+</span><span id="StateSigner.warn_unsigned_once-233"><a href="#StateSigner.warn_unsigned_once-233"><span class="linenos">233</span></a>        <span class="p">)</span>
+</span></pre></div>
+
+
+            <div class="docstring"><p>Log a one-time prominent warning that state is unsigned.</p>
+</div>
+
+
+                            </div>
+                </section>
     </main>
-<script>
-    function escapeHTML(html) {
-        return document.createElement('div').appendChild(document.createTextNode(html)).parentNode.innerHTML;
-    }
-
-    const originalContent = document.querySelector("main.pdoc");
-    let currentContent = originalContent;
-
-    function setContent(innerHTML) {
-        let elem;
-        if (innerHTML) {
-            elem = document.createElement("main");
-            elem.classList.add("pdoc");
-            elem.innerHTML = innerHTML;
-        } else {
-            elem = originalContent;
-        }
-        if (currentContent !== elem) {
-            currentContent.replaceWith(elem);
-            currentContent = elem;
-        }
-    }
-
-    function getSearchTerm() {
-        return (new URL(window.location)).searchParams.get("search");
-    }
-
-    const searchBox = document.querySelector(".pdoc input[type=search]");
-    searchBox.addEventListener("input", function () {
-        let url = new URL(window.location);
-        if (searchBox.value.trim()) {
-            url.hash = "";
-            url.searchParams.set("search", searchBox.value);
-        } else {
-            url.searchParams.delete("search");
-        }
-        history.replaceState("", "", url.toString());
-        onInput();
-    });
-    window.addEventListener("popstate", onInput);
-
-
-    let search, searchErr;
-
-    async function initialize() {
-        try {
-            search = await new Promise((resolve, reject) => {
-                const script = document.createElement("script");
-                script.type = "text/javascript";
-                script.async = true;
-                script.onload = () => resolve(window.pdocSearch);
-                script.onerror = (e) => reject(e);
-                script.src = "search.js";
-                document.getElementsByTagName("head")[0].appendChild(script);
-            });
-        } catch (e) {
-            console.error("Cannot fetch pdoc search index");
-            searchErr = "Cannot fetch search index.";
-        }
-        onInput();
-
-        document.querySelector("nav.pdoc").addEventListener("click", e => {
-            if (e.target.hash) {
-                searchBox.value = "";
-                searchBox.dispatchEvent(new Event("input"));
-            }
-        });
-    }
-
-    function onInput() {
-        setContent((() => {
-            const term = getSearchTerm();
-            if (!term) {
-                return null
-            }
-            if (searchErr) {
-                return `<h3>Error: ${searchErr}</h3>`
-            }
-            if (!search) {
-                return "<h3>Searching...</h3>"
-            }
-
-            window.scrollTo({top: 0, left: 0, behavior: 'auto'});
-
-            const results = search(term);
-
-            let html;
-            if (results.length === 0) {
-                html = `No search results for '${escapeHTML(term)}'.`
-            } else {
-                html = `<h4>${results.length} search result${results.length > 1 ? "s" : ""} for '${escapeHTML(term)}'.</h4>`;
-            }
-            for (let result of results.slice(0, 10)) {
-                let doc = result.doc;
-                let url = `${doc.modulename.replaceAll(".", "/")}.html`;
-                if (doc.qualname) {
-                    url += `#${doc.qualname}`;
-                }
-
-                let heading;
-                switch (result.doc.kind) {
-                    case "function":
-                        if (doc.fullname.endsWith(".__init__")) {
-                            heading = `<span class="name">${doc.fullname.replace(/\.__init__$/, "")}</span>${doc.signature}`;
-                        } else {
-                            heading = `<span class="def">${doc.funcdef}</span> <span class="name">${doc.fullname}</span>${doc.signature}`;
-                        }
-                        break;
-                    case "class":
-                        heading = `<span class="def">class</span> <span class="name">${doc.fullname}</span>`;
-                        if (doc.bases)
-                            heading += `<wbr>(<span class="base">${doc.bases}</span>)`;
-                        heading += `:`;
-                        break;
-                    case "variable":
-                        heading = `<span class="name">${doc.fullname}</span>`;
-                        if (doc.annotation)
-                            heading += `<span class="annotation">${doc.annotation}</span>`;
-                        if (doc.default_value)
-                            heading += `<span class="default_value"> = ${doc.default_value}</span>`;
-                        break;
-                    default:
-                        heading = `<span class="name">${doc.fullname}</span>`;
-                        break;
-                }
-                html += `
-                        <section class="search-result">
-                        <a href="${url}" class="attr ${doc.kind}">${heading}</a>
-                        <div class="docstring">${doc.doc}</div>
-                        </section>
-                    `;
-
-            }
-            return html;
-        })());
-    }
-
-    if (getSearchTerm()) {
-        initialize();
-        searchBox.value = getSearchTerm();
-        onInput();
-    } else {
-        searchBox.addEventListener("focus", initialize, {once: true});
-    }
-
-    searchBox.addEventListener("keydown", e => {
-        if (["ArrowDown", "ArrowUp", "Enter"].includes(e.key)) {
-            let focused = currentContent.querySelector(".search-result.focused");
-            if (!focused) {
-                currentContent.querySelector(".search-result").classList.add("focused");
-            } else if (
-                e.key === "ArrowDown"
-                && focused.nextElementSibling
-                && focused.nextElementSibling.classList.contains("search-result")
-            ) {
-                focused.classList.remove("focused");
-                focused.nextElementSibling.classList.add("focused");
-                focused.nextElementSibling.scrollIntoView({
-                    behavior: "smooth",
-                    block: "nearest",
-                    inline: "nearest"
-                });
-            } else if (
-                e.key === "ArrowUp"
-                && focused.previousElementSibling
-                && focused.previousElementSibling.classList.contains("search-result")
-            ) {
-                focused.classList.remove("focused");
-                focused.previousElementSibling.classList.add("focused");
-                focused.previousElementSibling.scrollIntoView({
-                    behavior: "smooth",
-                    block: "nearest",
-                    inline: "nearest"
-                });
-            } else if (
-                e.key === "Enter"
-            ) {
-                focused.querySelector("a").click();
-            }
-        }
-    });
-</script></body>
+</body>
 </html>
