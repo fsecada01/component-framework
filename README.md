@@ -1,259 +1,102 @@
 # Component Framework
 
-> **BETA SOFTWARE** — APIs are stabilising. Core features are complete and test-covered. Minor breaking changes may still occur before 1.0.
+> **Beta** — the core lifecycle, permissions, composition, and testing utilities are stable, but the public API can still change before 1.0. Not yet published to PyPI (see [Installation](#installation)).
 
-Framework-agnostic server components with LiveView-style interactivity inspired by Phoenix LiveView and Laravel Livewire.
+Server-driven UI components for Python web frameworks, in the style of Phoenix LiveView and Laravel Livewire: state and event handling live on the server, and [HTMX](https://htmx.org/) handles the client-side wiring instead of a JavaScript framework.
 
 [![CI](https://github.com/fsecada01/component-framework/actions/workflows/ci.yml/badge.svg)](https://github.com/fsecada01/component-framework/actions/workflows/ci.yml)
 [![Docs](https://github.com/fsecada01/component-framework/actions/workflows/docs.yml/badge.svg)](https://github.com/fsecada01/component-framework/actions/workflows/docs.yml)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Status: Beta](https://img.shields.io/badge/status-beta-blue.svg)](https://fsecada01.github.io/component-framework/)
 
 ---
 
-## Development Status
+## The problem this solves
 
-**Current Version:** 0.5.1-beta
-**API Documentation:** [fsecada01.github.io/component-framework](https://fsecada01.github.io/component-framework/)
+Adding interactivity to a server-rendered Python app usually means one of two paths: hand-roll a pile of endpoint-specific JavaScript, or bring in a separate SPA framework (React, Vue) and split your app into a Python API plus a JS frontend. Both add real cost — a second toolchain and build pipeline for the SPA route, or a growing pile of bespoke `fetch`/DOM-patching code for the hand-rolled route.
 
-The framework has a complete, tested feature set covering the full Beta roadmap. APIs are solidifying — the core lifecycle, permissions, composition, and testing utilities are stable. We welcome feedback before the 1.0 release.
+Component Framework gives you a third option, closer to how Phoenix LiveView, Rails Hotwire, and Laravel Livewire work: your component's Python class owns state and event handlers, the server renders HTML (via Jinja2, JinjaX, or Django templates), and a single ~500-line vanilla JS client (no build step, no bundler) sends events and swaps the returned markup into the page. There's no client-side state store to keep in sync with the server.
+
+It's aimed at teams already building on FastAPI, Django, Litestar, or Flask who want LiveView-style interactive widgets — dashboards, forms, admin panels, real-time counters/carts — without adding a second frontend stack.
 
 ---
 
-## Adapter Support
+## How it works
 
-| Framework | Status | Install extra | Notes |
-|-----------|--------|---------------|-------|
-| **FastAPI** | ✅ Supported | `[fastapi]` | Includes JinjaX renderer and WebSocket adapter |
-| **Django** | ✅ Supported | `[django]` | Includes Channels, Cotton, and template renderer |
-| **Litestar** | ✅ Supported | `[litestar]` | HTTP + WebSocket adapters (0.4.0+) |
-| **Flask** | ✅ Supported | `[flask]` | Jinja2 renderer + HTTP blueprint |
+```
+Browser (HTMX + component-client.js)
+        |  fetch POST /components/<name>  (event + payload)
+Framework Adapter  (FastAPI / Django / Litestar / Flask)
+        |
+Component Framework Core
+  - Lifecycle:  mount → hydrate → handle_event → render → dehydrate
+  - Event routing:   on_<event> methods, resolved by convention (sync + async)
+  - State:           server-owned JSON, round-tripped to the client each request
+  - Renderer:         pluggable (JinjaX, Django templates, Jinja2, or custom)
+        |
+Backend (database / services)
+```
+
+Each request round-trip re-hydrates the component from the state the previous response sent down, dispatches the event to an `on_<event>` (or `async def on_<event>`) handler, re-renders, and returns HTML plus the new state. The client (`component-client.js`, in `src/component_framework/static/`) has no framework dependency — it reads `data-component`/`data-event`/`data-payload` attributes, POSTs the event, and swaps in the response. Today that swap is a full re-render of the component's markup (`innerHTML`); DOM morphing that preserves focus/scroll/in-flight input is on the [near-term roadmap](#roadmap), not implemented yet.
+
+Because state round-trips through the client by default, the framework includes:
+- **State size guards** — a 64 KB warning and a 512 KB hard limit on serialized state (`core/component.py`).
+- **Optional HMAC state signing** — sign outbound state and reject tampered/unsigned state on the way back in ([`docs/STATE_SIGNING.md`](docs/STATE_SIGNING.md)).
+- **Locked fields** — declare state keys (roles, prices, user IDs) that the client can never influence; they're stripped from what's sent to the client and re-derived server-side on every request ([`docs/LOCKED_FIELDS.md`](docs/LOCKED_FIELDS.md)).
+
+---
+
+## Framework support
+
+| Framework | HTTP dispatch | WebSocket | SSE streaming | Renderer | Install extra |
+|---|---|---|---|---|---|
+| **FastAPI** | Yes | Yes (`fastapi_websocket.py`) | Yes | JinjaX | `[fastapi]` |
+| **Django** | Yes (FBV + CBV) | Yes (Channels) | Yes | Django templates, `django-cotton` | `[django]` |
+| **Litestar** | Yes | Yes (`litestar_websocket.py`) | Yes | Jinja2 | `[litestar]` |
+| **Flask** | Yes | Not yet (planned) | Not yet (planned) | Flask's Jinja2 environment | `[flask]` |
+
+A few things are Django-only today even though the underlying hook is framework-agnostic in `core/`:
+- **CSRF protection** — enforced via Django's `CsrfViewMiddleware`. FastAPI, Litestar, and Flask have **no CSRF enforcement** in the adapter itself; see [`docs/SECURITY_CSRF.md`](docs/SECURITY_CSRF.md) for the full per-adapter audit and integration guidance before putting cookie/session auth in front of those adapters.
+- **`RateLimitMixin`** and **`CacheMixin`** — both wrap Django's cache framework (`adapters/django_ratelimit.py`, `adapters/django_views.py`); no FastAPI/Litestar/Flask equivalent exists yet.
+- **Server-confirmed optimistic patches** — `Component.get_optimistic_patch()` is defined on the framework-agnostic base class, but only the Django adapter currently surfaces it in the response payload. Client-side optimistic prediction (`data-optimistic` attributes in `component-client.js`) works with every adapter, since it's pure client-side JS talking to any of them over HTTP.
 
 ---
 
 ## Installation
 
-Install only what you need — `pydantic` is the only mandatory dependency:
-
-```bash
-# Django projects
-pip install "component-framework[django]"
-
-# FastAPI projects
-pip install "component-framework[fastapi]"
-
-# Litestar projects
-pip install "component-framework[litestar]"
-
-# Flask projects
-pip install "component-framework[flask]"
-
-# Multiple adapters
-pip install "component-framework[fastapi,django,litestar,flask]"
-
-# Everything
-pip install "component-framework[all]"
-```
-
-### Migrating from 0.2.x
-
-> ⚠️ **Breaking change in 0.3.0**: `fastapi`, `uvicorn`, and `jinjax` are no longer
-> installed by default.
-
-If you were using the FastAPI adapter, add `[fastapi]` to your install command:
-
-```bash
-# Before
-pip install component-framework
-
-# After
-pip install "component-framework[fastapi]"
-```
-
-**CI pipelines** — any workflow step that installs `component-framework` without
-specifying an extras group will stop receiving FastAPI automatically. Update all
-install commands in your GitHub Actions, Dockerfile, tox.ini, Makefile, or other
-CI configuration files.
-
-See [CHANGELOG.md](CHANGELOG.md) for the full list of changes.
-
----
-
-## Features
-
-### Core
-- **Framework-agnostic** — Works with FastAPI, Django, Litestar, and more
-- **Server-driven UI** — State lives on the server, not the client
-- **Minimal JavaScript** — HTMX handles frontend interactions
-- **Reusable components** — Clean OOP boundaries with lifecycle hooks
-- **Pluggable renderers** — Jinjax, Django templates, or your own
-- **Async event handlers** — `async def on_*` handlers properly awaited via `async_dispatch()`
-- **SSE streaming** — `StreamingComponent` for long-running operations with intermediate renders
-- **State size guard** — Configurable warning (64 KB) and hard limit (512 KB) on serialised state
-
-### Forms & Validation
-- **Pydantic validation** — Type-safe form handling
-- **Field-level errors** — Live error feedback
-- **Automatic state sync** — Form state synchronised with component state
-
-### Access Control
-- **Permission classes** — `AllowAny`, `IsAuthenticated`, `IsStaff`, `IsSuperuser`, `DjangoModelPermission`
-- **FBV decorators** — `login_required_component`, `permission_required_component`, `staff_required_component` returning JSON 401/403
-- **Component-level control** — `permission_classes` attribute checked by both FBV and CBV automatically
-- **JSON-only responses** — No login redirects for API/HTMX consumers
-
-### Rate Limiting
-- **`RateLimitMixin`** — Per-component, per-user sliding-window rate limiting
-- **Configurable** — Custom limits and windows per component class
-- **429 responses** — Consistent JSON `{"error": "Rate limit exceeded"}` on breach
-
-### Component Composition
-- **`SlotComponent`** — Named and default slot support
-- **`CompositeComponent`** — Compose components from named child components
-- **Context propagation** — Parent context flows to child components
-
-### Optimistic UI
-- **`OptimisticMixin`** — `get_optimistic_patch()` for instant client-side feedback before server confirmation
-- **Rollback support** — Revert on error
-
-### Django Integration
-- **Model binding** — Direct ORM integration
-- **Query optimisation** — `select_related`, `prefetch_related`
-- **Transaction support** — Safe database updates
-- **Django templates** — Native template rendering
-- **Cotton support** — `django-cotton` integration
-- **CBVs** — Class-based views with auth/permissions, JSON error responses
-
-### Real-Time Updates
-- **WebSocket support** — Real-time component updates
-- **SSE streaming** — `StreamingComponent` with async generator handlers for progressive rendering
-- **Broadcasting** — Multi-client synchronisation
-- **Django Channels** — Full Channels integration
-- **FastAPI WebSocket** — Native FastAPI support
-- **Litestar WebSocket** — Native Litestar support
-
-### Caching
-- **`CacheMixin`** — Configurable per-component render caching
-- **Cache invalidation** — Manual and event-driven invalidation
-- **Django cache backend** — Works with any Django cache backend
-
-### Testing Utilities
-- **`ComponentTestCase`** — Test components without HTTP, without a running server
-- **Event simulation** — `dispatch_event()`, `mount_component()`
-- **State assertions** — `assert_state()`, `assert_rendered()`
-- **pytest fixtures** — Ready-to-use fixtures for common patterns
-
----
-
-## Quick Start
-
-### Installation
+**Not on PyPI yet** — install from source:
 
 ```bash
 git clone https://github.com/fsecada01/component-framework.git
 cd component-framework
 
-# Install with uv (recommended)
-uv pip install -e ".[dev]"
+# uv (recommended)
+uv pip install -e ".[fastapi]"   # or [django] / [litestar] / [flask] / [all]
+
+# or with pip
+pip install -e ".[fastapi]"
 ```
 
-### FastAPI Example
+`pydantic>=2.0` is the only mandatory dependency; everything else — FastAPI, Django, Litestar, Flask, JinjaX, Channels — is an optional extra so you only pull in what you use.
+
+```bash
+pip install -e ".[fastapi]"                        # single adapter
+pip install -e ".[fastapi,django,litestar,flask]"   # several
+pip install -e ".[all]"                             # everything, including dev-adjacent websockets extra
+```
+
+> Extras were made optional in 0.3.0 — if you're on an older checkout that assumed `fastapi`/`uvicorn`/`jinjax` installed by default, see [CHANGELOG.md](CHANGELOG.md).
+
+---
+
+## Quick start
+
+### FastAPI
 
 ```bash
 python examples/fastapi_example.py
-# Open http://localhost:8000
+# http://localhost:8000
 ```
-
-#### Sharing an existing JinjaX catalog
-
-Most FastAPI + JinjaX projects already create a `Catalog` at startup — often
-sharing its Jinja environment with `Jinja2Templates` so page templates and
-components see the same custom filters, globals (e.g. `url_for`), and extensions.
-
-**Pass that existing catalog to `JinjaxRenderer`** — do not create a new one:
-
-```python
-# consts.py — your existing setup
-from fastapi.templating import Jinja2Templates
-from jinjax import Catalog, JinjaX
-
-templates = Jinja2Templates(directory="templates")
-templates.env.add_extension(JinjaX)              # share one Jinja environment
-templates.env.globals["url_for"] = my_url_for    # custom global
-catalog = Catalog(jinja_env=templates.env)       # catalog reuses that env
-catalog.add_folder("templates/components")
-
-# Wire the component framework to the SAME catalog
-from component_framework.adapters.jinjax_renderer import JinjaxRenderer
-from component_framework.core.component import Component
-
-Component.renderer = JinjaxRenderer(catalog)     # ✅ inherits filters/globals/extensions
-```
-
-> ⚠️ Creating a **fresh** `Catalog()` (as in minimal examples) gives it a *new,
-> empty* Jinja environment. Component templates then silently lose your
-> `url_for`, custom filters, and extensions and render incorrectly. Always hand
-> `JinjaxRenderer` the catalog your app already configured.
-
-### Django Example
-
-```bash
-cd examples/django_example
-python manage.py migrate
-python manage.py runserver
-# Open http://localhost:8000
-```
-
-### Flask Example
-
-```bash
-pip install "component-framework[flask]"
-python examples/flask_example.py
-# Open http://localhost:5000
-```
-
-Wire the endpoint and a shared renderer into your own app:
-
-```python
-from flask import Flask
-from component_framework.adapters.flask import FlaskRenderer, register_component_routes
-from component_framework.core.component import Component
-
-app = Flask(__name__)
-Component.renderer = FlaskRenderer(app)   # shares app.jinja_env (filters/globals)
-register_component_routes(app)            # POST /components/<name>
-```
-
----
-
-## Documentation
-
-**API Reference:** [fsecada01.github.io/component-framework](https://fsecada01.github.io/component-framework/)
-
-Generated from docstrings by pdoc and deployed to GitHub Pages on every push to `master` and on every `v*` release tag.
-
-| Guide | Description |
-|-------|-------------|
-| [Architecture Overview](docs/server_component_spec.md) | Core design and component lifecycle |
-| [Django Implementation](docs/DJANGO_IMPLEMENTATION.md) | Django adapter setup and patterns |
-| [Class-Based Views](docs/CBV_GUIDE.md) | CBV auth/permission patterns |
-| [State Signing](docs/STATE_SIGNING.md) | HMAC-signed client state: setup per adapter + key rotation |
-| [Locked Fields](docs/LOCKED_FIELDS.md) | Server-trusted state fields the client can never influence (replay/rollback defense) |
-| [E-Commerce Example](docs/examples/ecommerce.md) | Real-time cart + product demo |
-| [Multi-Step Wizard](docs/examples/wizard.md) | FastAPI wizard recipe (enable [state signing](docs/STATE_SIGNING.md) in production) |
-| [CSRF & CSWSH Guide](docs/SECURITY_CSRF.md) | Per-adapter CSRF coverage audit + WebSocket hijacking guidance |
-
-### AI / LLM Context
-
-- [Project Context](CLAUDE.md) — loaded automatically by Claude Code
-- [Orchestration Workflow](prompts/WORKFLOW.md) — multi-agent routing, model selection, RTK
-
----
-
-## Example Components
-
-### Simple Counter
 
 ```python
 from component_framework.core import Component, registry
@@ -269,9 +112,81 @@ class Counter(Component):
         self.state["count"] += amount
 ```
 
-### Form with Validation
+Wiring an existing JinjaX `Catalog` (most FastAPI + JinjaX apps already have one, often sharing its Jinja environment with `Jinja2Templates`) — pass that catalog in rather than creating a fresh one, or component templates silently lose your app's filters/globals/extensions:
 
 ```python
+from component_framework.adapters.jinjax_renderer import JinjaxRenderer
+from component_framework.core.component import Component
+
+Component.renderer = JinjaxRenderer(catalog)   # the catalog your app already built
+```
+
+### Django
+
+```bash
+cd examples/django_example
+python manage.py migrate
+python manage.py runserver
+# http://localhost:8000
+```
+
+### Litestar
+
+```bash
+python examples/litestar_example.py
+# http://localhost:8000
+```
+
+### Flask
+
+```bash
+python examples/flask_example.py
+# http://localhost:5000
+```
+
+```python
+from flask import Flask
+from component_framework.adapters.flask import FlaskRenderer, register_component_routes
+from component_framework.core.component import Component
+
+app = Flask(__name__)
+Component.renderer = FlaskRenderer(app)   # shares app.jinja_env
+register_component_routes(app)            # POST /components/<name>
+```
+
+---
+
+## Features
+
+**Core** (framework-agnostic, `core/`)
+- Component lifecycle with `mount` / `hydrate` / `handle_event` / `render` / `dehydrate`
+- Async event handlers — `async def on_*`, dispatched via `async_dispatch()`
+- Pluggable renderers — JinjaX, Django templates, Jinja2, or a custom `Renderer`
+- `FormComponent` — Pydantic-validated forms with field-level errors, state kept in sync
+- `SlotComponent` / `CompositeComponent` — named slots and composing components from named children, with context propagation
+- `StreamingComponent` — SSE endpoints for long-running operations with intermediate renders (FastAPI, Litestar, Django)
+- Permission classes — `AllowAny`, `IsAuthenticated`, `IsStaff`, `IsSuperuser`, `DjangoModelPermission`; checked automatically wherever a component declares `permission_classes`
+- `ComponentTestCase` — mount components and dispatch events in tests without a running server; `dispatch_event()`, `mount_component()`, `assert_state()`, `assert_rendered()`
+
+**Security**
+- Optional HMAC-SHA256 state signing (`core/signing.py`, `StateSigner`) — versioned `cfs1.<payload>.<mac>` tokens, key rotation via comma-separated keys, tampered/raw-dict state rejected with HTTP 400
+- `locked_fields` — server-trusted state keys stripped from outbound state and re-derived on every inbound request
+- 64 KB warn / 512 KB hard limit on serialized state size
+- CSRF: enforced on Django only today — see [`docs/SECURITY_CSRF.md`](docs/SECURITY_CSRF.md)
+
+**Django-specific**
+- Model binding (`DjangoModelComponent`) with `select_related`/`prefetch_related` and transactional saves
+- Class-based views with auth/permission handling and JSON (not redirect) error responses
+- `django-cotton` template support
+- Django Channels WebSocket consumer with broadcast/subscribe
+- `RateLimitMixin` (sliding-window, per-component/per-user, JSON 429s) and `CacheMixin` (render caching via Django's cache framework)
+
+---
+
+## More examples
+
+```python
+# Pydantic-validated form
 from pydantic import BaseModel, EmailStr
 from component_framework.core import FormComponent
 
@@ -288,25 +203,8 @@ class ContactForm(FormComponent):
         send_email(self.validated_data)
 ```
 
-### Component with Permissions & Rate Limiting
-
 ```python
-from component_framework.core.permissions import IsAuthenticated
-from component_framework.adapters.django_ratelimit import RateLimitMixin
-
-@registry.register("order_actions")
-class OrderActions(RateLimitMixin, Component):
-    permission_classes = [IsAuthenticated]
-    rate_limit = 10          # requests
-    rate_limit_window = 60   # seconds
-
-    def on_submit_order(self):
-        ...
-```
-
-### Component Composition
-
-```python
+# Composition: slots + a composite parent
 from component_framework.core.composition import SlotComponent, CompositeComponent
 
 @registry.register("card")
@@ -316,15 +214,11 @@ class Card(SlotComponent):
 
 @registry.register("product_page")
 class ProductPage(CompositeComponent):
-    components = {
-        "card": Card,
-        "cart": CartComponent,
-    }
+    components = {"card": Card, "cart": CartComponent}
 ```
 
-### Django Model Component
-
 ```python
+# Django model-bound component
 from component_framework.adapters.django_model import DjangoModelComponent
 
 @registry.register("order_editor")
@@ -338,9 +232,8 @@ class OrderEditor(DjangoModelComponent):
         self.save_instance()
 ```
 
-### Testing with ComponentTestCase
-
 ```python
+# Testing a component without an HTTP server
 from component_framework.testing import ComponentTestCase
 
 class TestCounter(ComponentTestCase):
@@ -351,107 +244,44 @@ class TestCounter(ComponentTestCase):
         self.assert_state(component, count=5)
 ```
 
----
-
-## Architecture
-
-```
-Browser (HTMX/WebSocket/SSE)
-        |
-Framework Adapter  (FastAPI / Django / Litestar)
-        |
-Component Framework Core
-  - Component lifecycle  (mount → hydrate → handle_event → render → dehydrate)
-  - Event routing        (convention-based on_<event> handlers, sync + async)
-  - State management     (server-owned JSON state with size guards)
-  - Streaming            (StreamingComponent for SSE progressive rendering)
-  - Permissions          (per-component permission_classes)
-  - Composition          (SlotComponent, CompositeComponent)
-        |
-Backend (Database / Services)
-```
+More worked examples: [`docs/examples/ecommerce.md`](docs/examples/ecommerce.md) (real-time cart), [`docs/examples/wizard.md`](docs/examples/wizard.md) (multi-step FastAPI wizard), and the runnable apps under [`examples/`](examples/).
 
 ---
 
-## Project Structure
+## Documentation
+
+Full docs (generated from docstrings via [pdoc](https://pdoc.dev/), versioned per release): **[fsecada01.github.io/component-framework](https://fsecada01.github.io/component-framework/)**
+
+| Guide | Covers |
+|---|---|
+| [Architecture spec](docs/server_component_spec.md) | Core design goals and component lifecycle |
+| [Django implementation](docs/DJANGO_IMPLEMENTATION.md) | Django adapter setup and patterns |
+| [Class-based views](docs/CBV_GUIDE.md) | Django CBV auth/permission patterns |
+| [State signing](docs/STATE_SIGNING.md) | HMAC state setup per adapter, key rotation |
+| [Locked fields](docs/LOCKED_FIELDS.md) | Server-trusted state fields, threat model |
+| [CSRF & CSWSH guide](docs/SECURITY_CSRF.md) | Per-adapter CSRF audit, WebSocket hijacking guidance |
+| [E-commerce example](docs/examples/ecommerce.md) | Real-time cart + product walkthrough |
+| [Multi-step wizard](docs/examples/wizard.md) | FastAPI wizard recipe |
+
+---
+
+## Project layout
 
 ```
 component-framework/
 ├── src/component_framework/
-│   ├── core/                        # Framework-agnostic core
-│   │   ├── component.py             # Base Component class + lifecycle
-│   │   ├── form.py                  # Pydantic form validation
-│   │   ├── websocket.py             # WebSocket manager
-│   │   ├── registry.py              # Component registration
-│   │   ├── renderer.py              # Renderer interface
-│   │   ├── state.py                 # State storage
-│   │   ├── streaming.py             # StreamingComponent + SSE support
-│   │   ├── permissions.py           # Permission classes (Beta)
-│   │   └── composition.py           # Slot + composite components (Beta)
-│   │
-│   ├── adapters/                    # Framework adapters
-│   │   ├── fastapi.py               # FastAPI integration
-│   │   ├── fastapi_websocket.py     # FastAPI WebSocket
-│   │   ├── django_views.py          # Django views (FBV + CBV)
-│   │   ├── django_model.py          # Django model binding
-│   │   ├── django_renderer.py       # Django template rendering
-│   │   ├── django_websocket.py      # Django Channels
-│   │   ├── django_permissions.py    # FBV permission decorators (Beta)
-│   │   ├── django_ratelimit.py      # Rate limiting mixin (Beta)
-│   │   ├── jinjax_renderer.py       # Jinjax rendering
-│   │   ├── litestar.py              # Litestar HTTP + SSE adapter
-│   │   └── litestar_websocket.py    # Litestar WebSocket adapter
-│   │
-│   ├── testing.py                   # ComponentTestCase + fixtures (Beta)
-│   ├── components/                  # Example components
-│   └── templatetags/components.py   # Django template tags
-│
-├── examples/
-│   ├── fastapi_example.py           # FastAPI demo
-│   ├── fastapi_wizard_example.py    # Multi-step wizard demo
-│   ├── litestar_example.py          # Litestar demo
-│   └── django_example/              # Complete Django app
-│
-├── tests/                           # 23 test modules, 404 tests
-│   ├── test_component.py            # Core component + async dispatch tests
-│   ├── test_form.py                 # Form validation tests
-│   ├── test_registry.py             # Registry tests
-│   ├── test_state.py                # State storage tests
-│   ├── test_streaming.py            # StreamingComponent + SSE tests
-│   ├── test_websocket.py            # WebSocket manager tests
-│   ├── test_fastapi_adapter.py      # FastAPI adapter tests
-│   ├── test_fastapi_sse.py          # FastAPI SSE endpoint tests
-│   ├── test_fastapi_websocket.py    # FastAPI WebSocket tests
-│   ├── test_litestar_adapter.py     # Litestar adapter tests
-│   ├── test_litestar_sse.py         # Litestar SSE endpoint tests
-│   ├── test_django_views.py         # Django views tests
-│   ├── test_django_model.py         # Django model binding tests
-│   ├── test_django_renderer.py      # Django renderer tests
-│   ├── test_django_websocket.py     # Django Channels tests
-│   ├── test_templatetags.py         # Template tags tests
-│   ├── test_permissions.py          # Permission class tests (Beta)
-│   ├── test_composition.py          # Composition tests (Beta)
-│   ├── test_testing_utils.py        # Testing utility tests (Beta)
-│   ├── test_caching.py              # Cache mixin tests (Beta)
-│   ├── test_ratelimit.py            # Rate limit tests (Beta)
-│   ├── test_optimistic.py           # Optimistic UI tests (Beta)
-│   └── test_optional_extras.py      # Optional extras isolation tests
-│
-├── docs/                            # Documentation
-│   ├── make.py                      # pdoc build script
-│   ├── docs_settings.py             # Minimal Django settings for pdoc
-│   ├── pdoc_templates/              # Custom pdoc templates (terminal brutalism)
-│   ├── update_gh_pages.py           # CI helper: versions.json + root index
-│   └── examples/
-│       ├── ecommerce.md             # Real-time e-commerce walkthrough
-│       └── wizard.md                # Multi-step wizard recipe (FastAPI)
-│
-├── .github/workflows/
-│   ├── ci.yml                       # Tests, lint, type check (Python 3.11–3.14)
-│   └── docs.yml                     # pdoc build + versioned GitHub Pages deploy
-│
-├── justfile                         # Task runner
-├── .pre-commit-config.yaml          # ruff + ty hooks
+│   ├── core/            # Framework-agnostic: component, form, state, streaming,
+│   │                     #   registry, renderer, permissions, composition, signing
+│   ├── adapters/         # fastapi[.py|_websocket.py], litestar[.py|_websocket.py],
+│   │                     #   flask.py, django_*.py, jinjax_renderer.py
+│   ├── testing.py        # ComponentTestCase + pytest fixtures
+│   ├── static/            # component-client.js (vanilla JS, no build step) + CSS
+│   └── templatetags/     # Django template tags
+├── examples/              # fastapi_example.py, fastapi_form_example.py,
+│                          #   fastapi_wizard_example.py, litestar_example.py,
+│                          #   flask_example.py, django_example/ (full app)
+├── tests/                 # 28 modules, 477 tests (pytest -q)
+├── docs/                  # Guides (Markdown) + pdoc-generated API site
 └── pyproject.toml
 ```
 
@@ -460,224 +290,69 @@ component-framework/
 ## Testing
 
 ```bash
-# Run full test suite
-just test
-
-# Verbose output
-just test-verbose
-
-# Core tests only
-just test-core
-
-# Adapter tests only
-just test-adapters
-
-# Or pytest directly
 pytest tests/ -q --tb=short
+
+# or via the justfile
+just test              # full suite
+just test-core         # core/ only
+just test-adapters     # adapters/ only
 ```
 
-CI runs against Python 3.11, 3.12, 3.13, and 3.14 on every push and pull request.
+CI (`.github/workflows/ci.yml`) runs the suite on Python 3.11, 3.12, 3.13, and 3.14, plus `ruff` and [`ty`](https://github.com/astral-sh/ty) (Astral's type checker), on every push and pull request.
 
 ---
 
 ## Development
 
-### Setup
-
 ```bash
-just install                # Install all deps (just: https://github.com/casey/just)
+just install                # install with the dev extra (uv pip install -e ".[dev]")
+just pre-commit-install     # ruff + ty pre-commit hooks
 
-# Or manually
-uv pip install -e ".[dev]"
-
-just pre-commit-install     # Install ruff + ty pre-commit hooks
+just format / just lint / just lint-fix / just check
+just docs-build / just docs-serve   # pdoc, http://localhost:8000
 ```
 
-### Common Commands
+Contributions: open an issue for anything non-trivial before starting; small fixes can go straight to a PR. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
-```bash
-just format          # Format code with ruff
-just lint            # Lint with ruff
-just lint-fix        # Lint and auto-fix
-just check           # lint + format-check + tests
+---
 
-just docs-build      # Build API docs -> docs/site/
-just docs-serve      # Start pdoc dev server (localhost:8000)
-just docs-check      # Verify pdoc is installed and show config
-just docs-clean      # Remove docs/site/
+## Known limitations
 
-just clean           # Remove build artifacts
-just build           # Build the package
-```
-
-### Claude Code Development
-
-```bash
-just claude                          # Interactive Claude Code
-just claude-unsafe                   # Skip permission prompts (trusted env only)
-just claude-prompt                   # Append CLAUDE.md as system prompt
-just claude-unsafe-prompt            # System prompt + skip permissions
-just claude-orchestrate              # Full orchestration workflow
-
-# Override prompt file
-just claude-prompt PROMPT_FILE=prompts/WORKFLOW.md
-```
-
-| Prompt file | Purpose |
-|------------|---------|
-| `CLAUDE.md` | Project architecture, conventions, guidelines (default) |
-| `prompts/WORKFLOW.md` | Multi-agent orchestration, model selection, RTK token efficiency |
-
-### Code Quality
-
-- **[ruff](https://docs.astral.sh/ruff/)** — Linting and formatting (line length: 100)
-- **[ty](https://github.com/astral-sh/ty)** — Type checking (Astral's Rust-based)
-- **pre-commit** — Git hooks: trailing whitespace, YAML, merge conflicts, ruff, ty
-
-### Contributing
-
-1. Open an issue first to discuss major changes
-2. Follow existing code style (ruff)
-3. Add tests for new features
-4. Update docstrings (used for API docs)
-5. Keep PRs focused and small
+- CSRF is enforced on Django only; FastAPI, Litestar, and Flask have no CSRF protection in the adapter — read [`docs/SECURITY_CSRF.md`](docs/SECURITY_CSRF.md) before putting cookie/session auth in front of them.
+- No origin check or handshake token on any WebSocket adapter (Cross-Site WebSocket Hijacking exposure) — see the same doc.
+- `RateLimitMixin` and `CacheMixin` are Django-only.
+- Flask has no WebSocket or SSE support yet.
+- The client does a full markup replace on each update, not a DOM morph — in-flight input, focus, and scroll position aren't preserved across a re-render.
+- Component state must be JSON-serializable, capped at 512 KB serialized.
+- WebSocket fan-out across multiple server processes requires a Redis-backed channel layer (Django Channels).
 
 ---
 
 ## Roadmap
 
-### Alpha (Complete)
-- [x] Core component framework
-- [x] FastAPI adapter
-- [x] Django adapter
-- [x] Form validation
-- [x] Model binding
-- [x] WebSocket support
-- [x] Class-based views
-- [x] CI pipeline (GitHub Actions)
-- [x] Pre-commit hooks (ruff + ty)
-- [x] Comprehensive test suite
+Beta features through 0.5.1 (permissions, rate limiting, caching, composition, testing utilities, the Litestar and Flask adapters, optional HMAC state signing, locked fields) are shipped. What's next, in order, is scoped in [CHANGELOG.md](CHANGELOG.md) and tracked via [GitHub milestones](https://github.com/fsecada01/component-framework/milestones):
 
-### Beta (Complete)
-- [x] Permission classes and FBV decorators
-- [x] Rate limiting (`RateLimitMixin`)
-- [x] Component caching (`CacheMixin`)
-- [x] Optimistic UI (`OptimisticMixin`)
-- [x] Component composition (slots, composite)
-- [x] Testing utilities (`ComponentTestCase`)
-- [x] Versioned API documentation (GitHub Pages + pdoc)
-- [x] Optional extras — FastAPI/Uvicorn/JinjaX no longer mandatory (`[fastapi]`, `[django]`, `[all]`)
-
-### 0.4.0 (Complete)
-- [x] Litestar adapter — HTTP, WebSocket, SSE (`[litestar]` extra)
-- [x] Async event handlers — `async_dispatch()` / `async_handle_event()`
-- [x] SSE streaming — `StreamingComponent` with async generator handlers
-- [x] State size guard — configurable warning (64 KB) and hard limit (512 KB)
-- [x] JS double-serialisation fix in `component-client.js`
-
-### 0.5.0 (Complete)
-- [x] Flask adapter — `FlaskRenderer` + HTTP blueprint (`[flask]` extra)
-- [x] Optimistic UI patching in the client (`component-client.js` + `component-framework.css`)
-- [x] JinjaX catalog sharing guidance (reuse the host app's `Catalog`)
-
-### Path to 1.0 (Planned)
-
-The road to a **production-grade** 1.0 is scoped into milestones, derived from a
-[market & gap analysis](claudedocs/research_liveview_market_2026-06-24.md) against
-Phoenix LiveView, Livewire, and Hotwire. Full work breakdown (epics, dependencies,
-effort) is in the [development plan](claudedocs/dev_plan_production_grade_2026-06-24.md)
-and tracked via [GitHub milestones](https://github.com/fsecada01/component-framework/milestones)
-and [epic issues](https://github.com/fsecada01/component-framework/issues?q=is%3Aissue+label%3Aepic).
-
-> The two critical-path enablers are **signed state** (security gate — component state
-> currently round-trips to the client unsigned) and **DOM morphing** (today the client
-> does a full `innerHTML` replace, which unblocks navigation, forms fidelity, and
-> optimistic UI once it lands).
-
-**0.6.0b — Hardening Foundation** *(Tier 0: security & rendering fidelity)*
-- [x] Signed / tamper-proof state (HMAC) — *security gate* — see [State Signing](docs/STATE_SIGNING.md)
-- [ ] DOM morphing — preserve focus / scroll / in-flight input; stable list keys
-- [ ] CSRF coverage for FastAPI / Litestar / Flask HTTP paths (today Django-only)
-- [ ] 422 re-render on form-validation failure (adapters currently return 200)
-- [ ] Cross-adapter request-parse hardening
-
-**0.7.0b — Real-App Features** *(Tier 1: table-stakes app capabilities)*
-- [ ] Live SPA navigation — history / back-button, loading indicator, scroll restore
-- [ ] File uploads — progress, multiple files, size/type constraints
-- [ ] On-blur / real-time partial validation
-- [ ] WebSocket reconnection + automatic state resync
-- [ ] Flask WebSocket / SSE parity
-- [ ] Unified Redis pub/sub fan-out across adapters
-
-**0.8.0b — Mindshare** *(Tier 2: observability & DX)*
-- [ ] Telemetry / observability — lifecycle spans + timing hooks
-- [ ] Published benchmarks (latency, payload, memory/connection, concurrency)
-- [ ] Declarative optimistic-JS command DSL; JS interop hooks with lifecycle
-- [ ] Latency simulation; offline detection + visibility-throttled polling
-
-**1.0.0 — Stable**
-- [ ] Frozen, documented public API
-- [ ] Full narrative user guide and tutorials
-- [ ] Deployment guide (ASGI workers, load balancer, sticky sessions, WS termination)
-- [ ] Devtools / inspector
-
-**Post-1.0 (deferred):** server-side change-tracked diffing, CRDT-style presence,
-direct-to-cloud (S3) uploads, request batching, component marketplace.
-
----
-
-## Performance
-
-Current benchmarks (local development):
-- Component dispatch: < 1ms
-- State serialisation: < 1ms
-- Full HTTP cycle: ~10–20ms
-- WebSocket latency: < 10ms
+- **0.6.0b — hardening**: DOM morphing (preserve focus/scroll/input), CSRF coverage for FastAPI/Litestar/Flask, 422 re-render on form validation failure.
+- **0.7.0b — table stakes**: SPA-style navigation (history, back button), file uploads, WebSocket reconnection/resync, Flask WebSocket/SSE parity.
+- **0.8.0b — mindshare**: telemetry/observability hooks, published benchmarks (none exist yet — no performance numbers are claimed anywhere else in this README), a JS interop/optimistic-command DSL.
+- **1.0.0**: frozen public API, a full narrative guide, a deployment guide, PyPI publishing.
 
 ---
 
 ## Requirements
 
 - Python 3.11+
-- Pydantic 2.0+ *(only mandatory runtime dependency)*
+- `pydantic>=2.0` (only mandatory runtime dependency)
 
-Optional extras:
-- `[fastapi]` — FastAPI 0.109+, Uvicorn, JinjaX 0.41+
-- `[django]` — Django 4.2+, Django Channels 4.0+, channels-redis 4.1+, django-cotton 0.9+
-- `[litestar]` — Litestar 2.0+, Jinja2 3.1+
-- `[flask]` — Flask 3.0+
-- `[websockets]` — websockets 12.0+
-- `[all]` — all of the above
-
----
-
-## Known Limitations
-
-- State must be JSON-serialisable
-- WebSocket scaling requires a Redis channel layer
-- CSRF handling for WebSockets is manual
-- SSE streaming requires ASGI deployment (Django) or any async framework (FastAPI/Litestar)
+Optional extras: `[fastapi]` (FastAPI 0.109+, Uvicorn, JinjaX 0.41+), `[django]` (Django 4.2+, Channels 4.0+, channels-redis 4.1+, django-cotton 0.9+), `[litestar]` (Litestar 2.0+, Jinja2 3.1+), `[flask]` (Flask 3.0+), `[websockets]` (websockets 12.0+), `[all]`.
 
 ---
 
 ## License
 
-MIT — see [LICENSE](LICENSE) for details.
+MIT — see [LICENSE](LICENSE).
 
----
+Inspired by [Phoenix LiveView](https://hexdocs.pm/phoenix_live_view/), [Laravel Livewire](https://laravel-livewire.com/), [Hotwire/Turbo](https://turbo.hotwired.dev/), and [HTMX](https://htmx.org/).
 
-## Acknowledgments
-
-Inspired by:
-- [Phoenix LiveView](https://hexdocs.pm/phoenix_live_view/)
-- [Laravel Livewire](https://laravel-livewire.com/)
-- [Hotwire/Turbo](https://turbo.hotwired.dev/)
-- [HTMX](https://htmx.org/)
-
----
-
-## Support
-
-- Issues: [GitHub Issues](https://github.com/fsecada01/component-framework/issues)
-- Discussions: [GitHub Discussions](https://github.com/fsecada01/component-framework/discussions)
-- Docs: [fsecada01.github.io/component-framework](https://fsecada01.github.io/component-framework/)
+- Issues: [github.com/fsecada01/component-framework/issues](https://github.com/fsecada01/component-framework/issues)
+- Discussions: [github.com/fsecada01/component-framework/discussions](https://github.com/fsecada01/component-framework/discussions)
