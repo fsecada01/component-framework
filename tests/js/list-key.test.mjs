@@ -141,6 +141,33 @@ test('_bridgeListKeys leaves [data-key] elements alone when they already carry a
   assert.equal(out, html, 'element with an existing real id must not be rewritten');
 });
 
+test('_bridgeListKeys is not fooled by an unrelated attribute ending in "id=" (e.g. data-id, aria-id)', () => {
+  const client = new ComponentClient();
+  const el = makeEl({}, { children: [] });
+
+  // Regression test: a naive `/\bid\s*=/` check false-positives here because
+  // `\b` matches the hyphen/letter boundary inside "data-id", wrongly
+  // treating the element as if it already had a real `id` and skipping it.
+  const html = '<li data-id="5" data-key="a">A</li>';
+  const out = client._bridgeListKeys(el, html);
+
+  assert.match(out, /<li id="cf-key-a" data-id="5" data-key="a">A<\/li>/);
+});
+
+test('_bridgeListKeys escapes a literal `"` from a single-quoted data-key value before re-embedding it', () => {
+  const client = new ComponentClient();
+  const el = makeEl({}, { children: [] });
+
+  // Regression test: a single-quoted `data-key='...'` may legally contain
+  // an unescaped `"`. Without escaping, re-embedding it verbatim into the
+  // new double-quoted `id="cf-key-<value>"` would prematurely close that
+  // attribute and corrupt the tag.
+  const html = "<li data-key='a\"b'>A</li>";
+  const out = client._bridgeListKeys(el, html);
+
+  assert.match(out, /^<li id="cf-key-a&quot;b" data-key='a"b'>A<\/li>$/);
+});
+
 test('_bridgeListKeys tags matching elements in the live old subtree in place', () => {
   const client = new ComponentClient();
   const itemA = makeItem('a');

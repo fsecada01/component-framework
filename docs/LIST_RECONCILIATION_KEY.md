@@ -57,7 +57,11 @@ there's no `id` to match on.
   idiomorph does that internally). Keep `data-key` values to plain
   identifiers (ids, slugs) and avoid a literal `>` inside another attribute
   on the same tag (e.g. an inline JSON `data-payload` containing `>`), which
-  can confuse the tag boundary.
+  can confuse the tag boundary. Attribute-name matching is anchored to
+  whitespace/start-of-attributes (not just a word boundary), so an unrelated
+  attribute like `data-id` or `aria-id` won't be mistaken for a real `id`;
+  and a literal `"` inside a single-quoted `data-key='...'` value is escaped
+  before being re-embedded in the synthesized `id`.
 - This only addresses **identity for matching**, not sort order — idiomorph
   still needs to move/reuse the nodes into their new positions, which it
   already does once it can tell old and new nodes apart by id.

@@ -101,6 +101,22 @@ const LIST_KEY_ATTR = 'data-key';
  */
 const LIST_KEY_ID_PREFIX = 'cf-key';
 
+// Matches one opening HTML tag, e.g. `<li data-key="a" class="x">`.
+const TAG_PATTERN = /<([a-zA-Z][\w:-]*)\b([^>]*)>/g;
+
+// Matches a `data-key="..."` / `data-key='...'` attribute *as a whole
+// attribute* — anchored on whitespace or the start of the attribute list
+// immediately before it, not just a word boundary, so an unrelated
+// attribute that merely *ends* with "data-key" (e.g. `sub-data-key="x"`)
+// can't false-positive match.
+const LIST_KEY_ATTR_PATTERN = new RegExp(`(?:^|\\s)${LIST_KEY_ATTR}\\s*=\\s*(?:"([^"]*)"|'([^']*)')`);
+
+// Same anchoring rationale for detecting a pre-existing real `id`: a plain
+// `\bid\s*=` would false-positive on `data-id="..."` or `aria-id="..."`
+// (the hyphen before "id" is a non-word character, so `\b` matches there
+// too) and wrongly skip synthesizing an id for that element.
+const ID_ATTR_PATTERN = /(?:^|\s)id\s*=/;
+
 // ---------------------------------------------------------------------------
 // ComponentClient
 // ---------------------------------------------------------------------------
@@ -584,16 +600,21 @@ class ComponentClient {
 
     if (!html) return html;
 
-    const keyAttrPattern = new RegExp(`${LIST_KEY_ATTR}\\s*=\\s*(?:"([^"]*)"|'([^']*)')`);
-    return html.replace(/<([a-zA-Z][\w:-]*)\b([^>]*)>/g, (tag, tagName, attrs) => {
-      const keyMatch = attrs.match(keyAttrPattern);
+    return html.replace(TAG_PATTERN, (tag, tagName, attrs) => {
+      const keyMatch = attrs.match(LIST_KEY_ATTR_PATTERN);
       if (!keyMatch) return tag;
-      if (/\bid\s*=/.test(attrs)) return tag;
+      if (ID_ATTR_PATTERN.test(attrs)) return tag;
 
       const key = keyMatch[1] ?? keyMatch[2];
       if (!key) return tag;
 
-      return `<${tagName} id="${LIST_KEY_ID_PREFIX}-${key}"${attrs}>`;
+      // The key may have come from a single-quoted `data-key='...'` value
+      // that legally contains an unescaped `"`; escape it before embedding
+      // it in the double-quoted `id` we're injecting, so it can't prematurely
+      // close that attribute and corrupt the tag.
+      const safeKey = key.replace(/"/g, '&quot;');
+
+      return `<${tagName} id="${LIST_KEY_ID_PREFIX}-${safeKey}"${attrs}>`;
     });
   }
 
