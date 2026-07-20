@@ -1,0 +1,1595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Customer Support — component-framework</title>
+  <meta name="description" content="A real-time helpdesk built with server-side Python components. Live ticket queue, state-machine transitions, agent dashboard, and rate-limited submission — no JavaScript framework needed." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* ── TERMINAL MODERN — shared design system ─────────────────────────── */
+    :root {
+      --bg:          #0c1117;
+      --panel:       #161c26;
+      --panel-lit:   #1e2637;
+      --code-bg:     #090e18;
+      --border:      #1e2a3c;
+      --border-lit:  #29394f;
+
+      --green:       #4ade80;
+      --green-dim:   rgba(74,222,128,0.10);
+      --green-glow:  rgba(74,222,128,0.18);
+      --amber:       #fbbf24;
+      --amber-dim:   rgba(251,191,36,0.09);
+      --sky:         #38bdf8;
+      --sky-dim:     rgba(56,189,248,0.09);
+      --violet:      #a78bfa;
+      --rose:        #fb7185;
+
+      --text:        #cbd5e1;
+      --muted:       #64748b;
+      --dim:         #334155;
+      --white:       #f1f5f9;
+
+      --mono:        'IBM Plex Mono', 'Courier New', monospace;
+      --sans:        'Inter', system-ui, -apple-system, sans-serif;
+      --radius:      6px;
+      --radius-sm:   3px;
+      --bar-h:       42px;
+      --toc-w:       220px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 15px;
+      line-height: 1.75;
+      min-height: 100vh;
+    }
+
+    ::-webkit-scrollbar              { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-thumb        { background: var(--border-lit); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover  { background: var(--muted); }
+
+    /* ── TOP BAR ────────────────────────────────────────────────────────── */
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 200;
+      height: var(--bar-h);
+      display: flex;
+      align-items: center;
+      padding: 0 clamp(1rem, 4vw, 2.5rem);
+      background: linear-gradient(to right, #1a2232 0%, var(--panel) 60%);
+      border-bottom: 1px solid var(--border);
+      gap: 1rem;
+    }
+    .topbar__logo {
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--green);
+      text-decoration: none;
+      letter-spacing: 0.02em;
+      flex-shrink: 0;
+    }
+    .topbar__logo::before { content: "> "; color: var(--amber); }
+    .topbar__badge {
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 0.12em;
+      color: var(--amber);
+      border: 1px solid rgba(251,191,36,0.4);
+      background: rgba(251,191,36,0.06);
+      padding: 2px 6px;
+      border-radius: var(--radius-sm);
+    }
+    .topbar__nav {
+      margin-left: auto;
+      display: flex;
+      gap: 1.5rem;
+      list-style: none;
+      align-items: center;
+    }
+    .topbar__nav a {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--muted);
+      text-decoration: none;
+      letter-spacing: 0.03em;
+      transition: color 0.15s;
+    }
+    .topbar__nav a:hover         { color: var(--green); }
+    .topbar__nav a.nav-active    { color: var(--green); }
+    .topbar__nav a.nav-api       { color: var(--sky); }
+    .topbar__nav a.nav-api:hover { color: var(--green); }
+    @media (max-width: 640px) { .topbar__nav .nav-hide { display: none; } }
+
+    /* ── DOC HERO ───────────────────────────────────────────────────────── */
+    .doc-hero {
+      background: linear-gradient(180deg, #111926 0%, var(--bg) 100%);
+      border-bottom: 1px solid var(--border);
+      padding: clamp(2.5rem, 6vw, 4rem) clamp(1.5rem, 6vw, 4rem);
+    }
+    .doc-hero__inner {
+      max-width: 860px;
+      margin: 0 auto;
+    }
+    .doc-hero__eyebrow {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--amber);
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+    .doc-hero__eyebrow::before {
+      content: '';
+      display: block;
+      width: 20px;
+      height: 1px;
+      background: var(--amber);
+      opacity: 0.6;
+    }
+    .doc-hero__title {
+      font-family: var(--mono);
+      font-size: clamp(1.75rem, 4vw, 2.75rem);
+      font-weight: 600;
+      color: var(--white);
+      line-height: 1.1;
+      margin-bottom: 1rem;
+      letter-spacing: -0.02em;
+    }
+    .doc-hero__lead {
+      font-size: 16px;
+      color: var(--muted);
+      max-width: 680px;
+      line-height: 1.8;
+      margin-bottom: 1.75rem;
+    }
+    .doc-hero__tags {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .tag {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      padding: 3px 8px;
+      border-radius: var(--radius-sm);
+      text-transform: uppercase;
+    }
+    .tag--green  { color: var(--green); border: 1px solid rgba(74,222,128,0.3); background: var(--green-dim); }
+    .tag--sky    { color: var(--sky);   border: 1px solid rgba(56,189,248,0.3); background: var(--sky-dim);   }
+    .tag--amber  { color: var(--amber); border: 1px solid rgba(251,191,36,0.3); background: var(--amber-dim); }
+    .tag--violet { color: var(--violet);border: 1px solid rgba(167,139,250,0.3);background: rgba(167,139,250,0.08); }
+
+    /* ── DOC LAYOUT ─────────────────────────────────────────────────────── */
+    .doc-layout {
+      display: flex;
+      align-items: flex-start;
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 0 clamp(1rem, 3vw, 2rem);
+      gap: 3rem;
+    }
+
+    /* ── TOC ─────────────────────────────────────────────────────────────── */
+    .doc-toc {
+      flex-shrink: 0;
+      width: var(--toc-w);
+      position: sticky;
+      top: calc(var(--bar-h) + 1.5rem);
+      align-self: flex-start;
+      padding: 1.5rem 0;
+    }
+    .doc-toc__heading {
+      font-family: var(--mono);
+      font-size: 9px;
+      color: var(--dim);
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      margin-bottom: 0.75rem;
+    }
+    .doc-toc__heading::before { content: "// "; color: var(--amber); }
+    .doc-toc__list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+    .doc-toc__list li a {
+      display: block;
+      font-family: var(--mono);
+      font-size: 11.5px;
+      color: var(--muted);
+      text-decoration: none;
+      padding: 0.3rem 0.75rem;
+      border-left: 2px solid var(--border);
+      transition: color 0.12s, border-color 0.12s, background 0.12s;
+      line-height: 1.4;
+    }
+    .doc-toc__list li a:hover {
+      color: var(--green);
+      border-left-color: var(--green);
+      background: var(--green-dim);
+    }
+    .doc-toc__list li.toc-sub a {
+      font-size: 10.5px;
+      padding-left: 1.25rem;
+      color: var(--dim);
+    }
+    .doc-toc__list li.toc-sub a:hover { color: var(--sky); border-left-color: var(--sky); background: var(--sky-dim); }
+    @media (max-width: 900px) { .doc-toc { display: none; } }
+
+    /* ── CONTENT ────────────────────────────────────────────────────────── */
+    .doc-content {
+      flex: 1;
+      min-width: 0;
+      padding: 2.5rem 0 4rem;
+    }
+
+    .doc-content h2 {
+      font-family: var(--mono);
+      font-size: clamp(1.1rem, 2.5vw, 1.4rem);
+      font-weight: 600;
+      color: var(--white);
+      margin: 3rem 0 0.85rem;
+      padding-top: 1rem;
+      scroll-margin-top: calc(var(--bar-h) + 1rem);
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+    .doc-content h2::before {
+      content: attr(data-n);
+      font-size: 10px;
+      color: var(--amber);
+      border: 1px solid rgba(251,191,36,0.35);
+      background: var(--amber-dim);
+      padding: 1px 6px;
+      border-radius: var(--radius-sm);
+      letter-spacing: 0.1em;
+      flex-shrink: 0;
+    }
+    .doc-content h2:first-of-type { margin-top: 0; }
+
+    .doc-content h3 {
+      font-family: var(--mono);
+      font-size: 13.5px;
+      font-weight: 600;
+      color: var(--sky);
+      margin: 2rem 0 0.65rem;
+      scroll-margin-top: calc(var(--bar-h) + 1rem);
+      letter-spacing: 0.02em;
+    }
+    .doc-content h3::before { content: "→ "; color: var(--dim); }
+
+    .doc-content p {
+      color: var(--text);
+      margin-bottom: 1.1rem;
+      max-width: 72ch;
+    }
+    .doc-content p:last-child { margin-bottom: 0; }
+
+    .doc-content ul {
+      margin: 0.5rem 0 1.1rem 1.25rem;
+      color: var(--muted);
+    }
+    .doc-content ul li { margin-bottom: 0.3rem; }
+    .doc-content ul li strong { color: var(--text); }
+
+    .doc-content strong { color: var(--white); font-weight: 600; }
+
+    .doc-content code {
+      font-family: var(--mono);
+      font-size: 11.5px;
+      color: var(--green);
+      background: var(--green-dim);
+      padding: 0.1em 0.4em;
+      border-radius: var(--radius-sm);
+    }
+
+    /* ── CODE BLOCKS ────────────────────────────────────────────────────── */
+    .code-block {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      margin: 1.25rem 0;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+    .code-block__header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.55rem 1rem;
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+    }
+    .code-block__filename {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .code-block__lang {
+      font-family: var(--mono);
+      font-size: 9px;
+      color: var(--dim);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+    .code-block pre {
+      margin: 0;
+      padding: 1.1rem 1.25rem;
+      overflow-x: auto;
+      font-family: var(--mono);
+      font-size: 12.5px;
+      line-height: 1.7;
+    }
+    .code-block pre code { color: var(--text); background: none; padding: 0; border-radius: 0; font-size: inherit; }
+
+    /* ── SYNTAX TOKENS ──────────────────────────────────────────────────── */
+    .kw  { color: var(--amber); }
+    .fn  { color: var(--sky); }
+    .cls { color: var(--sky); font-weight: 600; }
+    .dec { color: var(--amber); opacity: 0.85; }
+    .str { color: var(--green); }
+    .cm  { color: var(--dim); font-style: italic; }
+    .num { color: var(--green); }
+    .typ { color: var(--violet); }
+    .xml-tag  { color: var(--rose); }
+    .xml-attr { color: var(--amber); opacity: 0.85; }
+    .xml-val  { color: var(--green); }
+    .xml-cm   { color: var(--dim); font-style: italic; }
+
+    /* ── CALLOUT BOXES ──────────────────────────────────────────────────── */
+    .callout {
+      border-left: 3px solid;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      padding: 0.9rem 1.1rem;
+      margin: 1.25rem 0;
+      font-size: 14px;
+      line-height: 1.65;
+    }
+    .callout--insight {
+      border-color: var(--green);
+      background: var(--green-dim);
+      color: var(--text);
+    }
+    .callout--insight strong { color: var(--green); }
+    .callout--note {
+      border-color: var(--sky);
+      background: var(--sky-dim);
+      color: var(--text);
+    }
+    .callout--note strong { color: var(--sky); }
+    .callout--warn {
+      border-color: var(--amber);
+      background: var(--amber-dim);
+      color: var(--text);
+    }
+    .callout--warn strong { color: var(--amber); }
+
+    /* ── ARCHITECTURE BOX ────────────────────────────────────────────────── */
+    .arch-box {
+      background: var(--code-bg);
+      border: 1px solid var(--border-lit);
+      border-radius: var(--radius);
+      padding: 1.25rem 1.5rem;
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height: 1.8;
+      color: var(--muted);
+      white-space: pre;
+      overflow-x: auto;
+      margin: 1.25rem 0;
+    }
+    .arch-box .arch-hl  { color: var(--green); }
+    .arch-box .arch-dim { color: var(--dim); }
+    .arch-box .arch-sky { color: var(--sky); }
+    .arch-box .arch-amb { color: var(--amber); }
+
+    /* ── CODE SPLIT (2-col) ──────────────────────────────────────────────── */
+    .code-split {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.25rem;
+      margin: 1.5rem 0;
+    }
+    @media (max-width: 800px) { .code-split { grid-template-columns: 1fr; } }
+    .code-split__label {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      margin-bottom: 0.6rem;
+    }
+
+    /* ── COMPARISON TABLE ───────────────────────────────────────────────── */
+    .cmp-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin: 1.5rem 0;
+    }
+    .cmp-table th {
+      text-align: left;
+      padding: 0.55rem 0.9rem;
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      border-bottom: 2px solid var(--border-lit);
+    }
+    .cmp-table th:first-child { color: var(--muted); }
+    .cmp-table th.th-react    { color: #61dafb; }
+    .cmp-table th.th-cfx      { color: var(--green); }
+    .cmp-table td {
+      padding: 0.5rem 0.9rem;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+      color: var(--text);
+    }
+    .cmp-table td:first-child  { color: var(--muted); font-family: var(--mono); font-size: 11.5px; }
+    .cmp-table td code         { font-family: var(--mono); font-size: 11px; color: var(--green); background: var(--green-dim); padding: 0.1em 0.4em; border-radius: var(--radius-sm); }
+    .cmp-table td.td-react code { color: var(--sky); background: var(--sky-dim); }
+    .cmp-table tr:hover td     { background: rgba(74,222,128,0.025); }
+    .win { color: var(--green); font-weight: 600; }
+
+    /* ── SUMMARY TABLE ──────────────────────────────────────────────────── */
+    .summary-table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 1.5rem 0; }
+    .summary-table th { text-align: left; padding: 0.5rem 0.85rem; font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; border-bottom: 2px solid var(--border-lit); color: var(--muted); }
+    .summary-table td { padding: 0.5rem 0.85rem; border-bottom: 1px solid var(--border); color: var(--text); font-size: 13px; }
+    .summary-table td:first-child  { color: var(--sky); font-family: var(--mono); font-size: 12px; }
+    .summary-table td:nth-child(2) { color: var(--green); font-family: var(--mono); font-size: 11.5px; }
+    .summary-table tr:hover td { background: rgba(74,222,128,0.02); }
+
+    /* ── STEP INLINE ────────────────────────────────────────────────────── */
+    .run-steps { list-style: none; counter-reset: run-step; display: flex; flex-direction: column; gap: 0.85rem; margin: 1.25rem 0; }
+    .run-steps li { counter-increment: run-step; display: flex; gap: 0.9rem; align-items: flex-start; }
+    .run-steps li::before {
+      content: counter(run-step, decimal-leading-zero);
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--amber);
+      border: 1px solid rgba(251,191,36,0.35);
+      background: var(--amber-dim);
+      padding: 1px 6px;
+      border-radius: var(--radius-sm);
+      flex-shrink: 0;
+      line-height: 1.8;
+    }
+    .run-steps li .step-text { color: var(--muted); font-size: 13.5px; }
+    .run-steps li .step-text code { font-family: var(--mono); font-size: 11px; color: var(--sky); background: var(--sky-dim); padding: 0.1em 0.4em; border-radius: 2px; }
+
+    /* ── FOOTER ─────────────────────────────────────────────────────────── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 1.25rem clamp(1.5rem, 6vw, 4rem);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--dim);
+      background: var(--panel);
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+    footer a { color: var(--dim); text-decoration: none; transition: color 0.15s; }
+    footer a:hover { color: var(--green); }
+    footer .sep { margin: 0 0.45rem; }
+
+    /* ── NAV DROPDOWN ──────────────────────────────────────────────────────── */
+    .nav-dropdown { position: relative; cursor: default; }
+    .nav-dropdown > span {
+      color: var(--text); font-size: 13px; font-family: var(--mono);
+      letter-spacing: 0.03em; padding: 0 0.1rem; cursor: pointer;
+      display: flex; align-items: center; gap: 0.25rem;
+    }
+    .nav-dropdown__menu {
+      display: none; position: absolute; top: calc(100% + 8px); left: 50%;
+      transform: translateX(-50%);
+      background: var(--panel); border: 1px solid var(--border-lit);
+      border-radius: var(--radius); padding: 0.35rem 0; min-width: 190px;
+      list-style: none; z-index: 100;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    }
+    .nav-dropdown:hover .nav-dropdown__menu { display: block; }
+    .nav-dropdown::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: -1rem;
+      right: -1rem;
+      height: 10px;
+    }
+    .nav-dropdown__menu li a {
+      display: block; padding: 0.4rem 1rem;
+      font-size: 13px; font-family: var(--mono); color: var(--text);
+      text-decoration: none; letter-spacing: 0.03em;
+    }
+    .nav-dropdown__menu li a:hover,
+    .nav-dropdown__menu li a.nav-active { color: var(--green); }
+  </style>
+</head>
+<body>
+
+<!-- ── TOP BAR ──────────────────────────────────────────────────────────── -->
+<header class="topbar">
+  <a href="index.html" class="topbar__logo">component-framework</a>
+  <span class="topbar__badge">BETA</span>
+  <nav aria-label="Main navigation">
+    <ul class="topbar__nav">
+      <li><a href="index.html">Home</a></li>
+      <li class="nav-dropdown">
+        <span>Examples &#9662;</span>
+        <ul class="nav-dropdown__menu">
+          <li><a href="ecommerce.html">E-Commerce</a></li>
+          <li><a href="admin-panel.html">Admin Panel</a></li>
+          <li><a href="customer-support.html" class="nav-active">Customer Support</a></li>
+          <li><a href="education-lms.html">Education / LMS</a></li>
+          <li><a href="financial-dashboard.html">Financial Dashboard</a></li>
+          <li><a href="litestar-guide.html">Litestar Guide</a></li>
+          <li><a href="wizard.html">Wizard Recipe</a></li>
+        </ul>
+      </li>
+      <li><a href="component_framework.html" class="nav-api">API Ref</a></li>
+      <li class="nav-hide"><a href="https://github.com/fsecada01/component-framework" target="_blank" rel="noopener">GitHub &#8599;</a></li>
+    </ul>
+  </nav>
+</header>
+
+<!-- ── DOC HERO ─────────────────────────────────────────────────────────── -->
+<div class="doc-hero">
+  <div class="doc-hero__inner">
+    <p class="doc-hero__eyebrow">Helpdesk · Django · Real-time Queue · State Machine</p>
+    <h1 class="doc-hero__title">Customer Support</h1>
+    <p class="doc-hero__lead">
+      A real-time helpdesk where tickets flow through a server-owned state machine,
+      agents see live queue updates the instant a ticket is created, and submission
+      is rate-limited — entirely in Python.
+    </p>
+    <div class="doc-hero__tags">
+      <span class="tag tag--violet">SlotComponent</span>
+      <span class="tag tag--sky">WebSocket Queue</span>
+      <span class="tag tag--green">OptimisticMixin</span>
+      <span class="tag tag--amber">RateLimitMixin</span>
+      <span class="tag tag--green">State Machine</span>
+      <span class="tag tag--sky">Pure-Python Tests</span>
+    </div>
+  </div>
+</div>
+
+<!-- ── MAIN ─────────────────────────────────────────────────────────────── -->
+<div class="doc-layout">
+
+  <!-- ── TOC ─────────────────────────────────────────────────────────────── -->
+  <aside class="doc-toc" aria-label="Table of contents">
+    <div class="doc-toc__heading">On this page</div>
+    <ul class="doc-toc__list">
+      <li><a href="#scenario">The Scenario</a></li>
+      <li><a href="#architecture">Architecture</a></li>
+      <li><a href="#ticket-queue">1. TicketQueueComponent</a></li>
+      <li class="toc-sub"><a href="#queue-component">Component</a></li>
+      <li class="toc-sub"><a href="#queue-websocket">WebSocket Push</a></li>
+      <li><a href="#ticket-detail">2. TicketDetailComponent</a></li>
+      <li class="toc-sub"><a href="#detail-component">Component</a></li>
+      <li class="toc-sub"><a href="#detail-view">View</a></li>
+      <li class="toc-sub"><a href="#detail-template">Template</a></li>
+      <li><a href="#agent-dashboard">3. AgentDashboardComponent</a></li>
+      <li class="toc-sub"><a href="#dashboard-component">Component</a></li>
+      <li class="toc-sub"><a href="#dashboard-composition">Composition</a></li>
+      <li><a href="#quick-reply">4. QuickReplyComponent</a></li>
+      <li class="toc-sub"><a href="#reply-component">Component</a></li>
+      <li class="toc-sub"><a href="#reply-ratelimit">Rate Limiting</a></li>
+      <li><a href="#compare">React vs Component Framework</a></li>
+      <li><a href="#testing">Testing</a></li>
+      <li><a href="#running">Running the Example</a></li>
+      <li><a href="#summary">Summary</a></li>
+    </ul>
+  </aside>
+
+  <!-- ── CONTENT ──────────────────────────────────────────────────────────── -->
+  <article class="doc-content">
+
+    <!-- SCENARIO -->
+    <h2 id="scenario" data-n="§">The Scenario</h2>
+    <p>A SaaS company's support team handles hundreds of tickets a day. They need a <strong>real-time ticket queue</strong> where new tickets appear the moment a customer submits them — no polling, no page refresh. Each ticket must flow through a well-defined <strong>state machine</strong>: <code>open</code> → <code>assigned</code> → <code>pending_customer</code> → <code>resolved</code>, with invalid transitions rejected server-side. Ticket submission must be <strong>rate-limited</strong> (5 per hour per user) to prevent spam and accidental duplicate submissions. The agent layout uses a <strong>slot-based composition</strong> — a persistent sidebar showing agent availability alongside the main ticket panel.</p>
+
+    <p>The standard answer involves React, a socket.io server, a REST API for ticket CRUD, a separate state-machine library, middleware for rate limiting, a context provider for agent state, and Storybook for component testing. The team considered this path carefully.</p>
+
+    <div class="callout callout--insight">
+      <strong>They chose component-framework instead.</strong> The state machine lives in an 8-line Python method. Rate limiting is a one-line mixin. Real-time queue updates are a WebSocket broadcast from the submit handler. Tests are plain pytest — no browser, no mocking of React internals.
+    </div>
+
+    <!-- ARCHITECTURE -->
+    <h2 id="architecture" data-n="§">Architecture at a Glance</h2>
+    <div class="arch-box"><span class="arch-sky">Browser (HTMX + component-client.js)</span>
+  │  <span class="arch-hl">POST /support/components/queue/</span>     <span class="arch-dim">(event, state, payload)</span>
+  │  <span class="arch-hl">POST /support/components/ticket/&lt;id&gt;/</span>
+  │  <span class="arch-hl">POST /support/components/reply/&lt;id&gt;/</span>
+  │  <span class="arch-sky">WS   /ws/support/queue/</span>              <span class="arch-dim">(new_ticket push)</span>
+  ▼
+<span class="arch-amb">Django Views  (IsAuthenticated · RateLimitMixin)</span>
+  │  permission check → rate-limit check → dispatch
+  ▼
+<span class="arch-hl">TicketQueueComponent</span>     <span class="arch-dim">live queue, filter, SLA highlighting</span>
+<span class="arch-hl">TicketDetailComponent</span>    <span class="arch-dim">state machine, OptimisticMixin</span>
+<span class="arch-hl">AgentDashboardComponent</span>  <span class="arch-dim">CompositeComponent — sidebar + main</span>
+<span class="arch-hl">QuickReplyComponent</span>      <span class="arch-dim">FormComponent + RateLimitMixin (5/hour)</span>
+  │
+  ▼
+<span class="arch-sky">Django ORM</span>  <span class="arch-dim">/</span>  <span class="arch-sky">Redis Channels</span>  <span class="arch-dim">(WebSocket layer)</span></div>
+
+    <p><strong>Key insight:</strong> ticket status, assignment, and SLA breach data are all stored in <code>self.state</code> on the server. The browser never owns a copy of the state machine — it simply sends event names and receives fresh HTML fragments. Invalid transitions are caught in the handler before any database write occurs.</p>
+
+    <!-- TICKET QUEUE COMPONENT -->
+    <h2 id="ticket-queue" data-n="01">TicketQueueComponent — Live Queue</h2>
+    <p>Renders a paginated, filterable list of open tickets. New tickets are pushed via WebSocket and prepended to the list instantly. Tickets that have exceeded their SLA deadline are flagged with a computed <code>sla_breached</code> field in state — no client-side logic required.</p>
+
+    <h3 id="queue-component">The Component</h3>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">support/components.py</span>
+        <span class="code-block__lang">Python</span>
+      </div>
+      <pre><code><span class="kw">from</span> datetime <span class="kw">import</span> timedelta
+<span class="kw">from</span> django.utils <span class="kw">import</span> timezone
+<span class="kw">from</span> component_framework.core <span class="kw">import</span> Component, registry
+<span class="kw">from</span> .models <span class="kw">import</span> Ticket
+
+<span class="dec">@registry.register(<span class="str">"ticket_queue"</span>)</span>
+<span class="kw">class</span> <span class="cls">TicketQueueComponent</span>(Component):
+    <span class="str">"""
+    Live ticket queue for support agents.
+
+    State shape:
+        tickets:       list[TicketSummary]   paginated, newest-first
+        status_filter: str                   "open" | "assigned" | "all"
+        page:          int
+        has_more:      bool
+    """</span>
+
+    template_name = <span class="str">"support/ticket_queue.html"</span>
+    PAGE_SIZE = <span class="num">20</span>
+    SLA_HOURS = <span class="num">8</span>
+
+    <span class="kw">def</span> <span class="fn">mount</span>(<span class="kw">self</span>):
+        <span class="kw">self</span>.state.<span class="fn">update</span>({
+            <span class="str">"tickets"</span>:       [],
+            <span class="str">"status_filter"</span>: <span class="str">"open"</span>,
+            <span class="str">"page"</span>:          <span class="num">1</span>,
+            <span class="str">"has_more"</span>:      <span class="kw">False</span>,
+        })
+        <span class="kw">self</span>.<span class="fn">_load_tickets</span>()
+
+    <span class="kw">def</span> <span class="fn">_load_tickets</span>(<span class="kw">self</span>):
+        sla_deadline = timezone.<span class="fn">now</span>() - timedelta(hours=<span class="kw">self</span>.SLA_HOURS)
+        qs = (
+            Ticket.objects
+            .<span class="fn">select_related</span>(<span class="str">"assignee"</span>, <span class="str">"customer"</span>)
+            .<span class="fn">order_by</span>(<span class="str">"-created_at"</span>)
+        )
+        status = <span class="kw">self</span>.state[<span class="str">"status_filter"</span>]
+        <span class="kw">if</span> status != <span class="str">"all"</span>:
+            qs = qs.<span class="fn">filter</span>(status=status)
+
+        page = <span class="kw">self</span>.state[<span class="str">"page"</span>]
+        offset = (page - <span class="num">1</span>) * <span class="kw">self</span>.PAGE_SIZE
+        batch = qs[offset : offset + <span class="kw">self</span>.PAGE_SIZE + <span class="num">1</span>]
+        has_more = <span class="fn">len</span>(batch) > <span class="kw">self</span>.PAGE_SIZE
+
+        <span class="kw">self</span>.state[<span class="str">"tickets"</span>] = [
+            {
+                <span class="str">"id"</span>:           t.pk,
+                <span class="str">"subject"</span>:      t.subject,
+                <span class="str">"customer"</span>:     t.customer.get_full_name(),
+                <span class="str">"status"</span>:       t.status,
+                <span class="str">"assignee"</span>:     t.assignee.get_full_name() <span class="kw">if</span> t.assignee <span class="kw">else None</span>,
+                <span class="str">"created_at"</span>:   t.created_at.<span class="fn">isoformat</span>(),
+                <span class="str">"sla_breached"</span>: t.created_at < sla_deadline <span class="kw">and</span> t.status != <span class="str">"resolved"</span>,
+            }
+            <span class="kw">for</span> t <span class="kw">in</span> batch[: <span class="kw">self</span>.PAGE_SIZE]
+        ]
+        <span class="kw">self</span>.state[<span class="str">"has_more"</span>] = has_more
+
+    <span class="kw">def</span> <span class="fn">on_filter_status</span>(<span class="kw">self</span>, status: <span class="typ">str</span>):
+        <span class="str">"""Switch the status filter and reset to page 1."""</span>
+        allowed = {<span class="str">"open"</span>, <span class="str">"assigned"</span>, <span class="str">"pending_customer"</span>, <span class="str">"resolved"</span>, <span class="str">"all"</span>}
+        <span class="kw">if</span> status <span class="kw">not in</span> allowed:
+            <span class="kw">self</span>.errors[<span class="str">"filter"</span>] = <span class="str">f"Unknown status: {status}"</span>
+            <span class="kw">return</span>
+        <span class="kw">self</span>.state[<span class="str">"status_filter"</span>] = status
+        <span class="kw">self</span>.state[<span class="str">"page"</span>] = <span class="num">1</span>
+        <span class="kw">self</span>.<span class="fn">_load_tickets</span>()
+
+    <span class="kw">def</span> <span class="fn">on_assign_to_me</span>(<span class="kw">self</span>, ticket_id: <span class="typ">int</span>):
+        <span class="str">"""Claim an unassigned ticket directly from the queue."""</span>
+        agent = <span class="kw">self</span>.params[<span class="str">"user"</span>]
+        ticket = Ticket.objects.<span class="fn">get</span>(pk=ticket_id, status=<span class="str">"open"</span>)
+        ticket.assignee = agent
+        ticket.status = <span class="str">"assigned"</span>
+        ticket.<span class="fn">save</span>(update_fields=[<span class="str">"assignee"</span>, <span class="str">"status"</span>])
+        <span class="cm"># Reflect immediately in local state without re-querying</span>
+        <span class="kw">for</span> t <span class="kw">in</span> <span class="kw">self</span>.state[<span class="str">"tickets"</span>]:
+            <span class="kw">if</span> t[<span class="str">"id"</span>] == ticket_id:
+                t[<span class="str">"status"</span>]   = <span class="str">"assigned"</span>
+                t[<span class="str">"assignee"</span>] = agent.<span class="fn">get_full_name</span>()
+                <span class="kw">break</span>
+
+    <span class="kw">def</span> <span class="fn">on_load_more</span>(<span class="kw">self</span>):
+        <span class="str">"""Paginate — append next page of tickets to existing list."""</span>
+        <span class="kw">if not</span> <span class="kw">self</span>.state[<span class="str">"has_more"</span>]:
+            <span class="kw">return</span>
+        <span class="kw">self</span>.state[<span class="str">"page"</span>] += <span class="num">1</span>
+        <span class="kw">self</span>.<span class="fn">_load_tickets</span>()</code></pre>
+    </div>
+
+    <h3 id="queue-websocket">WebSocket Push — New Ticket Arrives</h3>
+    <p>When a customer submits a ticket, <code>QuickReplyComponent</code> (or the public submission form) broadcasts a <code>new_ticket</code> event to the agents' shared channel. The queue consumer receives it and prepends the ticket to <code>state["tickets"]</code> without touching the database again.</p>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">support/consumers.py  (Django Channels)</span>
+        <span class="code-block__lang">Python</span>
+      </div>
+      <pre><code><span class="kw">from</span> component_framework.core <span class="kw">import</span> ws_manager
+<span class="kw">from</span> django.utils <span class="kw">import</span> timezone
+
+
+<span class="kw">class</span> <span class="cls">QueueConsumer</span>(ws_manager.ComponentConsumer):
+    <span class="str">"""
+    WebSocket consumer: subscribes each authenticated agent to the
+    shared 'support-queue' group. Incoming 'new_ticket' messages
+    prepend the ticket summary to local state and re-render.
+    """</span>
+    component_name = <span class="str">"ticket_queue"</span>
+
+    <span class="kw">async def</span> <span class="fn">websocket_connect</span>(<span class="kw">self</span>, message):
+        user = <span class="kw">self</span>.scope[<span class="str">"user"</span>]
+        <span class="kw">if not</span> user.is_authenticated <span class="kw">or not</span> user.is_staff:
+            <span class="kw">await self</span>.<span class="fn">close</span>()
+            <span class="kw">return</span>
+        <span class="kw">await self</span>.channel_layer.<span class="fn">group_add</span>(<span class="str">"support-queue"</span>, <span class="kw">self</span>.channel_name)
+        <span class="kw">await super</span>().<span class="fn">websocket_connect</span>(message)
+
+    <span class="kw">async def</span> <span class="fn">handle_new_ticket</span>(<span class="kw">self</span>, ticket_data: <span class="typ">dict</span>):
+        <span class="cm"># Prepend to state and push updated HTML to this agent's browser</span>
+        <span class="kw">self</span>.component.state[<span class="str">"tickets"</span>].<span class="fn">insert</span>(<span class="num">0</span>, ticket_data)
+        html = <span class="kw">await self</span>.<span class="fn">render_component</span>()
+        <span class="kw">await self</span>.<span class="fn">send_html</span>(html)</code></pre>
+    </div>
+
+    <div class="callout callout--insight">
+      <strong>SLA highlighting requires zero client-side code.</strong> The <code>sla_breached</code> boolean is computed in <code>_load_tickets()</code> each time the queue renders. The template simply adds a CSS class when the flag is true. The browser never does date arithmetic.
+    </div>
+
+    <!-- TICKET DETAIL COMPONENT -->
+    <h2 id="ticket-detail" data-n="02">TicketDetailComponent — State Machine</h2>
+    <p>Wraps a single <code>Ticket</code> model. Transitions between statuses are validated by a guard dict — invalid transitions raise <code>ComponentError</code> before any database write. <code>OptimisticMixin</code> means clicking "Resolve" immediately updates the badge in the browser while the server confirms.</p>
+
+    <h3 id="detail-component">The Component</h3>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">support/components.py (continued)</span>
+        <span class="code-block__lang">Python</span>
+      </div>
+      <pre><code><span class="kw">from</span> pydantic <span class="kw">import</span> BaseModel, field_validator
+<span class="kw">from</span> component_framework.core <span class="kw">import</span> ComponentError
+<span class="kw">from</span> component_framework.adapters.django_model <span class="kw">import</span> DjangoModelComponent
+<span class="kw">from</span> component_framework.core.composition <span class="kw">import</span> OptimisticMixin
+
+
+<span class="kw">class</span> <span class="cls">TicketState</span>(BaseModel):
+    <span class="str">"""Validated state shape for TicketDetailComponent."""</span>
+    ticket_id:   <span class="typ">int</span>
+    subject:     <span class="typ">str</span>
+    body:        <span class="typ">str</span>
+    status:      <span class="typ">str</span>
+    assignee_id: <span class="typ">int</span> | <span class="kw">None</span>
+    customer:    <span class="typ">str</span>
+    created_at:  <span class="typ">str</span>
+
+    <span class="dec">@field_validator(<span class="str">"status"</span>)</span>
+    <span class="kw">def</span> <span class="fn">status_must_be_valid</span>(<span class="kw">cls</span>, v):
+        allowed = {<span class="str">"open"</span>, <span class="str">"assigned"</span>, <span class="str">"pending_customer"</span>, <span class="str">"resolved"</span>}
+        <span class="kw">if</span> v <span class="kw">not in</span> allowed:
+            <span class="kw">raise</span> <span class="cls">ValueError</span>(<span class="fn">f</span><span class="str">f"Invalid status: {v}"</span>)
+        <span class="kw">return</span> v
+
+
+<span class="cm"># State machine transition guard</span>
+ALLOWED_TRANSITIONS: <span class="typ">dict</span>[<span class="typ">str</span>, <span class="fn">set</span>[<span class="typ">str</span>]] = {
+    <span class="str">"open"</span>:             {<span class="str">"assigned"</span>},
+    <span class="str">"assigned"</span>:        {<span class="str">"pending_customer"</span>, <span class="str">"resolved"</span>},
+    <span class="str">"pending_customer"</span>: {<span class="str">"assigned"</span>, <span class="str">"resolved"</span>},
+    <span class="str">"resolved"</span>:        set(),
+}
+
+
+<span class="dec">@registry.register(<span class="str">"ticket_detail"</span>)</span>
+<span class="kw">class</span> <span class="cls">TicketDetailComponent</span>(OptimisticMixin, DjangoModelComponent):
+    <span class="str">"""
+    Single-ticket view with server-side state machine transitions.
+
+    params:
+        ticket_id (int): PK of the ticket to render.
+        user      (User): Injected by view for permission checks.
+    """</span>
+
+    model = Ticket
+    state_fields = [<span class="str">"subject"</span>, <span class="str">"body"</span>, <span class="str">"status"</span>, <span class="str">"assignee_id"</span>]
+    template_name = <span class="str">"support/ticket_detail.html"</span>
+
+    <span class="kw">def</span> <span class="fn">mount</span>(<span class="kw">self</span>):
+        ticket_id = <span class="kw">self</span>.params[<span class="str">"ticket_id"</span>]
+        t = Ticket.objects.<span class="fn">select_related</span>(<span class="str">"customer"</span>, <span class="str">"assignee"</span>).<span class="fn">get</span>(pk=ticket_id)
+        <span class="kw">self</span>.state.<span class="fn">update</span>({
+            <span class="str">"ticket_id"</span>:   t.pk,
+            <span class="str">"subject"</span>:     t.subject,
+            <span class="str">"body"</span>:        t.body,
+            <span class="str">"status"</span>:      t.status,
+            <span class="str">"assignee_id"</span>: t.assignee_id,
+            <span class="str">"customer"</span>:    t.customer.<span class="fn">get_full_name</span>(),
+            <span class="str">"created_at"</span>:  t.created_at.<span class="fn">isoformat</span>(),
+        })
+
+    <span class="kw">def</span> <span class="fn">on_transition</span>(<span class="kw">self</span>, to_status: <span class="typ">str</span>):
+        <span class="str">"""
+        Advance the ticket through the state machine.
+        Raises ComponentError for invalid transitions — no DB write occurs.
+        """</span>
+        current = <span class="kw">self</span>.state[<span class="str">"status"</span>]
+        <span class="kw">if</span> to_status <span class="kw">not in</span> ALLOWED_TRANSITIONS.<span class="fn">get</span>(current, set()):
+            <span class="kw">raise</span> <span class="cls">ComponentError</span>(
+                <span class="fn">f</span><span class="str">f"Transition '{current}' → '{to_status}' is not permitted."</span>
+            )
+        ticket = Ticket.objects.<span class="fn">get</span>(pk=<span class="kw">self</span>.state[<span class="str">"ticket_id"</span>])
+        ticket.status = to_status
+        <span class="kw">if</span> to_status == <span class="str">"assigned"</span> <span class="kw">and not</span> ticket.assignee_id:
+            ticket.assignee = <span class="kw">self</span>.params[<span class="str">"user"</span>]
+            <span class="kw">self</span>.state[<span class="str">"assignee_id"</span>] = <span class="kw">self</span>.params[<span class="str">"user"</span>].pk
+        ticket.<span class="fn">save</span>(update_fields=[<span class="str">"status"</span>, <span class="str">"assignee"</span>])
+        <span class="kw">self</span>.state[<span class="str">"status"</span>] = to_status
+
+    <span class="cm"># ── Optimistic UI ────────────────────────────────────────────────────</span>
+    <span class="kw">def</span> <span class="fn">get_optimistic_patch</span>(<span class="kw">self</span>, event: <span class="typ">str</span>, payload: <span class="typ">dict</span>) -> <span class="typ">dict</span> | <span class="kw">None</span>:
+        <span class="str">"""
+        Flash the new status badge immediately. The server validates the
+        transition and rolls back if the guard rejects it.
+        """</span>
+        <span class="kw">if</span> event == <span class="str">"transition"</span>:
+            <span class="kw">return</span> {<span class="str">"status"</span>: payload.<span class="fn">get</span>(<span class="str">"to_status"</span>)}
+        <span class="kw">return None</span></code></pre>
+    </div>
+
+    <div class="callout callout--note">
+      <strong>Why raise ComponentError instead of setting self.errors?</strong> A transition guard failure is a programming or security error — the UI should never offer a button for an illegal transition. <code>ComponentError</code> returns HTTP 400 with a JSON body so HTMX can show a toast, and no state is mutated.
+    </div>
+
+    <h3 id="detail-view">The View</h3>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">support/views.py</span>
+        <span class="code-block__lang">Python</span>
+      </div>
+      <pre><code><span class="kw">from</span> component_framework.adapters.django_views <span class="kw">import</span> AuthenticatedComponentView
+<span class="kw">from</span> component_framework.core.permissions <span class="kw">import</span> IsStaff
+
+
+<span class="kw">class</span> <span class="cls">TicketDetailView</span>(AuthenticatedComponentView):
+    <span class="str">"""
+    Only staff agents may manage tickets.
+    Customers access a read-only, separately-permissioned view.
+    """</span>
+    permission_classes = [IsStaff]
+
+    <span class="kw">def</span> <span class="fn">get_component_params</span>(<span class="kw">self</span>, request, **kwargs):
+        params = <span class="fn">super</span>().<span class="fn">get_component_params</span>(request, **kwargs)
+        params[<span class="str">"ticket_id"</span>] = <span class="fn">int</span>(kwargs[<span class="str">"ticket_id"</span>])
+        <span class="kw">return</span> params</code></pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">support/urls.py</span>
+        <span class="code-block__lang">Python</span>
+      </div>
+      <pre><code><span class="kw">from</span> django.urls <span class="kw">import</span> path
+<span class="kw">from</span> .views <span class="kw">import</span> TicketDetailView, TicketQueueView, QuickReplyView
+
+urlpatterns = [
+    path(<span class="str">"components/queue/"</span>,              TicketQueueView.<span class="fn">as_view</span>(),  name=<span class="str">"support_queue"</span>),
+    path(<span class="str">"components/ticket/&lt;int:ticket_id&gt;/"</span>, TicketDetailView.<span class="fn">as_view</span>(), name=<span class="str">"support_ticket"</span>),
+    path(<span class="str">"components/reply/&lt;int:ticket_id&gt;/"</span>,  QuickReplyView.<span class="fn">as_view</span>(),  name=<span class="str">"support_reply"</span>),
+]</code></pre>
+    </div>
+
+    <h3 id="detail-template">The Template</h3>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">support/templates/support/ticket_detail.html</span>
+        <span class="code-block__lang">Django Template</span>
+      </div>
+      <pre><code><span class="xml-cm">{# Outer element is the HTMX swap target #}</span>
+<span class="xml-tag">&lt;div</span> <span class="xml-attr">id=</span><span class="xml-val">"ticket-{{ component_id }}"</span>
+     <span class="xml-attr">hx-target=</span><span class="xml-val">"this"</span>
+     <span class="xml-attr">hx-swap=</span><span class="xml-val">"outerHTML"</span><span class="xml-tag">&gt;</span>
+
+  <span class="xml-tag">&lt;header</span> <span class="xml-attr">class=</span><span class="xml-val">"ticket-header"</span><span class="xml-tag">&gt;</span>
+    <span class="xml-tag">&lt;h2&gt;</span>{{ state.subject }}<span class="xml-tag">&lt;/h2&gt;</span>
+    <span class="xml-tag">&lt;span</span> <span class="xml-attr">class=</span><span class="xml-val">"status-badge status--{{ state.status }}"</span><span class="xml-tag">&gt;</span>
+      {{ state.status }}
+    <span class="xml-tag">&lt;/span&gt;</span>
+  <span class="xml-tag">&lt;/header&gt;</span>
+
+  <span class="xml-tag">&lt;p</span> <span class="xml-attr">class=</span><span class="xml-val">"ticket-meta"</span><span class="xml-tag">&gt;</span>
+    From {{ state.customer }} · opened {{ state.created_at }}
+  <span class="xml-tag">&lt;/p&gt;</span>
+
+  <span class="xml-tag">&lt;div</span> <span class="xml-attr">class=</span><span class="xml-val">"ticket-body"</span><span class="xml-tag">&gt;</span>{{ state.body }}<span class="xml-tag">&lt;/div&gt;</span>
+
+  <span class="xml-cm">{# Transition buttons — only rendered for valid next states #}</span>
+  <span class="xml-tag">&lt;div</span> <span class="xml-attr">class=</span><span class="xml-val">"ticket-actions"</span><span class="xml-tag">&gt;</span>
+    {% if state.status == "open" %}
+      <span class="xml-tag">&lt;button</span>
+        <span class="xml-attr">hx-post=</span><span class="xml-val">"{% url 'support_ticket' state.ticket_id %}"</span>
+        <span class="xml-attr">hx-vals=</span><span class="xml-val">'{"event": "transition", "to_status": "assigned"}'</span><span class="xml-tag">&gt;</span>
+        Assign to Me
+      <span class="xml-tag">&lt;/button&gt;</span>
+    {% endif %}
+    {% if state.status == "assigned" %}
+      <span class="xml-tag">&lt;button</span>
+        <span class="xml-attr">hx-post=</span><span class="xml-val">"{% url 'support_ticket' state.ticket_id %}"</span>
+        <span class="xml-attr">hx-vals=</span><span class="xml-val">'{"event": "transition", "to_status": "pending_customer"}'</span><span class="xml-tag">&gt;</span>
+        Awaiting Customer
+      <span class="xml-tag">&lt;/button&gt;</span>
+      <span class="xml-tag">&lt;button</span>
+        <span class="xml-attr">hx-post=</span><span class="xml-val">"{% url 'support_ticket' state.ticket_id %}"</span>
+        <span class="xml-attr">hx-vals=</span><span class="xml-val">'{"event": "transition", "to_status": "resolved"}'</span>
+        <span class="xml-attr">class=</span><span class="xml-val">"btn-resolve"</span><span class="xml-tag">&gt;</span>
+        Resolve Ticket
+      <span class="xml-tag">&lt;/button&gt;</span>
+    {% endif %}
+    {% if state.status == "pending_customer" %}
+      <span class="xml-tag">&lt;button</span>
+        <span class="xml-attr">hx-post=</span><span class="xml-val">"{% url 'support_ticket' state.ticket_id %}"</span>
+        <span class="xml-attr">hx-vals=</span><span class="xml-val">'{"event": "transition", "to_status": "resolved"}'</span>
+        <span class="xml-attr">class=</span><span class="xml-val">"btn-resolve"</span><span class="xml-tag">&gt;</span>
+        Resolve Ticket
+      <span class="xml-tag">&lt;/button&gt;</span>
+    {% endif %}
+    {% if state.status == "resolved" %}
+      <span class="xml-tag">&lt;p</span> <span class="xml-attr">class=</span><span class="xml-val">"resolved-notice"</span><span class="xml-tag">&gt;</span>This ticket is resolved.<span class="xml-tag">&lt;/p&gt;</span>
+    {% endif %}
+  <span class="xml-tag">&lt;/div&gt;</span>
+
+<span class="xml-tag">&lt;/div&gt;</span></code></pre>
+    </div>
+
+    <!-- AGENT DASHBOARD COMPONENT -->
+    <h2 id="agent-dashboard" data-n="03">AgentDashboardComponent — Availability</h2>
+    <p>The dashboard is a <code>CompositeComponent</code> that composes two sub-components into a two-panel layout: <code>AgentStatusComponent</code> fills the <code>"sidebar"</code> slot (showing each agent's current availability), and <code>TicketQueueComponent</code> fills the <code>"main"</code> slot. When an agent changes their status, a WebSocket broadcast updates the sidebar for every other agent simultaneously.</p>
+
+    <h3 id="dashboard-component">The Component</h3>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">support/components.py (continued)</span>
+        <span class="code-block__lang">Python</span>
+      </div>
+      <pre><code><span class="kw">from</span> component_framework.core.composition <span class="kw">import</span> CompositeComponent, SlotComponent
+
+
+<span class="dec">@registry.register(<span class="str">"agent_status"</span>)</span>
+<span class="kw">class</span> <span class="cls">AgentStatusComponent</span>(SlotComponent):
+    <span class="str">"""
+    Sidebar listing all online agents and their current availability.
+
+    State shape:
+        agents: list[{id, name, status, avatar_url}]
+        my_status: str   "available" | "busy" | "away"
+    """</span>
+    template_name = <span class="str">"support/agent_status.html"</span>
+
+    <span class="kw">def</span> <span class="fn">mount</span>(<span class="kw">self</span>):
+        <span class="kw">from</span> django.contrib.auth <span class="kw">import</span> get_user_model
+        User = <span class="fn">get_user_model</span>()
+        agents = User.objects.<span class="fn">filter</span>(is_staff=<span class="kw">True</span>, is_active=<span class="kw">True</span>).<span class="fn">select_related</span>(<span class="str">"profile"</span>)
+        me = <span class="kw">self</span>.params[<span class="str">"user"</span>]
+        <span class="kw">self</span>.state.<span class="fn">update</span>({
+            <span class="str">"agents"</span>: [
+                {
+                    <span class="str">"id"</span>:         a.pk,
+                    <span class="str">"name"</span>:       a.<span class="fn">get_full_name</span>(),
+                    <span class="str">"status"</span>:     a.profile.support_status,
+                    <span class="str">"avatar_url"</span>: a.profile.avatar_url,
+                }
+                <span class="kw">for</span> a <span class="kw">in</span> agents
+            ],
+            <span class="str">"my_status"</span>: me.profile.support_status,
+        })
+
+    <span class="kw">def</span> <span class="fn">on_set_status</span>(<span class="kw">self</span>, status: <span class="typ">str</span>):
+        <span class="str">"""Agent changes their own availability. Broadcast to all peers."""</span>
+        allowed = {<span class="str">"available"</span>, <span class="str">"busy"</span>, <span class="str">"away"</span>}
+        <span class="kw">if</span> status <span class="kw">not in</span> allowed:
+            <span class="kw">return</span>
+        me = <span class="kw">self</span>.params[<span class="str">"user"</span>]
+        me.profile.support_status = status
+        me.profile.<span class="fn">save</span>(update_fields=[<span class="str">"support_status"</span>])
+        <span class="kw">self</span>.state[<span class="str">"my_status"</span>] = status
+
+        <span class="kw">import</span> asyncio
+        <span class="kw">from</span> component_framework.core <span class="kw">import</span> ws_manager
+        asyncio.<span class="fn">create_task</span>(
+            ws_manager.<span class="fn">broadcast</span>(
+                group=<span class="str">"support-queue"</span>,
+                message={
+                    <span class="str">"event"</span>:   <span class="str">"agent_status_changed"</span>,
+                    <span class="str">"payload"</span>: {<span class="str">"agent_id"</span>: me.pk, <span class="str">"status"</span>: status},
+                },
+            )
+        )
+
+
+<span class="dec">@registry.register(<span class="str">"agent_dashboard"</span>)</span>
+<span class="kw">class</span> <span class="cls">AgentDashboardComponent</span>(CompositeComponent):
+    <span class="str">"""
+    Two-panel layout composed from AgentStatusComponent (sidebar slot)
+    and TicketQueueComponent (main slot).
+    """</span>
+    template_name = <span class="str">"support/agent_dashboard.html"</span>
+    slots = [<span class="str">"sidebar"</span>, <span class="str">"main"</span>]
+
+    <span class="kw">def</span> <span class="fn">mount</span>(<span class="kw">self</span>):
+        user = <span class="kw">self</span>.params[<span class="str">"user"</span>]
+        <span class="kw">self</span>.state[<span class="str">"title"</span>] = <span class="str">"Support Dashboard"</span>
+        <span class="kw">self</span>.<span class="fn">fill_slot</span>(
+            <span class="str">"sidebar"</span>,
+            <span class="cls">AgentStatusComponent</span>(params={<span class="str">"user"</span>: user}),
+        )
+        <span class="kw">self</span>.<span class="fn">fill_slot</span>(
+            <span class="str">"main"</span>,
+            <span class="cls">TicketQueueComponent</span>(params={<span class="str">"user"</span>: user}),
+        )</code></pre>
+    </div>
+
+    <h3 id="dashboard-composition">The Composition Template</h3>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">support/templates/support/agent_dashboard.html</span>
+        <span class="code-block__lang">Django Template</span>
+      </div>
+      <pre><code>{% extends <span class="xml-val">"support/base.html"</span> %}
+{% block content %}
+<span class="xml-tag">&lt;div</span> <span class="xml-attr">class=</span><span class="xml-val">"dashboard-layout"</span><span class="xml-tag">&gt;</span>
+
+  <span class="xml-cm">{# Sidebar slot — AgentStatusComponent renders here #}</span>
+  <span class="xml-tag">&lt;aside</span> <span class="xml-attr">class=</span><span class="xml-val">"dashboard-sidebar"</span><span class="xml-tag">&gt;</span>
+    {% component_slot "sidebar" %}
+  <span class="xml-tag">&lt;/aside&gt;</span>
+
+  <span class="xml-cm">{# Main slot — TicketQueueComponent renders here #}</span>
+  <span class="xml-tag">&lt;main</span> <span class="xml-attr">class=</span><span class="xml-val">"dashboard-main"</span><span class="xml-tag">&gt;</span>
+    <span class="xml-tag">&lt;h1&gt;</span>{{ state.title }}<span class="xml-tag">&lt;/h1&gt;</span>
+    {% component_slot "main" %}
+  <span class="xml-tag">&lt;/main&gt;</span>
+
+<span class="xml-tag">&lt;/div&gt;</span>
+{% endblock %}</code></pre>
+    </div>
+
+    <div class="callout callout--note">
+      <strong>Slot independence.</strong> Each slot component manages its own state and event handlers independently. HTMX targets only the slot's root element on re-render — the surrounding layout is never touched. Both slots share the same WebSocket connection managed by <code>QueueConsumer</code>.
+    </div>
+
+    <!-- QUICK REPLY COMPONENT -->
+    <h2 id="quick-reply" data-n="04">QuickReplyComponent — Rate-Limited Submission</h2>
+    <p>A <code>FormComponent</code> for submitting a reply to a ticket. <code>RateLimitMixin</code> enforces 5 submissions per hour per user. The Pydantic <code>ReplySchema</code> validates content length and strips HTML. On successful submission, a WebSocket broadcast delivers the reply to the customer's browser.</p>
+
+    <h3 id="reply-component">The Component</h3>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">support/components.py (continued)</span>
+        <span class="code-block__lang">Python</span>
+      </div>
+      <pre><code><span class="kw">from</span> pydantic <span class="kw">import</span> BaseModel, field_validator, constr
+<span class="kw">from</span> component_framework.core.form <span class="kw">import</span> FormComponent
+<span class="kw">from</span> .models <span class="kw">import</span> TicketReply
+
+
+<span class="kw">class</span> <span class="cls">ReplySchema</span>(BaseModel):
+    <span class="str">"""Validated reply payload."""</span>
+    content: constr(min_length=<span class="num">10</span>, max_length=<span class="num">4000</span>, strip_whitespace=<span class="kw">True</span>)
+
+    <span class="dec">@field_validator(<span class="str">"content"</span>)</span>
+    <span class="kw">def</span> <span class="fn">strip_html_tags</span>(<span class="kw">cls</span>, v: <span class="typ">str</span>) -> <span class="typ">str</span>:
+        <span class="kw">import</span> html
+        <span class="kw">return</span> html.<span class="fn">escape</span>(v)
+
+
+<span class="dec">@registry.register(<span class="str">"quick_reply"</span>)</span>
+<span class="kw">class</span> <span class="cls">QuickReplyComponent</span>(FormComponent):
+    <span class="str">"""
+    Rate-limited reply form for support agents.
+
+    params:
+        ticket_id (int): Ticket to reply to.
+        user      (User): Sending agent.
+    """</span>
+    schema        = ReplySchema
+    template_name = <span class="str">"support/quick_reply.html"</span>
+
+    <span class="kw">def</span> <span class="fn">mount</span>(<span class="kw">self</span>):
+        <span class="kw">self</span>.state.<span class="fn">update</span>({
+            <span class="str">"ticket_id"</span>: <span class="kw">self</span>.params[<span class="str">"ticket_id"</span>],
+            <span class="str">"submitted"</span>: <span class="kw">False</span>,
+            <span class="str">"content"</span>:   <span class="str">""</span>,
+        })
+
+    <span class="kw">def</span> <span class="fn">on_submit</span>(<span class="kw">self</span>):
+        <span class="str">"""
+        Validate, persist the reply, then push it to the customer via WebSocket.
+        Pydantic validation errors are collected in self.errors automatically.
+        """</span>
+        <span class="kw">if not self</span>.<span class="fn">validate</span>():
+            <span class="kw">return</span>
+
+        agent = <span class="kw">self</span>.params[<span class="str">"user"</span>]
+        ticket_id = <span class="kw">self</span>.state[<span class="str">"ticket_id"</span>]
+
+        reply = TicketReply.objects.<span class="fn">create</span>(
+            ticket_id=ticket_id,
+            author=agent,
+            content=<span class="kw">self</span>.validated_data.content,
+        )
+
+        <span class="cm"># Push reply to the customer's browser</span>
+        <span class="kw">import</span> asyncio
+        <span class="kw">from</span> component_framework.core <span class="kw">import</span> ws_manager
+        asyncio.<span class="fn">create_task</span>(
+            ws_manager.<span class="fn">broadcast</span>(
+                group=<span class="fn">f</span><span class="str">"ticket-customer-{ticket_id}"</span>,
+                message={
+                    <span class="str">"event"</span>:   <span class="str">"new_reply"</span>,
+                    <span class="str">"payload"</span>: {
+                        <span class="str">"reply_id"</span>: reply.pk,
+                        <span class="str">"author"</span>:   agent.<span class="fn">get_full_name</span>(),
+                        <span class="str">"content"</span>:  reply.content,
+                    },
+                },
+            )
+        )
+
+        <span class="kw">self</span>.state[<span class="str">"submitted"</span>] = <span class="kw">True</span>
+        <span class="kw">self</span>.state[<span class="str">"content"</span>]   = <span class="str">""</span></code></pre>
+    </div>
+
+    <h3 id="reply-ratelimit">Rate Limiting the Reply Endpoint</h3>
+    <p>The view applies <code>RateLimitMixin</code> with a per-user throttle of 5 submissions per hour. The throttle key is scoped to <code>reply:{user_id}</code> so different agents have independent budgets. Excess requests receive HTTP 429 with a <code>Retry-After</code> header; optimistic state is rolled back automatically by the client library.</p>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">support/views.py (continued)</span>
+        <span class="code-block__lang">Python</span>
+      </div>
+      <pre><code><span class="kw">from</span> component_framework.adapters.django_ratelimit <span class="kw">import</span> RateLimitMixin
+
+
+<span class="kw">class</span> <span class="cls">QuickReplyView</span>(RateLimitMixin, AuthenticatedComponentView):
+    <span class="str">"""
+    Rate-limited reply endpoint.
+
+    - Staff only (permission_classes on component)
+    - 5 replies per hour per agent (RateLimitMixin)
+    - Excess → HTTP 429 + Retry-After header
+    """</span>
+    permission_classes = [IsStaff]
+    throttle_rate      = <span class="str">"5/hour"</span>
+
+    <span class="kw">def</span> <span class="fn">get_throttle_key</span>(<span class="kw">self</span>, request, **kwargs):
+        <span class="kw">return</span> <span class="fn">f</span><span class="str">f"reply:{request.user.pk}"</span>
+
+    <span class="kw">def</span> <span class="fn">get_component_params</span>(<span class="kw">self</span>, request, **kwargs):
+        params = <span class="fn">super</span>().<span class="fn">get_component_params</span>(request, **kwargs)
+        params[<span class="str">"ticket_id"</span>] = <span class="fn">int</span>(kwargs[<span class="str">"ticket_id"</span>])
+        <span class="kw">return</span> params</code></pre>
+    </div>
+
+    <div class="callout callout--warn">
+      <strong>Why rate-limit agent replies?</strong> SaaS helpdesks are high-value targets for automated abuse and credential-stuffing — a compromised agent account should not be able to spam thousands of customers in seconds. The 5/hour limit has no impact on normal agent workflows (agents rarely reply more than once per minute) but stops runaway scripts cold.
+    </div>
+
+    <!-- REACT vs CFX -->
+    <h2 id="compare" data-n="§">React vs Component Framework</h2>
+    <p>Here is the state machine transition handler — the same business logic in React and in component-framework. The React version requires <code>useReducer</code>, action type constants, a dispatch function, and a context provider wired through the component tree. The component-framework version is 8 lines.</p>
+
+    <div class="code-split">
+      <div>
+        <div class="code-split__label" style="color:var(--muted)">// REACT + CONTEXT</div>
+        <div class="code-block" style="margin-top:0">
+          <div class="code-block__header">
+            <span class="code-block__filename">TicketDetail.tsx</span>
+            <span class="code-block__lang">TypeScript</span>
+          </div>
+          <pre><code><span class="cm">// 1. Action types</span>
+<span class="kw">type</span> Action =
+  | { type: <span class="str">'TRANSITION'</span>; to: Status }
+  | { type: <span class="str">'ERROR'</span>; msg: <span class="typ">string</span> };
+
+<span class="cm">// 2. Reducer with guard</span>
+<span class="kw">function</span> <span class="fn">ticketReducer</span>(state, action) {
+  <span class="kw">if</span> (action.type === <span class="str">'TRANSITION'</span>) {
+    <span class="kw">const</span> allowed = TRANSITIONS[state.status];
+    <span class="kw">if</span> (!allowed?.includes(action.to)) {
+      <span class="kw">return</span> {...state,
+        error: `Bad transition: ${action.to}`};
+    }
+    <span class="kw">return</span> {...state, status: action.to};
+  }
+  <span class="kw">return</span> state;
+}
+
+<span class="cm">// 3. Component</span>
+<span class="kw">function</span> <span class="fn">TicketDetail</span>({ ticketId }) {
+  <span class="kw">const</span> [state, dispatch] = <span class="fn">useReducer</span>(
+    ticketReducer, initialState
+  );
+  <span class="kw">const</span> <span class="fn">transition</span> = <span class="kw">async</span> (to) => {
+    dispatch({ type: <span class="str">'TRANSITION'</span>, to });
+    <span class="kw">try</span> {
+      <span class="kw">await</span> <span class="fn">apiTransition</span>(ticketId, to);
+    } <span class="kw">catch</span> {
+      dispatch({ type: <span class="str">'ERROR'</span>, msg: <span class="str">'Failed'</span> });
+    }
+  };
+  <span class="cm">/* + TicketContext.Provider, types, bundler */</span>
+}</code></pre>
+        </div>
+      </div>
+
+      <div>
+        <div class="code-split__label" style="color:var(--green)">// COMPONENT FRAMEWORK</div>
+        <div class="code-block" style="margin-top:0;border-color:var(--border-lit)">
+          <div class="code-block__header">
+            <span class="code-block__filename">support/components.py</span>
+            <span class="code-block__lang">Python</span>
+          </div>
+          <pre><code><span class="cm"># Transition guard — plain dict</span>
+ALLOWED_TRANSITIONS = {
+    <span class="str">"open"</span>:             {<span class="str">"assigned"</span>},
+    <span class="str">"assigned"</span>:        {<span class="str">"pending_customer"</span>,
+                         <span class="str">"resolved"</span>},
+    <span class="str">"pending_customer"</span>: {<span class="str">"assigned"</span>,
+                         <span class="str">"resolved"</span>},
+    <span class="str">"resolved"</span>:        set(),
+}
+
+<span class="kw">def</span> <span class="fn">on_transition</span>(<span class="kw">self</span>, to_status: <span class="typ">str</span>):
+    current = <span class="kw">self</span>.state[<span class="str">"status"</span>]
+    <span class="kw">if</span> to_status <span class="kw">not in</span> \
+            ALLOWED_TRANSITIONS.<span class="fn">get</span>(current, set()):
+        <span class="kw">raise</span> <span class="cls">ComponentError</span>(
+            <span class="fn">f</span><span class="str">f"'{current}' → '{to_status}' forbidden"</span>
+        )
+    ticket = Ticket.objects.<span class="fn">get</span>(
+        pk=<span class="kw">self</span>.state[<span class="str">"ticket_id"</span>]
+    )
+    ticket.status = to_status
+    ticket.<span class="fn">save</span>(update_fields=[<span class="str">"status"</span>])
+    <span class="kw">self</span>.state[<span class="str">"status"</span>] = to_status
+
+<span class="cm"># That's it. pytest covers the rest.</span>
+</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <table class="cmp-table">
+      <thead>
+        <tr>
+          <th>Concern</th>
+          <th class="th-react">React + Context/Redux</th>
+          <th class="th-cfx">Component Framework</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>State machine</td>
+          <td class="td-react"><code>useReducer</code> + action types + guard logic</td>
+          <td><code>on_transition()</code> + ALLOWED_TRANSITIONS dict</td>
+        </tr>
+        <tr>
+          <td>Invalid transitions</td>
+          <td class="td-react">Client-side guard + server re-validation</td>
+          <td><span class="win">Server-only</span> — <code>ComponentError</code> → HTTP 400</td>
+        </tr>
+        <tr>
+          <td>Real-time queue</td>
+          <td class="td-react">socket.io + Redux dispatch on message</td>
+          <td><code>ws_manager.broadcast()</code> → consumer prepend</td>
+        </tr>
+        <tr>
+          <td>Rate limiting</td>
+          <td class="td-react">API gateway / custom middleware</td>
+          <td><code>RateLimitMixin(throttle_rate="5/hour")</code></td>
+        </tr>
+        <tr>
+          <td>Composition</td>
+          <td class="td-react">Context providers + prop drilling</td>
+          <td><code>CompositeComponent</code> + <code>fill_slot()</code></td>
+        </tr>
+        <tr>
+          <td>Optimistic UI</td>
+          <td class="td-react"><code>useOptimistic</code> hook + rollback on error</td>
+          <td><code>get_optimistic_patch()</code> → auto rollback</td>
+        </tr>
+        <tr>
+          <td>Input validation</td>
+          <td class="td-react">Zod / Yup schema (client) + server re-check</td>
+          <td><span class="win">Pydantic</span> — single schema, server only</td>
+        </tr>
+        <tr>
+          <td>Auth gating</td>
+          <td class="td-react">Route guards + API middleware</td>
+          <td><code>permission_classes = [IsStaff]</code></td>
+        </tr>
+        <tr>
+          <td>Build step</td>
+          <td class="td-react">webpack / Vite required</td>
+          <td><span class="win">None</span></td>
+        </tr>
+        <tr>
+          <td>Test tooling</td>
+          <td class="td-react">Jest + RTL + mock socket server</td>
+          <td><span class="win">pytest</span> — pure Python, no browser</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- TESTING -->
+    <h2 id="testing" data-n="§">Testing</h2>
+    <p>All component behaviour — state machine guards, rate-limit rejection, and optimistic patches — is testable with plain Python. No browser, no running server, no mocking of React internals or socket connections required.</p>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">support/tests/test_components.py</span>
+        <span class="code-block__lang">Python</span>
+      </div>
+      <pre><code><span class="kw">from</span> component_framework.testing <span class="kw">import</span> ComponentTestCase, MockRenderer
+<span class="kw">from</span> component_framework.core <span class="kw">import</span> ComponentError
+<span class="kw">from</span> support.components <span class="kw">import</span> TicketDetailComponent, QuickReplyComponent
+
+
+<span class="kw">class</span> <span class="cls">TestTicketStateMachine</span>(ComponentTestCase):
+
+    <span class="kw">def</span> <span class="fn">setUp</span>(<span class="kw">self</span>):
+        TicketDetailComponent.renderer = <span class="cls">MockRenderer</span>()
+
+    <span class="kw">def</span> <span class="fn">_make_ticket</span>(<span class="kw">self</span>, status=<span class="str">"open"</span>):
+        c = <span class="kw">self</span>.<span class="fn">make_component</span>(TicketDetailComponent)
+        c.state = {
+            <span class="str">"ticket_id"</span>: <span class="num">1</span>,
+            <span class="str">"subject"</span>:   <span class="str">"Login broken"</span>,
+            <span class="str">"body"</span>:      <span class="str">"Cannot log in since update."</span>,
+            <span class="str">"status"</span>:    status,
+            <span class="str">"assignee_id"</span>: <span class="kw">None</span>,
+        }
+        <span class="kw">return</span> c
+
+    <span class="kw">def</span> <span class="fn">test_valid_transition_open_to_assigned</span>(<span class="kw">self</span>):
+        c = <span class="kw">self</span>.<span class="fn">_make_ticket</span>(<span class="str">"open"</span>)
+        c.<span class="fn">on_transition</span>(<span class="str">"assigned"</span>)
+        <span class="kw">self</span>.<span class="fn">assertEqual</span>(c.state[<span class="str">"status"</span>], <span class="str">"assigned"</span>)
+
+    <span class="kw">def</span> <span class="fn">test_invalid_transition_open_to_resolved_raises</span>(<span class="kw">self</span>):
+        c = <span class="kw">self</span>.<span class="fn">_make_ticket</span>(<span class="str">"open"</span>)
+        <span class="kw">with self</span>.<span class="fn">assertRaises</span>(<span class="cls">ComponentError</span>):
+            c.<span class="fn">on_transition</span>(<span class="str">"resolved"</span>)
+
+    <span class="kw">def</span> <span class="fn">test_resolved_ticket_accepts_no_transitions</span>(<span class="kw">self</span>):
+        c = <span class="kw">self</span>.<span class="fn">_make_ticket</span>(<span class="str">"resolved"</span>)
+        <span class="kw">for</span> target <span class="kw">in</span> [<span class="str">"open"</span>, <span class="str">"assigned"</span>, <span class="str">"pending_customer"</span>]:
+            <span class="kw">with self</span>.<span class="fn">assertRaises</span>(<span class="cls">ComponentError</span>):
+                c.<span class="fn">on_transition</span>(target)
+
+    <span class="kw">def</span> <span class="fn">test_optimistic_patch_contains_status</span>(<span class="kw">self</span>):
+        c = <span class="kw">self</span>.<span class="fn">_make_ticket</span>(<span class="str">"assigned"</span>)
+        patch = c.<span class="fn">get_optimistic_patch</span>(
+            <span class="str">"transition"</span>, {<span class="str">"to_status"</span>: <span class="str">"resolved"</span>}
+        )
+        <span class="kw">self</span>.<span class="fn">assertEqual</span>(patch[<span class="str">"status"</span>], <span class="str">"resolved"</span>)
+
+    <span class="kw">def</span> <span class="fn">test_optimistic_patch_is_none_for_unknown_event</span>(<span class="kw">self</span>):
+        c = <span class="kw">self</span>.<span class="fn">_make_ticket</span>(<span class="str">"open"</span>)
+        patch = c.<span class="fn">get_optimistic_patch</span>(<span class="str">"unknown_event"</span>, {})
+        <span class="kw">self</span>.<span class="fn">assertIsNone</span>(patch)
+
+
+<span class="kw">class</span> <span class="cls">TestQuickReplyValidation</span>(ComponentTestCase):
+
+    <span class="kw">def</span> <span class="fn">setUp</span>(<span class="kw">self</span>):
+        QuickReplyComponent.renderer = <span class="cls">MockRenderer</span>()
+
+    <span class="kw">def</span> <span class="fn">test_short_content_fails_validation</span>(<span class="kw">self</span>):
+        c = <span class="kw">self</span>.<span class="fn">make_component</span>(QuickReplyComponent, params={<span class="str">"ticket_id"</span>: <span class="num">1</span>})
+        c.<span class="fn">mount</span>()
+        c.state[<span class="str">"content"</span>] = <span class="str">"Too short"</span>
+        result = c.<span class="fn">validate</span>()
+        <span class="kw">self</span>.<span class="fn">assertFalse</span>(result)
+        <span class="kw">self</span>.<span class="fn">assertIn</span>(<span class="str">"content"</span>, c.errors)
+
+    <span class="kw">def</span> <span class="fn">test_valid_content_passes</span>(<span class="kw">self</span>):
+        c = <span class="kw">self</span>.<span class="fn">make_component</span>(QuickReplyComponent, params={<span class="str">"ticket_id"</span>: <span class="num">1</span>})
+        c.<span class="fn">mount</span>()
+        c.state[<span class="str">"content"</span>] = <span class="str">"Thank you for reaching out. I have investigated the issue and applied a fix."</span>
+        result = c.<span class="fn">validate</span>()
+        <span class="kw">self</span>.<span class="fn">assertTrue</span>(result)
+        <span class="kw">self</span>.<span class="fn">assertEqual</span>(c.errors, {})</code></pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">shell</span>
+        <span class="code-block__lang">bash</span>
+      </div>
+      <pre><code>pytest support/tests/ -v</code></pre>
+    </div>
+
+    <div class="callout callout--insight">
+      <strong>Test the state machine without a database.</strong> The guard logic in <code>on_transition()</code> is pure Python before any ORM call. By pre-loading <code>self.state</code> directly, tests exercise the full guard and optimistic-patch path without migrations, fixtures, or mocking Django's ORM.
+    </div>
+
+    <!-- RUNNING -->
+    <h2 id="running" data-n="§">Running the Example</h2>
+
+    <ol class="run-steps">
+      <li>
+        <div class="step-text">
+          <strong>Clone and install the Django extras</strong><br>
+          <div class="code-block" style="margin-top:0.6rem">
+            <div class="code-block__header"><span class="code-block__filename">shell</span><span class="code-block__lang">bash</span></div>
+            <pre><code>git clone https://github.com/fsecada01/component-framework
+cd component-framework/examples/django_example
+uv sync --extra django</code></pre>
+          </div>
+        </div>
+      </li>
+      <li>
+        <div class="step-text">
+          <strong>Apply migrations and create a staff superuser</strong><br>
+          <div class="code-block" style="margin-top:0.6rem">
+            <div class="code-block__header"><span class="code-block__filename">shell</span><span class="code-block__lang">bash</span></div>
+            <pre><code>python manage.py migrate
+python manage.py createsuperuser</code></pre>
+          </div>
+        </div>
+      </li>
+      <li>
+        <div class="step-text">
+          <strong>Configure Django Channels in ASGI with Redis as the channel layer</strong><br>
+          <div class="code-block" style="margin-top:0.6rem">
+            <div class="code-block__header"><span class="code-block__filename">settings.py (excerpt)</span><span class="code-block__lang">Python</span></div>
+            <pre><code>CHANNEL_LAYERS = {
+    <span class="str">"default"</span>: {
+        <span class="str">"BACKEND"</span>: <span class="str">"channels_redis.core.RedisChannelLayer"</span>,
+        <span class="str">"CONFIG"</span>: {<span class="str">"hosts"</span>: [(<span class="str">"127.0.0.1"</span>, <span class="num">6379</span>)]},
+    }
+}</code></pre>
+          </div>
+        </div>
+      </li>
+      <li>
+        <div class="step-text">
+          <strong>Start Redis</strong> (required for WebSocket channel layer)<br>
+          <div class="code-block" style="margin-top:0.6rem">
+            <div class="code-block__header"><span class="code-block__filename">shell</span><span class="code-block__lang">bash</span></div>
+            <pre><code>docker run -p 6379:6379 redis:7-alpine</code></pre>
+          </div>
+        </div>
+      </li>
+      <li>
+        <div class="step-text">
+          <strong>Run the ASGI dev server</strong><br>
+          <div class="code-block" style="margin-top:0.6rem">
+            <div class="code-block__header"><span class="code-block__filename">shell</span><span class="code-block__lang">bash</span></div>
+            <pre><code>python manage.py runserver
+# → http://localhost:8000/support/dashboard/</code></pre>
+          </div>
+        </div>
+      </li>
+    </ol>
+
+    <div class="callout callout--insight">
+      Open <strong>http://localhost:8000/support/dashboard/</strong> in two browser tabs logged in as a staff user. In a third tab (or via the API) create a new ticket — watch it appear in both agent queues simultaneously. Click "Assign to Me", then "Resolve" — see the status badge flash optimistically before the server responds. No page refresh. No spinner. Just Python.
+    </div>
+
+    <!-- SUMMARY -->
+    <h2 id="summary" data-n="§">Summary</h2>
+
+    <table class="summary-table">
+      <thead>
+        <tr>
+          <th>Feature</th>
+          <th>Component / Mechanism</th>
+          <th>How</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Real-time queue</td>
+          <td>TicketQueueComponent</td>
+          <td>WebSocket Push via <code style="font-family:var(--mono);font-size:11px;color:var(--sky)">ws_manager.broadcast()</code> → consumer prepend</td>
+        </tr>
+        <tr>
+          <td>State machine</td>
+          <td>on_transition guard</td>
+          <td><code style="font-family:var(--mono);font-size:11px;color:var(--sky)">ALLOWED_TRANSITIONS</code> dict + <code style="font-family:var(--mono);font-size:11px;color:var(--sky)">ComponentError</code> on violation</td>
+        </tr>
+        <tr>
+          <td>Rate limiting</td>
+          <td>QuickReplyComponent</td>
+          <td><code style="font-family:var(--mono);font-size:11px;color:var(--sky)">RateLimitMixin(throttle_rate="5/hour")</code></td>
+        </tr>
+        <tr>
+          <td>Composition</td>
+          <td>AgentDashboardComponent</td>
+          <td><code style="font-family:var(--mono);font-size:11px;color:var(--sky)">CompositeComponent</code> + <code style="font-family:var(--mono);font-size:11px;color:var(--sky)">SlotComponent</code> + <code style="font-family:var(--mono);font-size:11px;color:var(--sky)">fill_slot()</code></td>
+        </tr>
+        <tr>
+          <td>Optimistic feedback</td>
+          <td>TicketDetailComponent</td>
+          <td><code style="font-family:var(--mono);font-size:11px;color:var(--sky)">OptimisticMixin</code> + <code style="font-family:var(--mono);font-size:11px;color:var(--sky)">get_optimistic_patch()</code> → auto rollback</td>
+        </tr>
+        <tr>
+          <td>Input validation</td>
+          <td>ReplySchema</td>
+          <td>Pydantic <code style="font-family:var(--mono);font-size:11px;color:var(--sky)">BaseModel</code> — server-only, no client duplicate</td>
+        </tr>
+        <tr>
+          <td>Auth gating</td>
+          <td>All agent views</td>
+          <td><code style="font-family:var(--mono);font-size:11px;color:var(--sky)">permission_classes = [IsStaff]</code> → JSON 401/403</td>
+        </tr>
+        <tr>
+          <td>Testing</td>
+          <td>All components</td>
+          <td>Pure Python — <code style="font-family:var(--mono);font-size:11px;color:var(--sky)">pytest</code>, <code style="font-family:var(--mono);font-size:11px;color:var(--sky)">MockRenderer</code>, <code style="font-family:var(--mono);font-size:11px;color:var(--sky)">ComponentTestCase</code></td>
+        </tr>
+      </tbody>
+    </table>
+
+  </article>
+</div>
+
+<!-- ── FOOTER ─────────────────────────────────────────────────────────────── -->
+<footer>
+  <span>component-framework — MIT license</span>
+  <span>
+    <a href="https://github.com/fsecada01/component-framework" target="_blank" rel="noopener">GitHub</a>
+    <span class="sep">·</span>
+    <a href="https://pypi.org/project/component-framework/" target="_blank" rel="noopener">PyPI</a>
+    <span class="sep">·</span>
+    built with <a href="https://pdoc.dev" target="_blank" rel="noopener">pdoc</a>
+  </span>
+</footer>
+
+</body>
+</html>

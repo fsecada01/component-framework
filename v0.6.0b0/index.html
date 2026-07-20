@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>component-framework — Server-Side Components for Python</title>
+  <meta name="description" content="Framework-agnostic server components with LiveView-style interactivity. HTMX-powered, no JS framework required." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* ── TERMINAL MODERN ── shared design system ────────────────────────── */
+    :root {
+      --bg:          #0c1117;
+      --panel:       #161c26;
+      --panel-lit:   #1e2637;
+      --code-bg:     #090e18;
+      --border:      #1e2a3c;
+      --border-lit:  #29394f;
+
+      --green:       #4ade80;
+      --green-dim:   rgba(74,222,128,0.10);
+      --green-glow:  rgba(74,222,128,0.18);
+      --amber:       #fbbf24;
+      --amber-dim:   rgba(251,191,36,0.09);
+      --sky:         #38bdf8;
+      --sky-dim:     rgba(56,189,248,0.09);
+      --violet:      #a78bfa;
+
+      --text:        #cbd5e1;
+      --muted:       #64748b;
+      --dim:         #334155;
+      --white:       #f1f5f9;
+
+      --mono:        'IBM Plex Mono', 'Courier New', monospace;
+      --sans:        'Inter', system-ui, -apple-system, sans-serif;
+      --radius:      6px;
+      --radius-sm:   3px;
+      --bar-h:       42px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 15px;
+      line-height: 1.7;
+      min-height: 100vh;
+    }
+
+    ::-webkit-scrollbar              { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-thumb        { background: var(--border-lit); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover  { background: var(--muted); }
+
+    /* ── TOP BAR ────────────────────────────────────────────────────────── */
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      height: var(--bar-h);
+      display: flex;
+      align-items: center;
+      padding: 0 clamp(1rem, 4vw, 2.5rem);
+      background: linear-gradient(to right, #1a2232 0%, var(--panel) 60%);
+      border-bottom: 1px solid var(--border);
+      gap: 1rem;
+    }
+    .topbar__logo {
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--green);
+      text-decoration: none;
+      letter-spacing: 0.02em;
+      flex-shrink: 0;
+    }
+    .topbar__logo::before { content: "> "; color: var(--amber); }
+    .topbar__badge {
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 0.12em;
+      color: var(--amber);
+      border: 1px solid rgba(251,191,36,0.4);
+      background: rgba(251,191,36,0.06);
+      padding: 2px 6px;
+      border-radius: var(--radius-sm);
+    }
+    .topbar__nav {
+      margin-left: auto;
+      display: flex;
+      gap: 1.5rem;
+      list-style: none;
+      align-items: center;
+    }
+    .topbar__nav a {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--muted);
+      text-decoration: none;
+      letter-spacing: 0.03em;
+      transition: color 0.15s;
+    }
+    .topbar__nav a:hover            { color: var(--green); }
+    .topbar__nav a.nav-active       { color: var(--green); }
+    .topbar__nav a.nav-api          { color: var(--sky); }
+    .topbar__nav a.nav-api:hover    { color: var(--green); }
+    @media (max-width: 640px) { .topbar__nav .nav-hide { display: none; } }
+
+    /* ── HERO ───────────────────────────────────────────────────────────── */
+    .hero {
+      padding: clamp(3.5rem, 10vw, 6rem) clamp(1.5rem, 6vw, 4rem);
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    .hero__eyebrow {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--amber);
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      margin-bottom: 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+    .hero__eyebrow::before {
+      content: '';
+      display: block;
+      width: 24px;
+      height: 1px;
+      background: var(--amber);
+      opacity: 0.6;
+    }
+    .hero__title {
+      font-family: var(--mono);
+      font-size: clamp(2rem, 5.5vw, 3.75rem);
+      font-weight: 600;
+      color: var(--white);
+      line-height: 1.08;
+      margin-bottom: 1.5rem;
+      letter-spacing: -0.02em;
+    }
+    .hero__title .hl { color: var(--green); }
+    .hero__subtitle {
+      font-size: clamp(1rem, 2vw, 1.2rem);
+      color: var(--muted);
+      max-width: 560px;
+      line-height: 1.8;
+      margin-bottom: 2.25rem;
+    }
+    .hero__tagline {
+      font-family: var(--mono);
+      font-size: 13px;
+      color: var(--dim);
+      margin-bottom: 2.5rem;
+      display: flex;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+    }
+    .hero__tagline span { color: var(--green); }
+    .hero__tagline span::before { content: "✓ "; }
+
+    .hero__ctas {
+      display: flex;
+      gap: 0.85rem;
+      flex-wrap: wrap;
+    }
+
+    /* ── BUTTONS ────────────────────────────────────────────────────────── */
+    .btn {
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      padding: 0.6rem 1.35rem;
+      border-radius: var(--radius-sm);
+      text-decoration: none;
+      border: none;
+      cursor: pointer;
+      transition: all 0.18s;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .btn--primary {
+      background: var(--green);
+      color: var(--bg);
+    }
+    .btn--primary:hover {
+      background: #86efac;
+      box-shadow: 0 0 20px rgba(74,222,128,0.25);
+    }
+    .btn--secondary {
+      background: transparent;
+      color: var(--sky);
+      border: 1px solid rgba(56,189,248,0.35);
+    }
+    .btn--secondary:hover {
+      border-color: var(--sky);
+      background: var(--sky-dim);
+    }
+    .btn--ghost {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--border-lit);
+    }
+    .btn--ghost:hover { color: var(--white); border-color: var(--muted); }
+
+    /* ── INSTALL SNIPPET ────────────────────────────────────────────────── */
+    .install-strip {
+      background: var(--panel);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      padding: 1.25rem clamp(1.5rem, 6vw, 4rem);
+    }
+    .install-strip__inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+    }
+    .install-strip__label {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--dim);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      flex-shrink: 0;
+    }
+    .install-strip__cmd {
+      font-family: var(--mono);
+      font-size: 13px;
+      color: var(--text);
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--green);
+      border-radius: var(--radius-sm);
+      padding: 0.45rem 1rem;
+      flex: 1;
+      min-width: 260px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .install-strip__cmd .prompt { color: var(--dim); margin-right: 0.5rem; }
+    .install-strip__cmd .copy-strip {
+      font-size: 10px;
+      color: var(--dim);
+      background: none;
+      border: 1px solid var(--border-lit);
+      border-radius: var(--radius-sm);
+      padding: 2px 7px;
+      cursor: pointer;
+      font-family: var(--mono);
+      transition: color 0.15s, border-color 0.15s;
+      flex-shrink: 0;
+    }
+    .install-strip__cmd .copy-strip:hover { color: var(--green); border-color: var(--green); }
+
+    /* ── SECTION WRAPPER ────────────────────────────────────────────────── */
+    .section {
+      padding: clamp(2.5rem, 6vw, 4rem) clamp(1.5rem, 6vw, 4rem);
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    .section--alt { background: var(--panel); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+    .section--alt > .section { background: transparent; }
+    .section__full { max-width: 1100px; margin: 0 auto; padding: clamp(2.5rem, 6vw, 4rem) clamp(1.5rem, 6vw, 4rem); }
+
+    .section-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--dim);
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      margin-bottom: 0.6rem;
+    }
+    .section-label::before { content: "// "; color: var(--amber); }
+    .section-title {
+      font-family: var(--mono);
+      font-size: clamp(1.1rem, 2.5vw, 1.5rem);
+      font-weight: 600;
+      color: var(--white);
+      margin-bottom: 0.65rem;
+    }
+    .section-desc {
+      color: var(--muted);
+      font-size: 15px;
+      max-width: 580px;
+      line-height: 1.75;
+      margin-bottom: 2rem;
+    }
+
+    /* ── FEATURE GRID ───────────────────────────────────────────────────── */
+    .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      margin-top: 2rem;
+    }
+    .feature {
+      background: var(--panel);
+      padding: 1.65rem;
+      transition: background 0.18s;
+      position: relative;
+    }
+    .feature:hover { background: var(--panel-lit); }
+    .feature::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: transparent;
+      transition: background 0.18s;
+    }
+    .feature:hover::before { background: linear-gradient(to right, var(--green), transparent); }
+    .feature__icon {
+      font-size: 1.5rem;
+      margin-bottom: 0.85rem;
+      display: block;
+    }
+    .feature__name {
+      font-family: var(--mono);
+      font-size: 13px;
+      color: var(--sky);
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+    .feature__desc {
+      font-size: 13.5px;
+      color: var(--muted);
+      line-height: 1.65;
+    }
+
+    /* ── CODE EXAMPLE ───────────────────────────────────────────────────── */
+    .code-split {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      align-items: start;
+      margin-top: 2rem;
+    }
+    @media (max-width: 800px) { .code-split { grid-template-columns: 1fr; } }
+
+    .code-card {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.35);
+    }
+    .code-card__header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.6rem 1rem;
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+    }
+    .code-card__title {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.04em;
+    }
+    .code-card__lang {
+      font-family: var(--mono);
+      font-size: 9px;
+      color: var(--dim);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+    .code-card pre {
+      margin: 0;
+      padding: 1.1rem 1.25rem;
+      overflow-x: auto;
+      font-family: var(--mono);
+      font-size: 12.5px;
+      line-height: 1.65;
+    }
+    .code-card code { color: var(--text); }
+
+    /* syntax */
+    .kw   { color: var(--amber); }
+    .fn   { color: var(--sky); }
+    .cls  { color: var(--sky); font-weight: 600; }
+    .dec  { color: var(--amber); opacity: 0.85; }
+    .str  { color: var(--green); }
+    .cm   { color: var(--dim); font-style: italic; }
+    .num  { color: var(--green); }
+    .typ  { color: var(--violet); }
+
+    /* ── COMPARISON TABLE ───────────────────────────────────────────────── */
+    .compare-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13.5px;
+      margin-top: 2rem;
+    }
+    .compare-table th {
+      text-align: left;
+      padding: 0.6rem 0.9rem;
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      border-bottom: 2px solid var(--border-lit);
+    }
+    .compare-table th:first-child { color: var(--muted); }
+    .compare-table th.th-react    { color: #61dafb; }
+    .compare-table th.th-cfx      { color: var(--green); }
+    .compare-table td {
+      padding: 0.55rem 0.9rem;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+      color: var(--text);
+    }
+    .compare-table td:first-child { color: var(--muted); font-family: var(--mono); font-size: 12px; }
+    .compare-table td code {
+      font-family: var(--mono);
+      font-size: 11.5px;
+      color: var(--green);
+      background: var(--green-dim);
+      padding: 0.1em 0.4em;
+      border-radius: var(--radius-sm);
+    }
+    .compare-table td.td-react code { color: var(--sky); background: var(--sky-dim); }
+    .compare-table tr:hover td { background: rgba(74,222,128,0.025); }
+
+    /* ── QUICK START ────────────────────────────────────────────────────── */
+    .qs-steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1.25rem;
+      margin-top: 2rem;
+    }
+    .qs-step {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      position: relative;
+      transition: border-color 0.18s, box-shadow 0.18s;
+    }
+    .qs-step:hover {
+      border-color: var(--border-lit);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+    .qs-step__num {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--green);
+      letter-spacing: 0.12em;
+      margin-bottom: 0.65rem;
+    }
+    .qs-step__title {
+      font-family: var(--mono);
+      font-size: 13px;
+      color: var(--white);
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+    .qs-step__body {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.65;
+    }
+    .qs-step pre {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-left: 2px solid var(--green);
+      border-radius: var(--radius-sm);
+      padding: 0.75rem 0.9rem;
+      margin-top: 0.85rem;
+      overflow-x: auto;
+      font-family: var(--mono);
+      font-size: 11.5px;
+      line-height: 1.6;
+      color: var(--text);
+    }
+
+    /* ── DOCS GRID ──────────────────────────────────────────────────────── */
+    .docs-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 0.85rem;
+      margin-top: 2rem;
+    }
+    .doc-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.35rem 1.5rem;
+      text-decoration: none;
+      display: block;
+      transition: border-color 0.18s, background 0.18s, box-shadow 0.18s;
+      position: relative;
+      overflow: hidden;
+    }
+    .doc-card::after {
+      content: '→';
+      position: absolute;
+      right: 1rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--dim);
+      font-family: var(--mono);
+      font-size: 14px;
+      transition: color 0.15s, transform 0.15s;
+    }
+    .doc-card:hover {
+      border-color: var(--green);
+      background: var(--panel-lit);
+      box-shadow: 0 0 0 1px rgba(74,222,128,0.1);
+    }
+    .doc-card:hover::after { color: var(--green); transform: translateY(-50%) translateX(3px); }
+    .doc-card__label {
+      font-family: var(--mono);
+      font-size: 9px;
+      color: var(--dim);
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      margin-bottom: 0.4rem;
+    }
+    .doc-card__title {
+      font-family: var(--mono);
+      font-size: 13px;
+      color: var(--sky);
+      font-weight: 600;
+      margin-bottom: 0.35rem;
+    }
+    .doc-card__desc {
+      font-size: 12.5px;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+    .doc-card--primary .doc-card__title { color: var(--green); }
+
+    /* ── FOOTER ─────────────────────────────────────────────────────────── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 1.5rem clamp(1.5rem, 6vw, 4rem);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--dim);
+      background: var(--panel);
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+    footer a { color: var(--dim); text-decoration: none; transition: color 0.15s; }
+    footer a:hover { color: var(--green); }
+    footer .sep { margin: 0 0.5rem; }
+
+    @media (max-width: 640px) {
+      .hero__ctas { flex-direction: column; }
+      .btn { justify-content: center; }
+    }
+
+    /* ── NAV DROPDOWN ───────────────────────────────────────────────────────── */
+    .nav-dropdown { position: relative; }
+    .nav-dropdown__label {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: 0.03em;
+      transition: color 0.15s;
+      cursor: default;
+      user-select: none;
+    }
+    .nav-dropdown:hover .nav-dropdown__label { color: var(--green); }
+    .nav-dropdown__menu {
+      display: none;
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      background: var(--panel);
+      border: 1px solid var(--border-lit);
+      border-radius: var(--radius);
+      min-width: 210px;
+      padding: 0.4rem 0;
+      z-index: 300;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.45);
+    }
+    .nav-dropdown:hover .nav-dropdown__menu { display: block; }
+    .nav-dropdown::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: -1rem;
+      right: -1rem;
+      height: 10px;
+    }
+    .nav-dropdown__menu a {
+      display: block;
+      font-family: var(--mono);
+      font-size: 11.5px;
+      color: var(--muted);
+      text-decoration: none;
+      padding: 0.4rem 1rem;
+      letter-spacing: 0.03em;
+      transition: color 0.12s, background 0.12s;
+    }
+    .nav-dropdown__menu a:hover { color: var(--green); background: var(--green-dim); }
+  </style>
+</head>
+<body>
+
+<!-- ── TOP BAR ──────────────────────────────────────────────────────────── -->
+<header class="topbar">
+  <a href="index.html" class="topbar__logo">component-framework</a>
+  <span class="topbar__badge">BETA</span>
+  <nav aria-label="Main navigation">
+    <ul class="topbar__nav">
+      <li><a href="index.html" class="nav-active">Home</a></li>
+      <li class="nav-dropdown">
+        <span class="nav-dropdown__label">Examples ▾</span>
+        <div class="nav-dropdown__menu">
+          <a href="ecommerce.html">E-Commerce Live View</a>
+          <a href="admin-panel.html">Admin Panel</a>
+          <a href="customer-support.html">Customer Support</a>
+          <a href="education-lms.html">Education / LMS</a>
+          <a href="financial-dashboard.html">Financial Dashboard</a>
+          <a href="litestar-guide.html">Litestar Guide</a>
+          <a href="wizard.html">Wizard Recipe</a>
+        </div>
+      </li>
+      <li><a href="component_framework.html" class="nav-api">API Ref</a></li>
+      <li class="nav-hide"><a href="https://github.com/fsecada01/component-framework" target="_blank" rel="noopener">GitHub ↗</a></li>
+    </ul>
+  </nav>
+</header>
+
+<!-- ── HERO ─────────────────────────────────────────────────────────────── -->
+<section class="hero">
+  <p class="hero__eyebrow">Python · Django · FastAPI · Litestar · HTMX</p>
+  <h1 class="hero__title">
+    Server-side components<br>
+    with <span class="hl">LiveView</span>-style<br>
+    interactivity.
+  </h1>
+  <p class="hero__subtitle">
+    Build reactive UIs entirely in Python. No React, no Redux, no build step —
+    HTMX handles the browser side; your components own the state.
+  </p>
+  <div class="hero__tagline">
+    <span>Framework-agnostic core</span>
+    <span>FastAPI + Django + Litestar</span>
+    <span>5 KB JS footprint</span>
+    <span>Pure Python tests</span>
+  </div>
+  <div class="hero__ctas">
+    <a href="component_framework.html" class="btn btn--primary">API Reference →</a>
+    <a href="ecommerce.html" class="btn btn--secondary">Live-view example</a>
+    <a href="https://github.com/fsecada01/component-framework" class="btn btn--ghost" target="_blank" rel="noopener">GitHub</a>
+  </div>
+</section>
+
+<!-- ── INSTALL STRIP ─────────────────────────────────────────────────────── -->
+<div class="install-strip">
+  <div class="install-strip__inner">
+    <span class="install-strip__label">Install</span>
+    <div class="install-strip__cmd" id="install-cmd">
+      <span><span class="prompt">$</span><span id="install-text">uv pip install -e ".[django,websockets]"</span></span>
+      <button class="copy-strip" id="copy-install" aria-label="Copy install command">copy</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── FEATURES ──────────────────────────────────────────────────────────── -->
+<div class="section">
+  <p class="section-label">capabilities</p>
+  <h2 class="section-title">Everything you need. Nothing you don't.</h2>
+  <p class="section-desc">A complete server-component system with zero mandatory JavaScript and a pure-Python test story.</p>
+
+  <div class="features">
+    <div class="feature">
+      <span class="feature__icon">⚡</span>
+      <div class="feature__name">Server-Driven UI</div>
+      <div class="feature__desc">State lives on the server. The browser sends events and receives rendered HTML — no client-side state machine needed.</div>
+    </div>
+    <div class="feature">
+      <span class="feature__icon">🔒</span>
+      <div class="feature__name">Permission System</div>
+      <div class="feature__desc"><code style="font-family:var(--mono);font-size:11px;color:var(--green);background:var(--green-dim);padding:1px 4px;border-radius:2px">permission_classes = [IsAuthenticated]</code> on the component class. Enforced by every view automatically. JSON 401/403, no redirects.</div>
+    </div>
+    <div class="feature">
+      <span class="feature__icon">🚀</span>
+      <div class="feature__name">Optimistic UI</div>
+      <div class="feature__desc">Override <code style="font-family:var(--mono);font-size:11px;color:var(--green);background:var(--green-dim);padding:1px 4px;border-radius:2px">get_optimistic_patch()</code> to return an instant state delta. The client rolls back automatically on error.</div>
+    </div>
+    <div class="feature">
+      <span class="feature__icon">🌐</span>
+      <div class="feature__name">WebSocket + SSE</div>
+      <div class="feature__desc">Real-time component updates via Django Channels, FastAPI, or Litestar WebSocket. SSE streaming for long-running operations with <code style="font-family:var(--mono);font-size:11px;color:var(--green);background:var(--green-dim);padding:1px 4px;border-radius:2px">StreamingComponent</code>.</div>
+    </div>
+    <div class="feature">
+      <span class="feature__icon">🧩</span>
+      <div class="feature__name">Component Composition</div>
+      <div class="feature__desc"><code style="font-family:var(--mono);font-size:11px;color:var(--green);background:var(--green-dim);padding:1px 4px;border-radius:2px">SlotComponent</code> and <code style="font-family:var(--mono);font-size:11px;color:var(--green);background:var(--green-dim);padding:1px 4px;border-radius:2px">CompositeComponent</code> let you build complex pages from named, reusable pieces.</div>
+    </div>
+    <div class="feature">
+      <span class="feature__icon">🧪</span>
+      <div class="feature__name">Pure-Python Testing</div>
+      <div class="feature__desc"><code style="font-family:var(--mono);font-size:11px;color:var(--green);background:var(--green-dim);padding:1px 4px;border-radius:2px">ComponentTestCase</code> lets you mount, dispatch events, and assert state — no HTTP, no browser, no running server.</div>
+    </div>
+    <div class="feature">
+      <span class="feature__icon">⏱</span>
+      <div class="feature__name">Rate Limiting</div>
+      <div class="feature__desc">Mix in <code style="font-family:var(--mono);font-size:11px;color:var(--green);background:var(--green-dim);padding:1px 4px;border-radius:2px">RateLimitMixin</code> on any view. Sliding-window, per-user. Returns HTTP 429 with <code style="font-family:var(--mono);font-size:11px;color:var(--sky);background:var(--sky-dim);padding:1px 4px;border-radius:2px">Retry-After</code> header.</div>
+    </div>
+    <div class="feature">
+      <span class="feature__icon">💾</span>
+      <div class="feature__name">Caching</div>
+      <div class="feature__desc"><code style="font-family:var(--mono);font-size:11px;color:var(--green);background:var(--green-dim);padding:1px 4px;border-radius:2px">CacheMixin</code> caches render output per component + params. Event requests bypass the cache automatically.</div>
+    </div>
+    <div class="feature">
+      <span class="feature__icon">🗃</span>
+      <div class="feature__name">Django Model Binding</div>
+      <div class="feature__desc"><code style="font-family:var(--mono);font-size:11px;color:var(--green);background:var(--green-dim);padding:1px 4px;border-radius:2px">DjangoModelComponent</code> binds state fields to ORM instances. <code style="font-family:var(--mono);font-size:11px;color:var(--sky);background:var(--sky-dim);padding:1px 4px;border-radius:2px">save_instance()</code> handles validation and transactions.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── COMPARE ───────────────────────────────────────────────────────────── -->
+<div class="section--alt">
+  <div class="section__full">
+    <p class="section-label">why not React?</p>
+    <h2 class="section-title">Same result. A fraction of the complexity.</h2>
+    <p class="section-desc">
+      Building a real-time cart in React requires Redux, async thunks, a store provider, serialisation,
+      and a bundler. In component-framework it's one Python class.
+    </p>
+
+    <div class="code-split">
+      <!-- React approach -->
+      <div>
+        <div style="font-family:var(--mono);font-size:11px;color:#64748b;letter-spacing:.08em;margin-bottom:.75rem;">// REACT + REDUX</div>
+        <div class="code-card">
+          <div class="code-card__header">
+            <span class="code-card__title">cart.ts</span>
+            <span class="code-card__lang">TypeScript</span>
+          </div>
+          <pre><code><span class="cm">// 1. async thunk</span>
+<span class="kw">const</span> <span class="fn">addToCart</span> = <span class="fn">createAsyncThunk</span>(
+  <span class="str">'cart/addItem'</span>,
+  <span class="kw">async</span> (item, { dispatch }) => {
+    <span class="kw">const</span> r = <span class="kw">await</span> <span class="fn">fetch</span>(<span class="str">'/api/cart/'</span>, {
+      method: <span class="str">'POST'</span>,
+      body: <span class="fn">JSON.stringify</span>(item),
+      headers: { <span class="str">'X-CSRFToken'</span>: <span class="fn">getCsrf</span>() },
+    });
+    <span class="kw">return</span> r.<span class="fn">json</span>();
+  }
+);
+
+<span class="cm">// 2. reducer</span>
+<span class="kw">const</span> cartSlice = <span class="fn">createSlice</span>({
+  name: <span class="str">'cart'</span>,
+  initialState: { items: [], total: <span class="str">'0.00'</span>, status: <span class="str">'idle'</span> },
+  extraReducers: (builder) => {
+    builder
+      .<span class="fn">addCase</span>(addToCart.pending,   s => { s.status = <span class="str">'loading'</span> })
+      .<span class="fn">addCase</span>(addToCart.fulfilled, (s, a) => {
+        s.items  = a.payload.items;
+        s.total  = a.payload.total;
+        s.status = <span class="str">'idle'</span>;
+      })
+      .<span class="fn">addCase</span>(addToCart.rejected,  s => { s.status = <span class="str">'error'</span> });
+  },
+});
+
+<span class="cm">// 3. optimistic hook (React 19)</span>
+<span class="kw">function</span> <span class="fn">CartButton</span>({ item }) {
+  <span class="kw">const</span> [optimisticItems, <span class="fn">addOptimistic</span>] =
+    <span class="fn">useOptimistic</span>(items, (state, newItem) =>
+      [...state, { ...newItem, pending: <span class="kw">true</span> }]
+    );
+  <span class="cm">/* …plus store provider, types, bundler config */</span>
+}</code></pre>
+        </div>
+      </div>
+
+      <!-- Component Framework -->
+      <div>
+        <div style="font-family:var(--mono);font-size:11px;color:var(--green);letter-spacing:.08em;margin-bottom:.75rem;">// COMPONENT FRAMEWORK</div>
+        <div class="code-card" style="border-color:var(--border-lit)">
+          <div class="code-card__header">
+            <span class="code-card__title">cart/components.py</span>
+            <span class="code-card__lang">Python</span>
+          </div>
+          <pre><code><span class="dec">@registry.register(<span class="str">"cart"</span>)</span>
+<span class="kw">class</span> <span class="cls">CartComponent</span>(Component):
+
+    <span class="kw">def</span> <span class="fn">on_add_item</span>(<span class="kw">self</span>,
+                   product_id: <span class="typ">int</span>,
+                   size: <span class="typ">str</span>):
+        <span class="cm">"""Add item or increment qty."""</span>
+        <span class="kw">for</span> item <span class="kw">in</span> <span class="kw">self</span>.state[<span class="str">"items"</span>]:
+            <span class="kw">if</span> (item[<span class="str">"product_id"</span>] == product_id
+                    <span class="kw">and</span> item[<span class="str">"size"</span>] == size):
+                item[<span class="str">"qty"</span>] += <span class="num">1</span>
+                <span class="kw">self</span>.<span class="fn">_recalculate_total</span>()
+                <span class="kw">return</span>
+        <span class="kw">self</span>.state[<span class="str">"items"</span>].<span class="fn">append</span>({
+            <span class="str">"product_id"</span>: product_id,
+            <span class="str">"size"</span>:       size,
+            <span class="str">"qty"</span>:        <span class="num">1</span>,
+        })
+        <span class="kw">self</span>.<span class="fn">_recalculate_total</span>()
+
+    <span class="kw">def</span> <span class="fn">get_optimistic_patch</span>(<span class="kw">self</span>,
+                             event: <span class="typ">str</span>,
+                             payload: <span class="typ">dict</span>) -> <span class="typ">dict</span> | <span class="kw">None</span>:
+        <span class="kw">if</span> event == <span class="str">"add_item"</span>:
+            <span class="kw">return</span> {<span class="str">"items"</span>:
+                <span class="kw">self</span>.state[<span class="str">"items"</span>]
+                + [{**payload, <span class="str">"qty"</span>: <span class="num">1</span>}]}
+        <span class="kw">return None</span>
+
+<span class="cm"># That's it. pytest covers the rest.</span></code></pre>
+        </div>
+      </div>
+    </div>
+
+    <table class="compare-table" style="margin-top:2rem">
+      <thead>
+        <tr>
+          <th>Concern</th>
+          <th class="th-react">React + Redux</th>
+          <th class="th-cfx">Component Framework</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>State location</td><td class="td-react"><code>useState</code> / Redux store</td><td><code>self.state</code> dict on server</td></tr>
+        <tr><td>Sync strategy</td><td class="td-react">REST polling / WS events</td><td>Built-in server state</td></tr>
+        <tr><td>Optimistic UI</td><td class="td-react"><code>useOptimistic()</code> + rollback</td><td><code>get_optimistic_patch()</code></td></tr>
+        <tr><td>Auth gating</td><td class="td-react">Middleware + <code>useSession()</code></td><td><code>permission_classes = [IsAuthenticated]</code></td></tr>
+        <tr><td>Build step</td><td class="td-react">webpack / Vite required</td><td><strong style="color:var(--green)">None</strong></td></tr>
+        <tr><td>JS payload</td><td class="td-react">150–400 KB gzipped</td><td><strong style="color:var(--green)">~5 KB</strong> (htmx + client)</td></tr>
+        <tr><td>Test tooling</td><td class="td-react">Jest, Storybook, RTL</td><td><strong style="color:var(--green)">pytest</strong> — pure Python</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ── QUICK START ─────────────────────────────────────────────────────────── -->
+<div class="section">
+  <p class="section-label">quick start</p>
+  <h2 class="section-title">Up and running in four steps.</h2>
+
+  <div class="qs-steps">
+    <div class="qs-step">
+      <div class="qs-step__num">01 / Install</div>
+      <div class="qs-step__title">Add to your project</div>
+      <div class="qs-step__body">Install with uv or pip. Django and WebSocket support are optional extras.</div>
+      <pre>uv pip install -e ".[django,websockets]"</pre>
+    </div>
+    <div class="qs-step">
+      <div class="qs-step__num">02 / Define</div>
+      <div class="qs-step__title">Write a component</div>
+      <div class="qs-step__body">Extend <code style="font-family:var(--mono);font-size:11px;color:var(--green)">Component</code>, register it, implement lifecycle methods.</div>
+      <pre><span class="dec">@registry.register(<span class="str">"counter"</span>)</span>
+<span class="kw">class</span> <span class="cls">Counter</span>(Component):
+    <span class="kw">def</span> <span class="fn">mount</span>(<span class="kw">self</span>):
+        <span class="kw">self</span>.state[<span class="str">"count"</span>] = <span class="num">0</span>
+
+    <span class="kw">def</span> <span class="fn">on_increment</span>(<span class="kw">self</span>):
+        <span class="kw">self</span>.state[<span class="str">"count"</span>] += <span class="num">1</span></pre>
+    </div>
+    <div class="qs-step">
+      <div class="qs-step__num">03 / Wire</div>
+      <div class="qs-step__title">Connect to your framework</div>
+      <div class="qs-step__body">Mount the component view in Django, FastAPI, or Litestar — one line.</div>
+      <pre><span class="cm"># Django</span>
+path(<span class="str">"components/&lt;str:name&gt;/"</span>,
+     component_view)
+
+<span class="cm"># FastAPI</span>
+create_component_routes(app)
+
+<span class="cm"># Litestar</span>
+app = Litestar([component_endpoint])</pre>
+    </div>
+    <div class="qs-step">
+      <div class="qs-step__num">04 / Render</div>
+      <div class="qs-step__title">Add HTMX to your template</div>
+      <div class="qs-step__body">HTMX drives the event loop. No JavaScript framework needed.</div>
+      <pre><span class="cm">&lt;!-- counter.html --&gt;</span>
+&lt;div id="counter"&gt;
+  {{ state.count }}
+  &lt;button
+    hx-post="/components/counter/"
+    hx-vals='{"event":"increment"}'
+    hx-target="#counter"
+    hx-swap="outerHTML"&gt;
+    +1
+  &lt;/button&gt;
+&lt;/div&gt;</pre>
+    </div>
+  </div>
+</div>
+
+<!-- ── DOCS / LINKS ─────────────────────────────────────────────────────────── -->
+<div class="section--alt">
+  <div class="section__full">
+    <p class="section-label">documentation</p>
+    <h2 class="section-title">Where to go next.</h2>
+
+    <div class="docs-grid">
+      <a href="component_framework.html" class="doc-card doc-card--primary">
+        <div class="doc-card__label">reference</div>
+        <div class="doc-card__title">API Reference</div>
+        <div class="doc-card__desc">Full pdoc-generated documentation for every module, class, and method.</div>
+      </a>
+      <a href="ecommerce.html" class="doc-card">
+        <div class="doc-card__label">example</div>
+        <div class="doc-card__title">E-Commerce Live View</div>
+        <div class="doc-card__desc">Real-time product page + cart using optimistic UI, WebSockets, composition, and permissions.</div>
+      </a>
+      <a href="admin-panel.html" class="doc-card">
+        <div class="doc-card__label">example</div>
+        <div class="doc-card__title">Admin Panel</div>
+        <div class="doc-card__desc">User management, audit log, and live metrics dashboard with role-based permissions and WebSocket push.</div>
+      </a>
+      <a href="customer-support.html" class="doc-card">
+        <div class="doc-card__label">example</div>
+        <div class="doc-card__title">Customer Support</div>
+        <div class="doc-card__desc">Live ticket queue, real-time chat, and agent workload balancing — all server-side Python components.</div>
+      </a>
+      <a href="education-lms.html" class="doc-card">
+        <div class="doc-card__label">example</div>
+        <div class="doc-card__title">Education / LMS</div>
+        <div class="doc-card__desc">Real-time course progress, quiz grading, and instructor dashboards with WebSocket student updates.</div>
+      </a>
+      <a href="financial-dashboard.html" class="doc-card">
+        <div class="doc-card__label">example</div>
+        <div class="doc-card__title">Financial Dashboard</div>
+        <div class="doc-card__desc">Live portfolio P&amp;L, watchlist price feeds, order management, and margin risk alerts via WebSocket.</div>
+      </a>
+      <a href="litestar-guide.html" class="doc-card">
+        <div class="doc-card__label">guide</div>
+        <div class="doc-card__title">Litestar Guide</div>
+        <div class="doc-card__desc">Setup guide for the Litestar adapter — HTTP endpoints, async handlers, SSE streaming, and WebSocket support.</div>
+      </a>
+      <a href="wizard.html" class="doc-card">
+        <div class="doc-card__label">recipe</div>
+        <div class="doc-card__title">Wizard Recipe</div>
+        <div class="doc-card__desc">Multi-step form (FastAPI) built from a single stateful component that swaps its active step and validation schema.</div>
+      </a>
+      <a href="https://github.com/fsecada01/component-framework" class="doc-card" target="_blank" rel="noopener">
+        <div class="doc-card__label">source</div>
+        <div class="doc-card__title">GitHub Repository</div>
+        <div class="doc-card__desc">Browse source, open issues, and read the full test suite.</div>
+      </a>
+      <a href="https://pypi.org/project/component-framework/" class="doc-card" target="_blank" rel="noopener">
+        <div class="doc-card__label">package</div>
+        <div class="doc-card__title">PyPI</div>
+        <div class="doc-card__desc">Version history, release notes, and install instructions.</div>
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ── FOOTER ─────────────────────────────────────────────────────────────── -->
+<footer>
+  <span>component-framework — MIT license</span>
+  <span>
+    <a href="https://github.com/fsecada01/component-framework" target="_blank" rel="noopener">GitHub</a>
+    <span class="sep">·</span>
+    <a href="https://pypi.org/project/component-framework/" target="_blank" rel="noopener">PyPI</a>
+    <span class="sep">·</span>
+    built with <a href="https://pdoc.dev" target="_blank" rel="noopener">pdoc</a>
+  </span>
+</footer>
+
+<script>
+  /* copy install command */
+  document.getElementById("copy-install").addEventListener("click", function () {
+    var text = document.getElementById("install-text").textContent;
+    navigator.clipboard.writeText(text).then(function () {
+      var btn = document.getElementById("copy-install");
+      btn.textContent = "copied!";
+      setTimeout(function () { btn.textContent = "copy"; }, 1800);
+    });
+  });
+</script>
+</body>
+</html>
