@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Stable list reconciliation key (Epic B, B3 — #22)** — template authors
+  can mark reorderable list items with `data-key="<id>"` (e.g. `<li
+  data-key="42">`). `component-client.js` bridges this onto a synthesized
+  `id="cf-key-<id>"` (on both the live DOM and the incoming server render)
+  immediately before every `Idiomorph.morph()` call, so idiomorph's
+  id-based node matching reconciles reordered items by identity — preserving
+  focus, scroll position, in-flight input, and running CSS animations within
+  each item — instead of misattributing patches by position. See
+  `docs/LIST_RECONCILIATION_KEY.md`.
+
 ## [0.5.1b0] - 2026-07-01
 
 ### Added
