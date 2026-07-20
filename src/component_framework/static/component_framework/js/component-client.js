@@ -19,6 +19,12 @@
  * instantly. A `[data-loading]` attribute is toggled for the request duration.
  * Ship `component-framework.css` (or your own rules) to style these hooks.
  *
+ * List items that get reordered between renders should carry a stable
+ * `data-key` (e.g. `<li data-key="42">`) so Idiomorph — which matches nodes
+ * by their real `id`, not a custom key — can still tell that item apart from
+ * its siblings and reconcile it (rather than the DOM node at its old
+ * position) after a reorder. See `_bridgeListKeys()` below.
+ *
  * Usage:
  *   import { componentClient } from './component-client.js';
  *
@@ -75,6 +81,25 @@ function readCsrfToken() {
 function findComponentElement(target) {
   return target.closest('[data-component]') || null;
 }
+
+/**
+ * Attribute template authors use to mark a stable per-item identity within a
+ * list that gets re-rendered (e.g. `<li data-key="42">...</li>`). See
+ * `ComponentClient._bridgeListKeys()`.
+ *
+ * @type {string}
+ */
+const LIST_KEY_ATTR = 'data-key';
+
+/**
+ * Prefix used when synthesizing an `id` from a `data-key` value, so the
+ * synthesized id can't collide with an unrelated real `id` elsewhere in the
+ * document. Consistent with this codebase's other `cf-` prefixed hooks
+ * (`_cfHandler`, the `cf-optimistic-pulse` CSS animation).
+ *
+ * @type {string}
+ */
+const LIST_KEY_ID_PREFIX = 'cf-key';
 
 // ---------------------------------------------------------------------------
 // ComponentClient
@@ -292,7 +317,8 @@ class ComponentClient {
     const element = document.getElementById(componentId);
     if (!element) return;
 
-    Idiomorph.morph(element, snapshot.html, { morphStyle: 'outerHTML' });
+    const html = this._bridgeListKeys(element, snapshot.html);
+    Idiomorph.morph(element, html, { morphStyle: 'outerHTML' });
     this.bind(element);
 
     this._snapshots.delete(componentId);
@@ -322,7 +348,8 @@ class ComponentClient {
       return;
     }
 
-    Idiomorph.morph(element, html, { morphStyle: 'outerHTML' });
+    const morphHtml = this._bridgeListKeys(element, html);
+    Idiomorph.morph(element, morphHtml, { morphStyle: 'outerHTML' });
 
     // Persist state so subsequent dispatches send the correct value back.
     if (state !== null) {
@@ -507,6 +534,67 @@ class ComponentClient {
         element.removeAttribute(name);
       }
     }
+  }
+
+  /**
+   * Bridge `data-key`-carrying elements to a stable `id` so Idiomorph's
+   * node-matching engine — which matches strictly by the real `id`
+   * attribute (see `createIdMaps`/`populateIdMapWithTree` in
+   * `vendor/idiomorph.js`; there is no config option for a custom key) —
+   * reconciles reordered list items by identity instead of misattributing
+   * patches across them by position.
+   *
+   * Run immediately before every `Idiomorph.morph()` call, this:
+   *   1. Walks the *live* `oldElement` subtree with real DOM APIs and sets
+   *      `id="cf-key-<value>"` on any `[data-key]` descendant that doesn't
+   *      already have a real `id`.
+   *   2. Rewrites the *incoming* HTML the same way. It can't be walked with
+   *      DOM APIs yet — Idiomorph parses the string itself — so this uses a
+   *      small tag-attribute regex instead. This is a best-effort text
+   *      rewrite: a `data-key` value or a sibling attribute value containing
+   *      a literal `>` (e.g. inside a JSON `data-payload`) can confuse the
+   *      regex; keep `data-key` values simple (plain ids/slugs).
+   *
+   * Elements that already declare a real `id` are always left untouched —
+   * this only fills the gap for items that don't have one.
+   *
+   * The synthesized ids are intentionally *not* stripped after the morph.
+   * Idiomorph copies matched attributes (including `id`) from the incoming
+   * content onto the surviving node, so leaving them keeps both sides
+   * carrying the same id into the next update pass, and Idiomorph's own
+   * focus-restoration logic (`saveAndRestoreFocus`) depends on `id`
+   * remaining a stable, present attribute across the morph. The tradeoff:
+   * `document.getElementById()` elsewhere in the app can now resolve a
+   * `cf-key-<value>` id. The prefix keeps that from colliding with
+   * unrelated real ids; pick `data-key` values that are unique to the list.
+   *
+   * @param {Element} oldElement - Live component root about to be morphed.
+   * @param {string} html - Incoming HTML that will be handed to Idiomorph.
+   * @returns {string} `html`, with reconciliation ids bridged in.
+   */
+  _bridgeListKeys(oldElement, html) {
+    if (oldElement && typeof oldElement.querySelectorAll === 'function') {
+      for (const el of oldElement.querySelectorAll(`[${LIST_KEY_ATTR}]`)) {
+        if (!el.getAttribute('id')) {
+          const key = el.getAttribute(LIST_KEY_ATTR);
+          if (key) el.setAttribute('id', `${LIST_KEY_ID_PREFIX}-${key}`);
+        }
+      }
+    }
+
+    if (!html) return html;
+
+    const keyAttrPattern = new RegExp(`${LIST_KEY_ATTR}\\s*=\\s*(?:"([^"]*)"|'([^']*)')`);
+    return html.replace(/<([a-zA-Z][\w:-]*)\b([^>]*)>/g, (tag, tagName, attrs) => {
+      const keyMatch = attrs.match(keyAttrPattern);
+      if (!keyMatch) return tag;
+      if (/\bid\s*=/.test(attrs)) return tag;
+
+      const key = keyMatch[1] ?? keyMatch[2];
+      if (!key) return tag;
+
+      return `<${tagName} id="${LIST_KEY_ID_PREFIX}-${key}"${attrs}>`;
+    });
   }
 
   /**
