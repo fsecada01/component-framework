@@ -260,6 +260,7 @@ Full docs (generated from docstrings via [pdoc](https://pdoc.dev/), versioned pe
 | [State signing](docs/STATE_SIGNING.md) | HMAC state setup per adapter, key rotation |
 | [Locked fields](docs/LOCKED_FIELDS.md) | Server-trusted state fields, threat model |
 | [CSRF & CSWSH guide](docs/SECURITY_CSRF.md) | Per-adapter CSRF audit, WebSocket hijacking guidance |
+| [Client-side DOM morphing](docs/CLIENT_MORPHING.md) | Idiomorph integration, `data-no-morph` escape hatch for JS-owned regions |
 | [E-commerce example](docs/examples/ecommerce.md) | Real-time cart + product walkthrough |
 | [Multi-step wizard](docs/examples/wizard.md) | FastAPI wizard recipe |
 

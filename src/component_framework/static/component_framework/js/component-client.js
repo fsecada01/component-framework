@@ -39,6 +39,15 @@
  *   //           data-optimistic='{"count": 1}'>+</button>
  *   // </div>
  *
+ * JS-owned regions inside a component's rendered subtree (a third-party
+ * widget, a manually-mounted JS library instance, a canvas the component
+ * doesn't want touched on every patch) can opt out of morphing entirely by
+ * carrying a `data-no-morph` attribute:
+ *
+ *   <div data-no-morph>
+ *     <!-- idiomorph will never touch this element or its descendants -->
+ *   </div>
+ *
  * @module component-client
  */
 
@@ -529,6 +538,64 @@ class ComponentClient {
   }
 
   /**
+   * Build the `Idiomorph.morph()` config shared by `update()` and
+   * `rollback()`.
+   *
+   * Wires two Epic B (#22) concerns into one shared config:
+   *   - **B2**: `ignoreActiveValue: true` preserves in-flight input — without
+   *     it, idiomorph overwrites the currently-focused element's `value`
+   *     with whatever the server rendered, clobbering keystrokes made while
+   *     the request was in flight. (Focus itself is preserved for free via
+   *     idiomorph's own `restoreFocus` default — see `vendor/idiomorph.js`.)
+   *     Scroll position, also a B2 concern, is deliberately NOT part of this
+   *     config — idiomorph has no concept of scroll at all, so it's handled
+   *     separately via explicit capture/restore around each morph call (see
+   *     `_captureScrollPositions()`/`_restoreScrollPositions()`).
+   *   - **B4**: the "don't morph this" escape hatch — any element carrying a
+   *     `data-no-morph` attribute, and by extension everything inside it, is
+   *     left completely untouched by the morph, so JS-owned DOM regions (a
+   *     third-party widget, a manually-mounted JS library instance, a
+   *     canvas, etc.) survive server patches unchanged. `beforeNodeMorphed`
+   *     returning `false` makes idiomorph skip the node entirely — it
+   *     neither copies attributes onto it nor recurses into its children, so
+   *     descendants are protected too without needing their own check.
+   *     `beforeNodeRemoved` returning `false` additionally stops idiomorph
+   *     from deleting an ignored node outright when the incoming server HTML
+   *     has no corresponding node at that position.
+   *
+   * @returns {object} The config object to pass as `Idiomorph.morph()`'s
+   *   third argument.
+   */
+  _morphConfig() {
+    return {
+      morphStyle: 'outerHTML',
+      ignoreActiveValue: true,
+      callbacks: {
+        beforeNodeMorphed: (oldNode) => !this._isIgnoredNode(oldNode),
+        beforeNodeRemoved: (node) => !this._isIgnoredNode(node),
+      },
+    };
+  }
+
+  /**
+   * Whether `node` (or one of its ancestors) carries the `data-no-morph`
+   * escape-hatch attribute.
+   *
+   * Uses `closest()` rather than checking `node` alone so the whole subtree
+   * rooted at a `data-no-morph` element is protected, not just that
+   * element's own attributes. Non-element nodes (e.g. text nodes passed to
+   * idiomorph's callbacks) don't expose `closest()`; treat those as never
+   * ignored rather than throwing.
+   *
+   * @param {Node} node - The node idiomorph is about to morph or remove.
+   * @returns {boolean} True if the node must be left untouched.
+   */
+  _isIgnoredNode(node) {
+    if (!node || typeof node.closest !== 'function') return false;
+    return node.closest('[data-no-morph]') !== null;
+  }
+
+  /**
    * Convert a camelCase or snake_case key to kebab-case for use in a
    * `data-optimistic-<field>` attribute name.
    *
@@ -625,27 +692,6 @@ class ComponentClient {
 
       return `<${tagName} id="${LIST_KEY_ID_PREFIX}-${safeKey}"${attrs}>`;
     });
-  }
-
-  /**
-   * Idiomorph config shared by `update()` and `rollback()` (B2, #22).
-   *
-   * `restoreFocus` already defaults to `true` upstream (see
-   * `vendor/idiomorph.js`): if the focused input/textarea gets recreated
-   * rather than patched in place, idiomorph re-finds it by `id` and restores
-   * focus + selection. That alone is *not* sufficient to preserve in-flight
-   * input, though — without `ignoreActiveValue`, idiomorph still overwrites
-   * the focused element's `value` with whatever the server rendered,
-   * clobbering keystrokes the user made while the request was in flight.
-   * `ignoreActiveValue: true` skips only that value sync for the
-   * currently-focused element; every other attribute/child still morphs
-   * normally, so server-driven changes (e.g. a validation error class) still
-   * apply around the input the user is actively editing.
-   *
-   * @returns {{morphStyle: string, ignoreActiveValue: boolean}}
-   */
-  _morphConfig() {
-    return { morphStyle: 'outerHTML', ignoreActiveValue: true };
   }
 
   /**
