@@ -68,3 +68,21 @@ The attribute's presence is what matters — any value (or none) works.
   `[data-component]` children) inside a `data-no-morph` region will never be
   updated by a server patch, since idiomorph never visits that subtree at
   all.
+- **Treat `data-no-morph` as author-controlled markup only — never render it
+  from unsanitized user input.** Unlike most `data-*` attributes in this
+  framework, this one's entire purpose is to make the client permanently stop
+  applying authoritative server corrections to a subtree. If an attacker
+  could get this attribute injected into their own rendered content (e.g. via
+  a template that unsafely interpolates user text), they could pin stale or
+  malicious markup against all future patches. This is the same output-
+  escaping discipline the framework already expects everywhere else — it's
+  called out here because the failure mode (a silently frozen DOM) is easy to
+  miss in review.
+- **The "survives removal" guarantee has one narrow edge case.** Idiomorph's
+  removal path checks its internal id-map *before* consulting
+  `beforeNodeRemoved`: a node participating in id-based match/move-to-pantry
+  handling can be relocated without this callback ever running. This only
+  matters if a `data-no-morph` element's root also happens to be matched by
+  `id` against another position in the tree — an unusual combination — but in
+  that corner case the element is not guaranteed to survive being dropped
+  from the server response the way the rest of this document describes.
