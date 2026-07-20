@@ -225,6 +225,71 @@ class TestComponentDispatch:
         with pytest.raises(ComponentError):
             comp.dispatch(event="nonexistent", state={"value": 0})
 
+    def test_dispatch_still_calls_render(self, monkeypatch):
+        """Regression: refactoring dispatch() around resolve() must not drop render()."""
+        comp = SampleComponent(initial=3)
+        calls = []
+        original_render = comp.render
+
+        def spy_render():
+            calls.append(True)
+            return original_render()
+
+        monkeypatch.setattr(comp, "render", spy_render)
+        result = comp.dispatch()
+        assert calls == [True]
+        assert "html" in result
+        # before_render() mutation must still be reflected — proves dehydrate()
+        # still runs *after* render(), not before.
+        assert result["state"]["doubled"] == 6
+
+
+# ---------- Resolve (state-only, no render) ----------
+
+
+class TestComponentResolve:
+    """Component.resolve() — lightweight state-only path (issue #40)."""
+
+    def setup_method(self):
+        Component.renderer = MockRenderer()
+
+    def test_resolve_mount_path_returns_state_dict(self):
+        comp = SampleComponent(initial=7)
+        result = comp.resolve()
+        assert result == {"value": 7}
+
+    def test_resolve_hydrate_path(self):
+        comp = SampleComponent()
+        result = comp.resolve(state={"value": 20})
+        assert result == {"value": 20}
+
+    def test_resolve_with_event(self):
+        comp = SampleComponent()
+        result = comp.resolve(event="update", payload={"value": 50}, state={"value": 0})
+        assert result == {"value": 50}
+
+    def test_resolve_does_not_call_render(self, monkeypatch):
+        comp = SampleComponent(initial=5)
+        calls = []
+        monkeypatch.setattr(comp, "render", lambda: calls.append(True))
+        result = comp.resolve()
+        assert calls == []
+        # "doubled" is only ever set in before_render(), which only runs
+        # inside render() — its absence proves render() never ran.
+        assert "doubled" not in result
+        assert "html" not in result
+
+    def test_resolve_event_error_propagates(self):
+        comp = SampleComponent()
+        with pytest.raises(ComponentError):
+            comp.resolve(event="nonexistent", state={"value": 0})
+
+    def test_resolve_returns_plain_state_dict_shape(self):
+        comp = SampleComponent(initial=1)
+        result = comp.resolve()
+        assert isinstance(result, dict)
+        assert set(result.keys()) == {"value"}
+
 
 # ---------- StateSerializer ----------
 
@@ -405,3 +470,72 @@ class TestAsyncDispatch:
         comp = AsyncSampleComponent()
         with pytest.raises(ComponentError):
             await comp.async_dispatch(event="nonexistent", state={"value": 0})
+
+    @pytest.mark.asyncio
+    async def test_async_dispatch_still_calls_render(self, monkeypatch):
+        """Regression: refactoring async_dispatch() around resolve() must not drop render()."""
+        comp = AsyncSampleComponent(initial=3)
+        calls = []
+        original_render = comp.render
+
+        def spy_render():
+            calls.append(True)
+            return original_render()
+
+        monkeypatch.setattr(comp, "render", spy_render)
+        result = await comp.async_dispatch()
+        assert calls == [True]
+        assert "html" in result
+        assert result["state"]["doubled"] == 6
+
+
+# ---------- Async Resolve (state-only, no render) ----------
+
+
+class TestAsyncResolve:
+    """Component.async_resolve() — async counterpart to resolve() (issue #40)."""
+
+    def setup_method(self):
+        Component.renderer = MockRenderer()
+
+    @pytest.mark.asyncio
+    async def test_async_resolve_mount_path_returns_state_dict(self):
+        comp = AsyncSampleComponent(initial=7)
+        result = await comp.async_resolve()
+        assert result == {"value": 7}
+
+    @pytest.mark.asyncio
+    async def test_async_resolve_hydrate_path(self):
+        comp = AsyncSampleComponent()
+        result = await comp.async_resolve(state={"value": 20})
+        assert result == {"value": 20}
+
+    @pytest.mark.asyncio
+    async def test_async_resolve_with_async_event(self):
+        comp = AsyncSampleComponent()
+        result = await comp.async_resolve(event="update", payload={"value": 50}, state={"value": 0})
+        assert result == {"value": 50}
+
+    @pytest.mark.asyncio
+    async def test_async_resolve_with_sync_event(self):
+        comp = AsyncSampleComponent()
+        result = await comp.async_resolve(
+            event="sync_event", payload={"value": 77}, state={"value": 0}
+        )
+        assert result == {"value": 77}
+
+    @pytest.mark.asyncio
+    async def test_async_resolve_does_not_call_render(self, monkeypatch):
+        comp = AsyncSampleComponent(initial=5)
+        calls = []
+        monkeypatch.setattr(comp, "render", lambda: calls.append(True))
+        result = await comp.async_resolve()
+        assert calls == []
+        assert "doubled" not in result
+        assert "html" not in result
+
+    @pytest.mark.asyncio
+    async def test_async_resolve_event_error_propagates(self):
+        comp = AsyncSampleComponent()
+        with pytest.raises(ComponentError):
+            await comp.async_resolve(event="nonexistent", state={"value": 0})

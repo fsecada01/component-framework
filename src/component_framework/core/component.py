@@ -301,6 +301,92 @@ class Component:
 
     # ---------- Dispatch ----------
 
+    def _prepare(self, state: dict | None) -> None:
+        """Run the mount-or-hydrate step shared by ``resolve()`` and ``dispatch()``."""
+        if state:
+            self.hydrate(state)
+        else:
+            self.mount()
+
+    def resolve(
+        self,
+        event: str | None = None,
+        payload: dict | None = None,
+        state: dict | None = None,
+    ) -> dict:
+        """
+        Lightweight, state-only entry point: mount/hydrate + handle_event,
+        **without** rendering.
+
+        Use this when you need the resolved state to do further server-side
+        work (e.g. a DB re-query driven by the new filter/page/sort value)
+        before deciding what to render — the normal shape being "resolve
+        state -> do expensive server-side work -> build the real render".
+        ``dispatch()`` pays for a full template render whether or not the
+        caller wants the HTML; ``resolve()`` stops right after
+        :meth:`handle_event`.
+
+        Note: because this returns *before* :meth:`render` runs, any state
+        mutations a subclass makes in :meth:`before_render` are **not**
+        reflected in the returned dict — that hook only ever runs as part of
+        rendering. Call :meth:`render` yourself afterward if you need it.
+
+        For components with ``async def on_*`` handlers, use
+        :meth:`async_resolve` instead.
+
+        Args:
+            event: Event name to handle
+            payload: Event data
+            state: Serialized state to restore
+
+        Returns:
+            The resolved state dict (i.e. :meth:`dehydrate`'s output).
+        """
+        try:
+            self._prepare(state)
+
+            if event:
+                self.handle_event(event, payload or {})
+
+            return self.dehydrate()
+
+        except Exception:
+            logger.exception(f"Error in {self.__class__.__name__}.resolve()")
+            raise
+
+    async def async_resolve(
+        self,
+        event: str | None = None,
+        payload: dict | None = None,
+        state: dict | None = None,
+    ) -> dict:
+        """
+        Async counterpart to :meth:`resolve`.
+
+        Works with both sync and async event handlers, exactly like
+        :meth:`async_dispatch` does relative to :meth:`dispatch`. See
+        :meth:`resolve` for the rationale and the ``before_render`` caveat.
+
+        Args:
+            event: Event name to handle
+            payload: Event data
+            state: Serialized state to restore
+
+        Returns:
+            The resolved state dict (i.e. :meth:`dehydrate`'s output).
+        """
+        try:
+            self._prepare(state)
+
+            if event:
+                await self.async_handle_event(event, payload or {})
+
+            return self.dehydrate()
+
+        except Exception:
+            logger.exception(f"Error in {self.__class__.__name__}.async_resolve()")
+            raise
+
     def dispatch(
         self,
         event: str | None = None,
@@ -309,6 +395,10 @@ class Component:
     ) -> dict:
         """
         Synchronous entry point for component execution.
+
+        Internally this is :meth:`resolve`'s lifecycle (mount/hydrate +
+        handle_event) followed by :meth:`render`. Use :meth:`resolve` instead
+        when you only need the resolved state and want to skip the render.
 
         For components with ``async def on_*`` handlers, use
         :meth:`async_dispatch` instead.
@@ -322,13 +412,8 @@ class Component:
             Dict with 'html' and 'state' keys
         """
         try:
-            # Lifecycle: mount or hydrate
-            if state:
-                self.hydrate(state)
-            else:
-                self.mount()
+            self._prepare(state)
 
-            # Handle event if provided
             if event:
                 self.handle_event(event, payload or {})
 
@@ -357,7 +442,10 @@ class Component:
 
         Works with both sync and async event handlers.  Use this from async
         adapters (FastAPI, Litestar, WebSocket) to support ``async def on_*``
-        handlers.
+        handlers. Internally this is :meth:`async_resolve`'s lifecycle
+        (mount/hydrate + async_handle_event) followed by :meth:`render`. Use
+        :meth:`async_resolve` instead when you only need the resolved state
+        and want to skip the render.
 
         Args:
             event: Event name to handle
@@ -368,13 +456,8 @@ class Component:
             Dict with 'html' and 'state' keys
         """
         try:
-            # Lifecycle: mount or hydrate
-            if state:
-                self.hydrate(state)
-            else:
-                self.mount()
+            self._prepare(state)
 
-            # Handle event if provided
             if event:
                 await self.async_handle_event(event, payload or {})
 
