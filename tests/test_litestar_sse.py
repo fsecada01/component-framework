@@ -101,3 +101,35 @@ class TestStreamEndpoint:
             json={"event": "count_up"},
         )
         assert response.status_code == 400
+
+
+class TestHtmxStreamContentNegotiation:
+    def test_hx_request_stream_emits_html_not_json(self, client):
+        """With HX-Request, each SSE frame should carry raw HTML, not a JSON envelope."""
+        response = client.post(
+            "/components/stream_counter/stream",
+            json={"event": "count_up", "payload": {"steps": 2}},
+            headers={"HX-Request": "true"},
+        )
+        assert response.status_code == 200
+        assert "text/event-stream" in response.headers["content-type"]
+
+        lines = [ln for ln in response.text.strip("\n").split("\n") if ln.startswith("data: ")]
+        assert len(lines) >= 1
+        payloads = [ln.removeprefix("data: ") for ln in lines]
+        assert any(p.startswith("<div>") for p in payloads)
+        # None of the frames should be the JSON envelope from the default path.
+        for p in payloads:
+            with pytest.raises((json.JSONDecodeError, AssertionError)):
+                parsed = json.loads(p)
+                assert "stream_done" in parsed
+
+    def test_no_hx_request_stream_keeps_json_envelope(self, client):
+        """Without HX-Request, frames must remain the existing JSON envelope."""
+        response = client.post(
+            "/components/stream_counter/stream",
+            json={"event": "count_up", "payload": {"steps": 2}},
+        )
+        lines = [ln for ln in response.text.strip("\n").split("\n") if ln.startswith("data: ")]
+        frames = [json.loads(ln.removeprefix("data: ")) for ln in lines]
+        assert all("stream_done" in frame for frame in frames)

@@ -146,6 +146,49 @@ class TestComponentEndpoint:
         assert deserialized["count"] == 7
 
 
+# ---------- htmx content negotiation (HX-Request header) ----------
+
+
+class TestHtmxContentNegotiation:
+    def test_hx_request_returns_html_fragment(self, client):
+        """A request carrying HX-Request should get the raw HTML fragment."""
+        response = client.post(
+            "/components/test_counter",
+            json={"params": {"initial": 5}},
+            headers={"HX-Request": "true"},
+        )
+        assert response.status_code == 200
+        assert response.headers["content-type"].startswith("text/html")
+        assert response.text.startswith("<div>")
+
+    def test_hx_request_event_returns_html_fragment(self, client):
+        """HX-Request should also work for event dispatch, not just mount."""
+        r1 = client.post("/components/test_counter", json={})
+        state = r1.json()["state"]
+
+        r2 = client.post(
+            "/components/test_counter",
+            json={"event": "increment", "payload": {"amount": 3}, "state": state},
+            headers={"HX-Request": "true"},
+        )
+        assert r2.status_code == 200
+        assert r2.headers["content-type"].startswith("text/html")
+        assert r2.text.startswith("<div>")
+
+    def test_no_hx_request_header_keeps_json_envelope(self, client):
+        """Without HX-Request, the existing JSON envelope must be unchanged."""
+        response = client.post(
+            "/components/test_counter",
+            json={"params": {"initial": 5}},
+        )
+        assert response.status_code == 200
+        assert response.headers["content-type"].startswith("application/json")
+        data = response.json()
+        assert "html" in data
+        assert "state" in data
+        assert "component_id" in data
+
+
 # ---------- route registration ----------
 
 
