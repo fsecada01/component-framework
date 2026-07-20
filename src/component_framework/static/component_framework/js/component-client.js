@@ -38,6 +38,8 @@
 
 'use strict';
 
+import { Idiomorph } from './vendor/idiomorph.js';
+
 // ---------------------------------------------------------------------------
 // Utility helpers
 // ---------------------------------------------------------------------------
@@ -274,8 +276,12 @@ class ComponentClient {
    * Roll back the component element to its last saved snapshot.
    *
    * Called automatically on fetch/server error to undo any speculative DOM
-   * mutations.  The rollback restores both the `outerHTML` (replacing the
-   * element in the DOM) and the `data-state` attribute.
+   * mutations.  The rollback morphs the element (in place, via Idiomorph)
+   * back to the snapshot's `outerHTML` — which restores the `data-state`
+   * attribute too, since it was captured as part of that HTML string.
+   * Morphing (rather than a full replace) means nodes unaffected by the
+   * rollback keep their identity, including any already-bound event
+   * listeners.
    *
    * @param {string} componentId - ID of the component to roll back.
    */
@@ -286,14 +292,8 @@ class ComponentClient {
     const element = document.getElementById(componentId);
     if (!element) return;
 
-    // Build a temporary wrapper to parse the snapshot HTML back into a node.
-    const wrapper = document.createElement('div');
-    wrapper.innerHTML = snapshot.html;
-    const restoredNode = wrapper.firstElementChild;
-
-    if (restoredNode) {
-      element.replaceWith(restoredNode);
-    }
+    Idiomorph.morph(element, snapshot.html, { morphStyle: 'outerHTML' });
+    this.bind(element);
 
     this._snapshots.delete(componentId);
   }
@@ -301,42 +301,39 @@ class ComponentClient {
   /**
    * Update the component element with the authoritative server render.
    *
-   * Replaces the element's `outerHTML` with the new HTML from the server and
-   * updates the `data-state` attribute so the next dispatch sends the correct
-   * state back.  After updating, declarative event bindings are re-attached to
-   * any new child elements.
+   * Morphs the element (in place, via Idiomorph) to match the new HTML from
+   * the server, instead of a full outerHTML replace — nodes unaffected by the
+   * update (and their attached listeners, focus, scroll position) keep their
+   * identity. Updates the `data-state` attribute so the next dispatch sends
+   * the correct state back, then re-binds declarative event handlers (a
+   * no-op for nodes idiomorph preserved, since their listeners already
+   * survived the morph; only newly-inserted nodes actually need it).
    *
-   * @param {Element} element - The component root element to replace.
+   * @param {Element} element - The component root element to morph in place.
    * @param {string} html - New component HTML from the server.
    * @param {string|null} [state=null] - Serialized JSON state string.
    */
   update(element, html, state = null) {
-    // Build the new DOM node from the server HTML.
-    const wrapper = document.createElement('div');
-    wrapper.innerHTML = html;
-    const newNode = wrapper.firstElementChild;
-
-    if (!newNode) {
+    if (!html || !html.trim()) {
       console.warn('[ComponentClient] Server returned empty HTML; skipping update.');
-      // The element is not replaced, so clear any optimistic markers we set so
+      // The element is not morphed, so clear any optimistic markers we set so
       // the component does not stay visually "pending" forever.
       this._clearOptimistic(element);
       return;
     }
 
-    // Persist state on the new node so subsequent dispatches work correctly.
+    Idiomorph.morph(element, html, { morphStyle: 'outerHTML' });
+
+    // Persist state so subsequent dispatches send the correct value back.
     if (state !== null) {
-      newNode.dataset.state = typeof state === 'string' ? state : JSON.stringify(state);
+      element.dataset.state = typeof state === 'string' ? state : JSON.stringify(state);
     }
 
     // Remove optimistic marker if present.
-    delete newNode.dataset.optimistic;
+    delete element.dataset.optimistic;
 
-    // Swap the old element for the new one.
-    element.replaceWith(newNode);
-
-    // Re-bind declarative handlers on the newly inserted subtree.
-    this.bind(newNode);
+    // Re-bind declarative handlers (idempotent — see _bindTrigger).
+    this.bind(element);
   }
 
   /**
