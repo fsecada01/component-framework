@@ -33,6 +33,15 @@
  *   //           data-optimistic='{"count": 1}'>+</button>
  *   // </div>
  *
+ * JS-owned regions inside a component's rendered subtree (a third-party
+ * widget, a manually-mounted JS library instance, a canvas the component
+ * doesn't want touched on every patch) can opt out of morphing entirely by
+ * carrying a `data-no-morph` attribute:
+ *
+ *   <div data-no-morph>
+ *     <!-- idiomorph will never touch this element or its descendants -->
+ *   </div>
+ *
  * @module component-client
  */
 
@@ -292,7 +301,7 @@ class ComponentClient {
     const element = document.getElementById(componentId);
     if (!element) return;
 
-    Idiomorph.morph(element, snapshot.html, { morphStyle: 'outerHTML' });
+    Idiomorph.morph(element, snapshot.html, this._morphConfig());
     this.bind(element);
 
     this._snapshots.delete(componentId);
@@ -322,7 +331,7 @@ class ComponentClient {
       return;
     }
 
-    Idiomorph.morph(element, html, { morphStyle: 'outerHTML' });
+    Idiomorph.morph(element, html, this._morphConfig());
 
     // Persist state so subsequent dispatches send the correct value back.
     if (state !== null) {
@@ -474,6 +483,54 @@ class ComponentClient {
     }
 
     return null;
+  }
+
+  /**
+   * Build the `Idiomorph.morph()` config shared by `update()` and
+   * `rollback()`.
+   *
+   * Wires the "don't morph this" escape hatch (B4, #22): any element
+   * carrying a `data-no-morph` attribute — and, by extension, everything
+   * inside it — is left completely untouched by the morph, so JS-owned DOM
+   * regions (a third-party widget, a manually-mounted JS library instance, a
+   * canvas, etc.) survive server patches unchanged.
+   *
+   * `beforeNodeMorphed` returning `false` makes idiomorph skip the node
+   * entirely — it neither copies attributes onto it nor recurses into its
+   * children, so descendants are protected too without needing their own
+   * check. `beforeNodeRemoved` returning `false` additionally stops idiomorph
+   * from deleting an ignored node outright when the incoming server HTML has
+   * no corresponding node at that position.
+   *
+   * @returns {object} The config object to pass as `Idiomorph.morph()`'s
+   *   third argument.
+   */
+  _morphConfig() {
+    return {
+      morphStyle: 'outerHTML',
+      callbacks: {
+        beforeNodeMorphed: (oldNode) => !this._isIgnoredNode(oldNode),
+        beforeNodeRemoved: (node) => !this._isIgnoredNode(node),
+      },
+    };
+  }
+
+  /**
+   * Whether `node` (or one of its ancestors) carries the `data-no-morph`
+   * escape-hatch attribute.
+   *
+   * Uses `closest()` rather than checking `node` alone so the whole subtree
+   * rooted at a `data-no-morph` element is protected, not just that
+   * element's own attributes. Non-element nodes (e.g. text nodes passed to
+   * idiomorph's callbacks) don't expose `closest()`; treat those as never
+   * ignored rather than throwing.
+   *
+   * @param {Node} node - The node idiomorph is about to morph or remove.
+   * @returns {boolean} True if the node must be left untouched.
+   */
+  _isIgnoredNode(node) {
+    if (!node || typeof node.closest !== 'function') return false;
+    return node.closest('[data-no-morph]') !== null;
   }
 
   /**
