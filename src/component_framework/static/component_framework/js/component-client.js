@@ -322,7 +322,8 @@ class ComponentClient {
    * attribute too, since it was captured as part of that HTML string.
    * Morphing (rather than a full replace) means nodes unaffected by the
    * rollback keep their identity, including any already-bound event
-   * listeners.
+   * listeners, currently-focused input, and (via the scroll capture/restore
+   * below) scroll position.
    *
    * @param {string} componentId - ID of the component to roll back.
    */
@@ -334,7 +335,9 @@ class ComponentClient {
     if (!element) return;
 
     const html = this._bridgeListKeys(element, snapshot.html);
-    Idiomorph.morph(element, html, { morphStyle: 'outerHTML' });
+    const scrollPositions = this._captureScrollPositions(element);
+    Idiomorph.morph(element, html, this._morphConfig());
+    this._restoreScrollPositions(element, scrollPositions);
     this.bind(element);
 
     this._snapshots.delete(componentId);
@@ -345,11 +348,15 @@ class ComponentClient {
    *
    * Morphs the element (in place, via Idiomorph) to match the new HTML from
    * the server, instead of a full outerHTML replace — nodes unaffected by the
-   * update (and their attached listeners, focus, scroll position) keep their
-   * identity. Updates the `data-state` attribute so the next dispatch sends
-   * the correct state back, then re-binds declarative event handlers (a
-   * no-op for nodes idiomorph preserved, since their listeners already
-   * survived the morph; only newly-inserted nodes actually need it).
+   * update (and their attached listeners) keep their identity. Focus and
+   * in-flight input are preserved via the `ignoreActiveValue`/`restoreFocus`
+   * morph config (see `_morphConfig()`); scroll position — which idiomorph
+   * has no concept of — is preserved via explicit capture/restore around the
+   * morph call (see `_captureScrollPositions()`/`_restoreScrollPositions()`).
+   * Updates the `data-state` attribute so the next dispatch sends the
+   * correct state back, then re-binds declarative event handlers (a no-op
+   * for nodes idiomorph preserved, since their listeners already survived
+   * the morph; only newly-inserted nodes actually need it).
    *
    * @param {Element} element - The component root element to morph in place.
    * @param {string} html - New component HTML from the server.
@@ -365,7 +372,9 @@ class ComponentClient {
     }
 
     const morphHtml = this._bridgeListKeys(element, html);
-    Idiomorph.morph(element, morphHtml, { morphStyle: 'outerHTML' });
+    const scrollPositions = this._captureScrollPositions(element);
+    Idiomorph.morph(element, morphHtml, this._morphConfig());
+    this._restoreScrollPositions(element, scrollPositions);
 
     // Persist state so subsequent dispatches send the correct value back.
     if (state !== null) {
@@ -616,6 +625,91 @@ class ComponentClient {
 
       return `<${tagName} id="${LIST_KEY_ID_PREFIX}-${safeKey}"${attrs}>`;
     });
+  }
+
+  /**
+   * Idiomorph config shared by `update()` and `rollback()` (B2, #22).
+   *
+   * `restoreFocus` already defaults to `true` upstream (see
+   * `vendor/idiomorph.js`): if the focused input/textarea gets recreated
+   * rather than patched in place, idiomorph re-finds it by `id` and restores
+   * focus + selection. That alone is *not* sufficient to preserve in-flight
+   * input, though — without `ignoreActiveValue`, idiomorph still overwrites
+   * the focused element's `value` with whatever the server rendered,
+   * clobbering keystrokes the user made while the request was in flight.
+   * `ignoreActiveValue: true` skips only that value sync for the
+   * currently-focused element; every other attribute/child still morphs
+   * normally, so server-driven changes (e.g. a validation error class) still
+   * apply around the input the user is actively editing.
+   *
+   * @returns {{morphStyle: string, ignoreActiveValue: boolean}}
+   */
+  _morphConfig() {
+    return { morphStyle: 'outerHTML', ignoreActiveValue: true };
+  }
+
+  /**
+   * Capture scroll offsets that would otherwise be lost when idiomorph
+   * recreates a scrollable element instead of patching it in place.
+   * Idiomorph has no concept of scroll position at all — this is bespoke
+   * bookkeeping this framework owns around `Idiomorph.morph()`, not morph
+   * configuration.
+   *
+   * Only the root element and descendants carrying a stable `id` can be
+   * re-located after the morph (mirrors idiomorph's own `restoreFocus`,
+   * which likewise needs an `id` to re-find a recreated focused element), and
+   * only non-zero offsets are recorded, to keep the common case a no-op.
+   *
+   * @param {Element} element - The component root element about to be morphed.
+   * @returns {Array<{id: string|null, isRoot: boolean, top: number, left: number}>}
+   *   Captured offsets to pass to `_restoreScrollPositions()`.
+   */
+  _captureScrollPositions(element) {
+    const positions = [];
+
+    const record = (el, isRoot) => {
+      const top = el.scrollTop || 0;
+      const left = el.scrollLeft || 0;
+      if (!top && !left) return;
+      positions.push({ id: isRoot ? null : el.id || null, isRoot, top, left });
+    };
+
+    record(element, true);
+    if (typeof element.querySelectorAll === 'function') {
+      for (const el of element.querySelectorAll('[id]')) {
+        record(el, false);
+      }
+    }
+
+    return positions;
+  }
+
+  /**
+   * Restore scroll offsets captured by `_captureScrollPositions()` after a
+   * morph. The root element keeps its identity across an outerHTML morph
+   * (see `update()`/`rollback()`), so it is restored via the direct
+   * reference; descendants are re-located by `id`, since idiomorph may have
+   * recreated rather than patched them. Descendants with no `id` cannot be
+   * re-located and are silently skipped — a documented limitation shared
+   * with idiomorph's own focus restoration.
+   *
+   * @param {Element} element - The component root element that was morphed.
+   * @param {Array<{id: string|null, isRoot: boolean, top: number, left: number}>} positions
+   *   Offsets returned by `_captureScrollPositions()`.
+   */
+  _restoreScrollPositions(element, positions) {
+    for (const pos of positions) {
+      let target = null;
+      if (pos.isRoot) {
+        target = element;
+      } else if (pos.id && typeof element.querySelector === 'function') {
+        target = element.querySelector(`[id="${pos.id}"]`);
+      }
+      if (target) {
+        target.scrollTop = pos.top;
+        target.scrollLeft = pos.left;
+      }
+    }
   }
 
   /**
