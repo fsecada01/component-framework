@@ -621,13 +621,16 @@ litestar = [
       <pre><code><span class="kw">from</span> litestar <span class="kw">import</span> <span class="cls">Litestar</span>
 <span class="kw">from</span> litestar.contrib.jinja <span class="kw">import</span> <span class="cls">JinjaTemplateEngine</span>
 <span class="kw">from</span> litestar.template <span class="kw">import</span> <span class="cls">TemplateConfig</span>
+<span class="kw">from</span> jinjax <span class="kw">import</span> <span class="cls">Catalog</span>
 <span class="kw">from</span> component_framework.adapters.litestar <span class="kw">import</span> <span class="fn">component_endpoint</span>
-<span class="kw">from</span> component_framework.adapters.jinjax_renderer <span class="kw">import</span> <span class="cls">Jinja2Renderer</span>
+<span class="kw">from</span> component_framework.adapters.jinjax_renderer <span class="kw">import</span> <span class="cls">JinjaxRenderer</span>
 <span class="kw">from</span> component_framework.core.component <span class="kw">import</span> <span class="cls">Component</span>
 
 <span class="kw">import</span> components  <span class="cm"># registers CounterComponent via @registry.register</span>
 
-<span class="cls">Component</span>.renderer = <span class="cls">Jinja2Renderer</span>(<span class="str">"templates"</span>)
+catalog = <span class="cls">Catalog</span>()
+catalog.<span class="fn">add_folder</span>(<span class="str">"templates"</span>)
+<span class="cls">Component</span>.renderer = <span class="cls">JinjaxRenderer</span>(catalog)
 
 app = <span class="cls">Litestar</span>(
     route_handlers=[<span class="fn">component_endpoint</span>],
@@ -881,11 +884,14 @@ manager = <span class="cls">WebSocketManager</span>()  <span class="cm"># shared
     <span class="fn">component_stream_endpoint</span>,
     <span class="fn">component_websocket_endpoint</span>,
 )
-<span class="kw">from</span> component_framework.adapters.jinjax_renderer <span class="kw">import</span> <span class="cls">Jinja2Renderer</span>
+<span class="kw">from</span> jinjax <span class="kw">import</span> <span class="cls">Catalog</span>
+<span class="kw">from</span> component_framework.adapters.jinjax_renderer <span class="kw">import</span> <span class="cls">JinjaxRenderer</span>
 <span class="kw">from</span> component_framework.core.component <span class="kw">import</span> <span class="cls">Component</span>
 
 <span class="cm"># Point the renderer at the templates directory</span>
-<span class="cls">Component</span>.renderer = <span class="cls">Jinja2Renderer</span>(<span class="cls">Path</span>(<span class="str">"examples/litestar_templates"</span>))
+catalog = <span class="cls">Catalog</span>()
+catalog.<span class="fn">add_folder</span>(<span class="cls">Path</span>(<span class="str">"examples/litestar_templates"</span>))
+<span class="cls">Component</span>.renderer = <span class="cls">JinjaxRenderer</span>(catalog)
 
 <span class="kw">import</span> examples.litestar_components  <span class="cm"># noqa: F401 — side-effect: registers all components</span>
 
@@ -943,7 +949,6 @@ litestar = pytest.<span class="fn">importorskip</span>(<span class="str">"litest
 <span class="kw">from</span> litestar.testing <span class="kw">import</span> <span class="cls">TestClient</span>
 <span class="kw">from</span> litestar.testing <span class="kw">import</span> <span class="fn">create_test_client</span>
 <span class="kw">from</span> component_framework.adapters.litestar <span class="kw">import</span> <span class="fn">component_endpoint</span>
-<span class="kw">from</span> component_framework.adapters.jinjax_renderer <span class="kw">import</span> <span class="cls">Jinja2Renderer</span>
 <span class="kw">from</span> component_framework.core.component <span class="kw">import</span> <span class="cls">Component</span>
 
 <span class="kw">from</span> tests.fixtures <span class="kw">import</span> <span class="cls">MockRenderer</span>
