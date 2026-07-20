@@ -70,6 +70,26 @@ def _extract_params(data: dict) -> tuple[dict, str | None, dict, dict | None]:
     return params, event, payload, state
 
 
+def _wants_html_response(request: Request) -> bool:
+    """Return True when the request carries htmx's ``HX-Request`` header.
+
+    This is the standard htmx convention for identifying requests made by
+    htmx itself, so plain ``hx-post``/``hx-swap`` usage can be served an
+    HTML fragment instead of the JSON envelope aimed at ``component-client.js``.
+    """
+    return request.headers.get("HX-Request") is not None
+
+
+def _format_html_sse_frame(html: str) -> str:
+    """Format an HTML fragment as an SSE ``data:`` frame for htmx's SSE extension.
+
+    Per the SSE spec, multi-line data must be sent as one ``data:`` line per
+    line of content; htmx's ``sse-swap`` then concatenates them back together.
+    """
+    lines = html.split("\n")
+    return "".join(f"data: {line}\n" for line in lines) + "\n"
+
+
 @post("/components/{name:str}")
 async def component_endpoint(name: str, request: Request) -> Response:
     """
@@ -100,6 +120,9 @@ async def component_endpoint(name: str, request: Request) -> Response:
         result = await component.async_dispatch(event=event, payload=payload, state=state)
 
         result["state"] = StateSerializer.serialize(result["state"])
+
+        if _wants_html_response(request):
+            return Response(content=result["html"], media_type="text/html", status_code=200)
 
         return Response(content=result, media_type="application/json", status_code=200)
 
@@ -134,13 +157,17 @@ async def stream_component_endpoint(name: str, request: Request) -> Stream:
     params, event, payload, state = _extract_params(data)
 
     component = component_cls(**params)
+    want_html = _wants_html_response(request)
 
     async def event_generator():
         async for frame in component.async_stream_dispatch(
             event=event, payload=payload, state=state
         ):
-            frame["state"] = StateSerializer.serialize(frame["state"])
-            yield format_sse_frame(frame)
+            if want_html:
+                yield _format_html_sse_frame(frame["html"])
+            else:
+                frame["state"] = StateSerializer.serialize(frame["state"])
+                yield format_sse_frame(frame)
 
     return Stream(event_generator(), media_type="text/event-stream", status_code=200)
 
