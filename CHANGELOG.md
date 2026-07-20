@@ -7,8 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0b0] - 2026-07-20
+
 ### Added
 
+- **Idiomorph-based DOM morphing (Epic B, B1 — #22)** —
+  `component-client.js`'s `update()`/`rollback()` now reconcile the DOM via
+  `Idiomorph.morph()` (v0.7.4, vendored unmodified at
+  `static/component_framework/js/vendor/idiomorph.js`) instead of a full
+  `innerHTML`/`outerHTML` replace. Nodes unaffected by a patch keep their
+  identity — including already-bound event listeners — which is what makes
+  the focus/scroll/input preservation and list-reconciliation-key features
+  below possible.
+- **Focus / scroll / in-flight input preservation across patches (Epic B,
+  B2 — #22)** — `update()`/`rollback()` pass `ignoreActiveValue: true` to
+  `Idiomorph.morph()` so a focused input's in-progress keystrokes survive a
+  server patch (focus itself already survives via idiomorph's own
+  `restoreFocus` default). Scroll position — which idiomorph has no concept
+  of at all — is preserved via new `_captureScrollPositions()`/
+  `_restoreScrollPositions()` bookkeeping around every morph call.
 - **Stable list reconciliation key (Epic B, B3 — #22)** — template authors
   can mark reorderable list items with `data-key="<id>"` (e.g. `<li
   data-key="42">`). `component-client.js` bridges this onto a synthesized
@@ -18,6 +35,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   focus, scroll position, in-flight input, and running CSS animations within
   each item — instead of misattributing patches by position. See
   `docs/LIST_RECONCILIATION_KEY.md`.
+- **`data-no-morph` escape hatch for JS-owned regions (Epic B, B4 — #22)** —
+  component authors can mark any element `data-no-morph` to keep idiomorph
+  from ever touching it (or its descendants) during a patch — for
+  third-party widgets, manually-mounted JS library instances, canvases, and
+  similar regions a component doesn't own. Implemented via
+  `beforeNodeMorphed`/`beforeNodeRemoved` callbacks in the shared
+  `Idiomorph.morph()` config; the element also survives being dropped
+  outright if the server's HTML no longer renders a node at that position.
+  See `docs/CLIENT_MORPHING.md`.
 
 ## [0.5.1b0] - 2026-07-01
 

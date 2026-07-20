@@ -37,7 +37,7 @@ Component Framework Core
 Backend (database / services)
 ```
 
-Each request round-trip re-hydrates the component from the state the previous response sent down, dispatches the event to an `on_<event>` (or `async def on_<event>`) handler, re-renders, and returns HTML plus the new state. The client (`component-client.js`, in `src/component_framework/static/`) has no framework dependency — it reads `data-component`/`data-event`/`data-payload` attributes, POSTs the event, and swaps in the response. Today that swap is a full re-render of the component's markup (`innerHTML`); DOM morphing that preserves focus/scroll/in-flight input is on the [near-term roadmap](#roadmap), not implemented yet.
+Each request round-trip re-hydrates the component from the state the previous response sent down, dispatches the event to an `on_<event>` (or `async def on_<event>`) handler, re-renders, and returns HTML plus the new state. The client (`component-client.js`, in `src/component_framework/static/`) has no framework dependency — it reads `data-component`/`data-event`/`data-payload` attributes, POSTs the event, and reconciles the response into the DOM via [Idiomorph](docs/CLIENT_MORPHING.md), preserving focus, scroll position, in-flight input, and unaffected nodes' identity (including already-bound event listeners) instead of a full markup replace.
 
 Because state round-trips through the client by default, the framework includes:
 - **State size guards** — a 64 KB warning and a 512 KB hard limit on serialized state (`core/component.py`).
@@ -323,7 +323,6 @@ Contributions: open an issue for anything non-trivial before starting; small fix
 - No origin check or handshake token on any WebSocket adapter (Cross-Site WebSocket Hijacking exposure) — see the same doc.
 - `RateLimitMixin` and `CacheMixin` are Django-only.
 - Flask has no WebSocket or SSE support yet.
-- The client does a full markup replace on each update, not a DOM morph — in-flight input, focus, and scroll position aren't preserved across a re-render.
 - Component state must be JSON-serializable, capped at 512 KB serialized.
 - WebSocket fan-out across multiple server processes requires a Redis-backed channel layer (Django Channels).
 
@@ -331,10 +330,9 @@ Contributions: open an issue for anything non-trivial before starting; small fix
 
 ## Roadmap
 
-Beta features through 0.5.1 (permissions, rate limiting, caching, composition, testing utilities, the Litestar and Flask adapters, optional HMAC state signing, locked fields) are shipped. What's next, in order, is scoped in [CHANGELOG.md](CHANGELOG.md) and tracked via [GitHub milestones](https://github.com/fsecada01/component-framework/milestones):
+Beta features through 0.6.0 (permissions, rate limiting, caching, composition, testing utilities, the Litestar and Flask adapters, optional HMAC state signing, locked fields, Idiomorph-based DOM morphing with focus/scroll/in-flight-input preservation, stable list reconciliation keys, a JS-owned-region escape hatch, and a CSRF/CSWSH coverage audit) are shipped. What's next, in order, is scoped in [CHANGELOG.md](CHANGELOG.md) and tracked via [GitHub milestones](https://github.com/fsecada01/component-framework/milestones):
 
-- **0.6.0b — hardening**: DOM morphing (preserve focus/scroll/input), CSRF coverage for FastAPI/Litestar/Flask, 422 re-render on form validation failure.
-- **0.7.0b — table stakes**: SPA-style navigation (history, back button), file uploads, WebSocket reconnection/resync, Flask WebSocket/SSE parity.
+- **0.7.0b — table stakes**: SPA-style navigation (history, back button), file uploads, on-blur partial validation, a verified 422 re-render convention across adapters, WebSocket reconnection/resync, Flask WebSocket/SSE parity.
 - **0.8.0b — mindshare**: telemetry/observability hooks, published benchmarks (none exist yet — no performance numbers are claimed anywhere else in this README), a JS interop/optimistic-command DSL.
 - **1.0.0**: frozen public API, a full narrative guide, a deployment guide, PyPI publishing.
 
