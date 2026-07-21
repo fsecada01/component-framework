@@ -44,6 +44,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `Idiomorph.morph()` config; the element also survives being dropped
   outright if the server's HTML no longer renders a node at that position.
   See `docs/CLIENT_MORPHING.md`.
+- **Litestar htmx content negotiation (#39, #42)** —
+  `component_endpoint`/`stream_component_endpoint` now detect the
+  `HX-Request` header and return the rendered HTML fragment directly
+  instead of the JSON envelope, so plain htmx (`hx-post`/`hx-swap`, and
+  the SSE extension) can drive components without `component-client.js`.
+  The JSON envelope remains the default for backward compatibility.
+- **`Component.resolve()` / `async_resolve()` state-only dispatch path
+  (#40, #41)** — returns `dehydrate()`'s state dict without paying for a
+  `render()`, for callers that only need resolved state to drive further
+  server-side work (e.g. a DB re-query keyed on a new filter/page value).
+  `dispatch()`/`async_dispatch()` behavior is unchanged.
+
+### Fixed
+
+- `docs/site-pages/litestar-guide.html` referenced a nonexistent
+  `Jinja2Renderer` instead of the real `JinjaxRenderer(catalog)` API; also
+  added `jinjax` to the `litestar` extras group so it's actually
+  importable for Litestar consumers.
 
 ## [0.5.1b0] - 2026-07-01
 
