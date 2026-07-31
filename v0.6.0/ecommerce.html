@@ -1,0 +1,1464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>E-Commerce Live View — component-framework</title>
+  <meta name="description" content="Real-time product page and shopping cart built with server-side Python components, HTMX, and WebSocket. No React, no Redux, no build step." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* ── TERMINAL MODERN — shared design system ─────────────────────────── */
+    :root {
+      --bg:          #0c1117;
+      --panel:       #161c26;
+      --panel-lit:   #1e2637;
+      --code-bg:     #090e18;
+      --border:      #1e2a3c;
+      --border-lit:  #29394f;
+
+      --green:       #4ade80;
+      --green-dim:   rgba(74,222,128,0.10);
+      --green-glow:  rgba(74,222,128,0.18);
+      --amber:       #fbbf24;
+      --amber-dim:   rgba(251,191,36,0.09);
+      --sky:         #38bdf8;
+      --sky-dim:     rgba(56,189,248,0.09);
+      --violet:      #a78bfa;
+      --rose:        #fb7185;
+
+      --text:        #cbd5e1;
+      --muted:       #64748b;
+      --dim:         #334155;
+      --white:       #f1f5f9;
+
+      --mono:        'IBM Plex Mono', 'Courier New', monospace;
+      --sans:        'Inter', system-ui, -apple-system, sans-serif;
+      --radius:      6px;
+      --radius-sm:   3px;
+      --bar-h:       42px;
+      --toc-w:       220px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 15px;
+      line-height: 1.75;
+      min-height: 100vh;
+    }
+
+    ::-webkit-scrollbar              { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-thumb        { background: var(--border-lit); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover  { background: var(--muted); }
+
+    /* ── TOP BAR ────────────────────────────────────────────────────────── */
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 200;
+      height: var(--bar-h);
+      display: flex;
+      align-items: center;
+      padding: 0 clamp(1rem, 4vw, 2.5rem);
+      background: linear-gradient(to right, #1a2232 0%, var(--panel) 60%);
+      border-bottom: 1px solid var(--border);
+      gap: 1rem;
+    }
+    .topbar__logo {
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--green);
+      text-decoration: none;
+      letter-spacing: 0.02em;
+      flex-shrink: 0;
+    }
+    .topbar__logo::before { content: "> "; color: var(--amber); }
+    .topbar__badge {
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 0.12em;
+      color: var(--amber);
+      border: 1px solid rgba(251,191,36,0.4);
+      background: rgba(251,191,36,0.06);
+      padding: 2px 6px;
+      border-radius: var(--radius-sm);
+    }
+    .topbar__nav {
+      margin-left: auto;
+      display: flex;
+      gap: 1.5rem;
+      list-style: none;
+      align-items: center;
+    }
+    .topbar__nav a {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--muted);
+      text-decoration: none;
+      letter-spacing: 0.03em;
+      transition: color 0.15s;
+    }
+    .topbar__nav a:hover         { color: var(--green); }
+    .topbar__nav a.nav-active    { color: var(--green); }
+    .topbar__nav a.nav-api       { color: var(--sky); }
+    .topbar__nav a.nav-api:hover { color: var(--green); }
+    @media (max-width: 640px) { .topbar__nav .nav-hide { display: none; } }
+
+    /* ── DOC HERO ───────────────────────────────────────────────────────── */
+    .doc-hero {
+      background: linear-gradient(180deg, #111926 0%, var(--bg) 100%);
+      border-bottom: 1px solid var(--border);
+      padding: clamp(2.5rem, 6vw, 4rem) clamp(1.5rem, 6vw, 4rem);
+    }
+    .doc-hero__inner {
+      max-width: 860px;
+      margin: 0 auto;
+    }
+    .doc-hero__eyebrow {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--amber);
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+    .doc-hero__eyebrow::before {
+      content: '';
+      display: block;
+      width: 20px;
+      height: 1px;
+      background: var(--amber);
+      opacity: 0.6;
+    }
+    .doc-hero__title {
+      font-family: var(--mono);
+      font-size: clamp(1.75rem, 4vw, 2.75rem);
+      font-weight: 600;
+      color: var(--white);
+      line-height: 1.1;
+      margin-bottom: 1rem;
+      letter-spacing: -0.02em;
+    }
+    .doc-hero__lead {
+      font-size: 16px;
+      color: var(--muted);
+      max-width: 680px;
+      line-height: 1.8;
+      margin-bottom: 1.75rem;
+    }
+    .doc-hero__tags {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .tag {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      padding: 3px 8px;
+      border-radius: var(--radius-sm);
+      text-transform: uppercase;
+    }
+    .tag--green  { color: var(--green); border: 1px solid rgba(74,222,128,0.3); background: var(--green-dim); }
+    .tag--sky    { color: var(--sky);   border: 1px solid rgba(56,189,248,0.3); background: var(--sky-dim);   }
+    .tag--amber  { color: var(--amber); border: 1px solid rgba(251,191,36,0.3); background: var(--amber-dim); }
+    .tag--violet { color: var(--violet);border: 1px solid rgba(167,139,250,0.3);background: rgba(167,139,250,0.08); }
+
+    /* ── DOC LAYOUT ─────────────────────────────────────────────────────── */
+    .doc-layout {
+      display: flex;
+      align-items: flex-start;
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 0 clamp(1rem, 3vw, 2rem);
+      gap: 3rem;
+    }
+
+    /* ── TOC ─────────────────────────────────────────────────────────────── */
+    .doc-toc {
+      flex-shrink: 0;
+      width: var(--toc-w);
+      position: sticky;
+      top: calc(var(--bar-h) + 1.5rem);
+      align-self: flex-start;
+      padding: 1.5rem 0;
+    }
+    .doc-toc__heading {
+      font-family: var(--mono);
+      font-size: 9px;
+      color: var(--dim);
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      margin-bottom: 0.75rem;
+    }
+    .doc-toc__heading::before { content: "// "; color: var(--amber); }
+    .doc-toc__list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+    .doc-toc__list li a {
+      display: block;
+      font-family: var(--mono);
+      font-size: 11.5px;
+      color: var(--muted);
+      text-decoration: none;
+      padding: 0.3rem 0.75rem;
+      border-left: 2px solid var(--border);
+      transition: color 0.12s, border-color 0.12s, background 0.12s;
+      line-height: 1.4;
+    }
+    .doc-toc__list li a:hover {
+      color: var(--green);
+      border-left-color: var(--green);
+      background: var(--green-dim);
+    }
+    .doc-toc__list li.toc-sub a {
+      font-size: 10.5px;
+      padding-left: 1.25rem;
+      color: var(--dim);
+    }
+    .doc-toc__list li.toc-sub a:hover { color: var(--sky); border-left-color: var(--sky); background: var(--sky-dim); }
+    @media (max-width: 900px) { .doc-toc { display: none; } }
+
+    /* ── CONTENT ────────────────────────────────────────────────────────── */
+    .doc-content {
+      flex: 1;
+      min-width: 0;
+      padding: 2.5rem 0 4rem;
+    }
+
+    .doc-content h2 {
+      font-family: var(--mono);
+      font-size: clamp(1.1rem, 2.5vw, 1.4rem);
+      font-weight: 600;
+      color: var(--white);
+      margin: 3rem 0 0.85rem;
+      padding-top: 1rem;
+      scroll-margin-top: calc(var(--bar-h) + 1rem);
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+    .doc-content h2::before {
+      content: attr(data-n);
+      font-size: 10px;
+      color: var(--amber);
+      border: 1px solid rgba(251,191,36,0.35);
+      background: var(--amber-dim);
+      padding: 1px 6px;
+      border-radius: var(--radius-sm);
+      letter-spacing: 0.1em;
+      flex-shrink: 0;
+    }
+    .doc-content h2:first-of-type { margin-top: 0; }
+
+    .doc-content h3 {
+      font-family: var(--mono);
+      font-size: 13.5px;
+      font-weight: 600;
+      color: var(--sky);
+      margin: 2rem 0 0.65rem;
+      scroll-margin-top: calc(var(--bar-h) + 1rem);
+      letter-spacing: 0.02em;
+    }
+    .doc-content h3::before { content: "→ "; color: var(--dim); }
+
+    .doc-content p {
+      color: var(--text);
+      margin-bottom: 1.1rem;
+      max-width: 72ch;
+    }
+    .doc-content p:last-child { margin-bottom: 0; }
+
+    .doc-content ul {
+      margin: 0.5rem 0 1.1rem 1.25rem;
+      color: var(--muted);
+    }
+    .doc-content ul li { margin-bottom: 0.3rem; }
+    .doc-content ul li strong { color: var(--text); }
+
+    .doc-content strong { color: var(--white); font-weight: 600; }
+
+    .doc-content code {
+      font-family: var(--mono);
+      font-size: 11.5px;
+      color: var(--green);
+      background: var(--green-dim);
+      padding: 0.1em 0.4em;
+      border-radius: var(--radius-sm);
+    }
+
+    /* ── CODE BLOCKS ────────────────────────────────────────────────────── */
+    .code-block {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      margin: 1.25rem 0;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+    .code-block__header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.55rem 1rem;
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+    }
+    .code-block__filename {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .code-block__lang {
+      font-family: var(--mono);
+      font-size: 9px;
+      color: var(--dim);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+    .code-block pre {
+      margin: 0;
+      padding: 1.1rem 1.25rem;
+      overflow-x: auto;
+      font-family: var(--mono);
+      font-size: 12.5px;
+      line-height: 1.7;
+    }
+    .code-block pre code { color: var(--text); background: none; padding: 0; border-radius: 0; font-size: inherit; }
+
+    /* ── SYNTAX TOKENS ──────────────────────────────────────────────────── */
+    .kw  { color: var(--amber); }
+    .fn  { color: var(--sky); }
+    .cls { color: var(--sky); font-weight: 600; }
+    .dec { color: var(--amber); opacity: 0.85; }
+    .str { color: var(--green); }
+    .cm  { color: var(--dim); font-style: italic; }
+    .num { color: var(--green); }
+    .typ { color: var(--violet); }
+    .xml-tag  { color: var(--rose); }
+    .xml-attr { color: var(--amber); opacity: 0.85; }
+    .xml-val  { color: var(--green); }
+    .xml-cm   { color: var(--dim); font-style: italic; }
+
+    /* ── CALLOUT BOXES ──────────────────────────────────────────────────── */
+    .callout {
+      border-left: 3px solid;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      padding: 0.9rem 1.1rem;
+      margin: 1.25rem 0;
+      font-size: 14px;
+      line-height: 1.65;
+    }
+    .callout--insight {
+      border-color: var(--green);
+      background: var(--green-dim);
+      color: var(--text);
+    }
+    .callout--insight strong { color: var(--green); }
+    .callout--note {
+      border-color: var(--sky);
+      background: var(--sky-dim);
+      color: var(--text);
+    }
+    .callout--note strong { color: var(--sky); }
+    .callout--warn {
+      border-color: var(--amber);
+      background: var(--amber-dim);
+      color: var(--text);
+    }
+    .callout--warn strong { color: var(--amber); }
+
+    /* ── ARCHITECTURE BOX ────────────────────────────────────────────────── */
+    .arch-box {
+      background: var(--code-bg);
+      border: 1px solid var(--border-lit);
+      border-radius: var(--radius);
+      padding: 1.25rem 1.5rem;
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height: 1.8;
+      color: var(--muted);
+      white-space: pre;
+      overflow-x: auto;
+      margin: 1.25rem 0;
+    }
+    .arch-box .arch-hl  { color: var(--green); }
+    .arch-box .arch-dim { color: var(--dim); }
+    .arch-box .arch-sky { color: var(--sky); }
+    .arch-box .arch-amb { color: var(--amber); }
+
+    /* ── CODE SPLIT (2-col) ──────────────────────────────────────────────── */
+    .code-split {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.25rem;
+      margin: 1.5rem 0;
+    }
+    @media (max-width: 800px) { .code-split { grid-template-columns: 1fr; } }
+    .code-split__label {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      margin-bottom: 0.6rem;
+    }
+
+    /* ── COMPARISON TABLE ───────────────────────────────────────────────── */
+    .cmp-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin: 1.5rem 0;
+    }
+    .cmp-table th {
+      text-align: left;
+      padding: 0.55rem 0.9rem;
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      border-bottom: 2px solid var(--border-lit);
+    }
+    .cmp-table th:first-child { color: var(--muted); }
+    .cmp-table th.th-react    { color: #61dafb; }
+    .cmp-table th.th-cfx      { color: var(--green); }
+    .cmp-table td {
+      padding: 0.5rem 0.9rem;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+      color: var(--text);
+    }
+    .cmp-table td:first-child  { color: var(--muted); font-family: var(--mono); font-size: 11.5px; }
+    .cmp-table td code         { font-family: var(--mono); font-size: 11px; color: var(--green); background: var(--green-dim); padding: 0.1em 0.4em; border-radius: var(--radius-sm); }
+    .cmp-table td.td-react code { color: var(--sky); background: var(--sky-dim); }
+    .cmp-table tr:hover td     { background: rgba(74,222,128,0.025); }
+    .win { color: var(--green); font-weight: 600; }
+
+    /* ── SUMMARY TABLE ──────────────────────────────────────────────────── */
+    .summary-table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 1.5rem 0; }
+    .summary-table th { text-align: left; padding: 0.5rem 0.85rem; font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; border-bottom: 2px solid var(--border-lit); color: var(--muted); }
+    .summary-table td { padding: 0.5rem 0.85rem; border-bottom: 1px solid var(--border); color: var(--text); font-size: 13px; }
+    .summary-table td:first-child  { color: var(--sky); font-family: var(--mono); font-size: 12px; }
+    .summary-table td:nth-child(2) { color: var(--green); font-family: var(--mono); font-size: 11.5px; }
+    .summary-table tr:hover td { background: rgba(74,222,128,0.02); }
+
+    /* ── STEP INLINE ────────────────────────────────────────────────────── */
+    .run-steps { list-style: none; counter-reset: run-step; display: flex; flex-direction: column; gap: 0.85rem; margin: 1.25rem 0; }
+    .run-steps li { counter-increment: run-step; display: flex; gap: 0.9rem; align-items: flex-start; }
+    .run-steps li::before {
+      content: counter(run-step, decimal-leading-zero);
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--amber);
+      border: 1px solid rgba(251,191,36,0.35);
+      background: var(--amber-dim);
+      padding: 1px 6px;
+      border-radius: var(--radius-sm);
+      flex-shrink: 0;
+      line-height: 1.8;
+    }
+    .run-steps li .step-text { color: var(--muted); font-size: 13.5px; }
+    .run-steps li .step-text code { font-family: var(--mono); font-size: 11px; color: var(--sky); background: var(--sky-dim); padding: 0.1em 0.4em; border-radius: 2px; }
+
+    /* ── FOOTER ─────────────────────────────────────────────────────────── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 1.25rem clamp(1.5rem, 6vw, 4rem);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--dim);
+      background: var(--panel);
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+    footer a { color: var(--dim); text-decoration: none; transition: color 0.15s; }
+    footer a:hover { color: var(--green); }
+    footer .sep { margin: 0 0.45rem; }
+
+    /* ── NAV DROPDOWN ───────────────────────────────────────────────────────── */
+    .nav-dropdown { position: relative; }
+    .nav-dropdown__label {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: 0.03em;
+      transition: color 0.15s;
+      cursor: default;
+      user-select: none;
+    }
+    .nav-dropdown:hover .nav-dropdown__label { color: var(--green); }
+    .nav-dropdown__label.nav-active { color: var(--green); }
+    .nav-dropdown__menu {
+      display: none;
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      background: var(--panel);
+      border: 1px solid var(--border-lit);
+      border-radius: var(--radius);
+      min-width: 210px;
+      padding: 0.4rem 0;
+      z-index: 300;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.45);
+    }
+    .nav-dropdown:hover .nav-dropdown__menu { display: block; }
+    .nav-dropdown::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: -1rem;
+      right: -1rem;
+      height: 10px;
+    }
+    .nav-dropdown__menu a {
+      display: block;
+      font-family: var(--mono);
+      font-size: 11.5px;
+      color: var(--muted);
+      text-decoration: none;
+      padding: 0.4rem 1rem;
+      letter-spacing: 0.03em;
+      transition: color 0.12s, background 0.12s;
+    }
+    .nav-dropdown__menu a:hover { color: var(--green); background: var(--green-dim); }
+    .nav-dropdown__menu a.nav-active { color: var(--green); }
+  </style>
+</head>
+<body>
+
+<!-- ── TOP BAR ──────────────────────────────────────────────────────────── -->
+<header class="topbar">
+  <a href="index.html" class="topbar__logo">component-framework</a>
+  <span class="topbar__badge">BETA</span>
+  <nav aria-label="Main navigation">
+    <ul class="topbar__nav">
+      <li><a href="index.html">Home</a></li>
+      <li class="nav-dropdown">
+        <span class="nav-dropdown__label nav-active">Examples ▾</span>
+        <div class="nav-dropdown__menu">
+          <a href="ecommerce.html" class="nav-active">E-Commerce Live View</a>
+          <a href="admin-panel.html">Admin Panel</a>
+          <a href="customer-support.html">Customer Support</a>
+          <a href="education-lms.html">Education / LMS</a>
+          <a href="financial-dashboard.html">Financial Dashboard</a>
+          <a href="litestar-guide.html">Litestar Guide</a>
+          <a href="wizard.html">Wizard Recipe</a>
+        </div>
+      </li>
+      <li><a href="component_framework.html" class="nav-api">API Ref</a></li>
+      <li class="nav-hide"><a href="https://github.com/fsecada01/component-framework" target="_blank" rel="noopener">GitHub ↗</a></li>
+    </ul>
+  </nav>
+</header>
+
+<!-- ── DOC HERO ─────────────────────────────────────────────────────────── -->
+<div class="doc-hero">
+  <div class="doc-hero__inner">
+    <p class="doc-hero__eyebrow">Real-time E-Commerce · HTMX · WebSocket · Django</p>
+    <h1 class="doc-hero__title">E-Commerce Live View</h1>
+    <p class="doc-hero__lead">
+      No React. No Redux. No build step.
+      A real-time product page and shopping cart built entirely with server-side
+      components, HTMX, and WebSocket — all in plain Python.
+    </p>
+    <div class="doc-hero__tags">
+      <span class="tag tag--green">Optimistic UI</span>
+      <span class="tag tag--sky">WebSocket Push</span>
+      <span class="tag tag--green">Permissions</span>
+      <span class="tag tag--amber">Rate Limiting</span>
+      <span class="tag tag--violet">Composition</span>
+      <span class="tag tag--sky">Caching</span>
+      <span class="tag tag--green">Pure-Python Tests</span>
+    </div>
+  </div>
+</div>
+
+<!-- ── MAIN ─────────────────────────────────────────────────────────────── -->
+<div class="doc-layout">
+
+  <!-- ── TOC ─────────────────────────────────────────────────────────────── -->
+  <aside class="doc-toc" aria-label="Table of contents">
+    <div class="doc-toc__heading">On this page</div>
+    <ul class="doc-toc__list">
+      <li><a href="#scenario">The Scenario</a></li>
+      <li><a href="#architecture">Architecture</a></li>
+      <li><a href="#product">1. ProductComponent</a></li>
+      <li class="toc-sub"><a href="#product-component">Component</a></li>
+      <li class="toc-sub"><a href="#product-view">View</a></li>
+      <li class="toc-sub"><a href="#product-template">Template</a></li>
+      <li><a href="#cart">2. CartComponent</a></li>
+      <li class="toc-sub"><a href="#cart-component">Component</a></li>
+      <li class="toc-sub"><a href="#cart-websocket">WebSocket Push</a></li>
+      <li class="toc-sub"><a href="#cart-caching">Caching</a></li>
+      <li><a href="#composition">3. Page Composition</a></li>
+      <li><a href="#permissions">4. Permission Gating</a></li>
+      <li><a href="#ratelimit">5. Rate Limiting</a></li>
+      <li><a href="#compare">React vs Component Framework</a></li>
+      <li><a href="#testing">Testing</a></li>
+      <li><a href="#running">Running the Example</a></li>
+      <li><a href="#summary">Summary</a></li>
+    </ul>
+  </aside>
+
+  <!-- ── CONTENT ──────────────────────────────────────────────────────────── -->
+  <article class="doc-content">
+
+    <!-- SCENARIO -->
+    <h2 id="scenario" data-n="§">The Scenario</h2>
+    <p>A fashion retailer wants a <strong>product page</strong> that loads instantly and reflects live inventory, a <strong>shopping cart</strong> that updates the moment you click <em>Add to Cart</em> — with no full-page reload, no spinner, and no client-side state management — and a <strong>checkout button</strong> gated behind authentication.</p>
+
+    <p>The standard 2024 answer: <em>"Build it in React, manage state with Redux (or Zustand, or Jotai...), wire up API routes, keep client and server state in sync, handle loading states, write hydration logic, set up a bundler…"</em></p>
+
+    <div class="callout callout--insight">
+      <strong>The component-framework answer:</strong> write Python.
+      State lives on the server. The browser sends events and receives rendered HTML.
+      There is no client-side state machine — the server <em>is</em> the source of truth.
+    </div>
+
+    <!-- ARCHITECTURE -->
+    <h2 id="architecture" data-n="§">Architecture at a Glance</h2>
+    <div class="arch-box"><span class="arch-sky">Browser (HTMX + component-client.js)</span>
+  │  <span class="arch-hl">POST /components/product/</span>  <span class="arch-dim">(event, state, payload)</span>
+  │  <span class="arch-hl">POST /components/cart/</span>
+  │  <span class="arch-sky">WS   /ws/components/</span>
+  ▼
+<span class="arch-amb">Django Views (django_views.py)</span>
+  │  Permission check → rate-limit check → dispatch
+  ▼
+<span class="arch-hl">ProductComponent / CartComponent</span>  <span class="arch-dim">(pure Python)</span>
+  │  <span class="arch-dim">mount() / hydrate() → handle_event() → render()</span>
+  ▼
+<span class="arch-sky">Django Template Engine</span>  <span class="arch-dim">(Jinja2 / Django templates)</span></div>
+
+    <p><strong>Key insight:</strong> state is a plain Python <code>dict</code> on the server. The browser sends an event name + the serialised state blob. The component hydrates from that blob, runs the event handler, then returns fresh HTML. No synchronisation logic anywhere.</p>
+
+    <!-- PRODUCT COMPONENT -->
+    <h2 id="product" data-n="01">ProductComponent</h2>
+    <p>Renders a product card — image, name, price, stock level, size selector — and handles size selection and add-to-cart events.</p>
+
+    <h3 id="product-component">The Component</h3>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">shop/components.py</span>
+        <span class="code-block__lang">Python</span>
+      </div>
+      <pre><code><span class="kw">from</span> component_framework.core <span class="kw">import</span> Component, registry
+<span class="kw">from</span> component_framework.core.permissions <span class="kw">import</span> IsAuthenticated
+<span class="kw">from</span> component_framework.adapters.django_ratelimit <span class="kw">import</span> rate_limit_component
+<span class="kw">from</span> .models <span class="kw">import</span> Product, Inventory
+
+
+<span class="dec">@registry.register(<span class="str">"product"</span>)</span>
+<span class="kw">class</span> <span class="cls">ProductComponent</span>(Component):
+    <span class="str">"""
+    Renders a single product with real-time inventory and size selection.
+
+    params:
+        product_id (int): The product to display.
+        user       (User | AnonymousUser): Injected by the view.
+    """</span>
+
+    template_name = <span class="str">"shop/product.html"</span>
+    slots = [<span class="str">"reviews"</span>, <span class="str">"recommendations"</span>]
+
+    <span class="kw">def</span> <span class="fn">mount</span>(<span class="kw">self</span>):
+        product_id = <span class="kw">self</span>.params[<span class="str">"product_id"</span>]
+        product = Product.objects.<span class="fn">select_related</span>(<span class="str">"brand"</span>).<span class="fn">get</span>(pk=product_id)
+        inventory = Inventory.objects.<span class="fn">filter</span>(product=product).<span class="fn">values</span>(
+            <span class="str">"size"</span>, <span class="str">"stock"</span>
+        )
+        <span class="kw">self</span>.state.<span class="fn">update</span>({
+            <span class="str">"id"</span>:            product.pk,
+            <span class="str">"name"</span>:          product.name,
+            <span class="str">"brand"</span>:         product.brand.name,
+            <span class="str">"price"</span>:         <span class="fn">str</span>(product.price),
+            <span class="str">"image_url"</span>:     product.main_image.url,
+            <span class="str">"sizes"</span>:         [{<span class="str">"size"</span>: r[<span class="str">"size"</span>], <span class="str">"stock"</span>: r[<span class="str">"stock"</span>]} <span class="kw">for</span> r <span class="kw">in</span> inventory],
+            <span class="str">"selected_size"</span>: <span class="kw">None</span>,
+            <span class="str">"in_cart"</span>:       <span class="kw">False</span>,
+        })
+
+    <span class="kw">def</span> <span class="fn">on_select_size</span>(<span class="kw">self</span>, size: <span class="typ">str</span>):
+        <span class="str">"""User clicked a size option."""</span>
+        <span class="kw">self</span>.state[<span class="str">"selected_size"</span>] = size
+
+    <span class="kw">def</span> <span class="fn">on_add_to_cart</span>(<span class="kw">self</span>):
+        <span class="str">"""Add selected size to cart. Requires a size to be selected first."""</span>
+        <span class="kw">if not</span> <span class="kw">self</span>.state.<span class="fn">get</span>(<span class="str">"selected_size"</span>):
+            <span class="kw">self</span>.errors[<span class="str">"size"</span>] = <span class="str">"Please select a size first."</span>
+            <span class="kw">return</span>
+
+        <span class="cm"># Notify the cart component via WebSocket broadcast</span>
+        <span class="kw">from</span> component_framework.core <span class="kw">import</span> ws_manager
+        <span class="kw">import</span> asyncio
+
+        user_id = <span class="kw">self</span>.params.<span class="fn">get</span>(<span class="str">"user_id"</span>)
+        <span class="kw">if</span> user_id:
+            asyncio.<span class="fn">create_task</span>(
+                ws_manager.<span class="fn">broadcast</span>(
+                    group=<span class="fn">f</span><span class="str">"cart-{user_id}"</span>,
+                    message={
+                        <span class="str">"event"</span>:   <span class="str">"add_item"</span>,
+                        <span class="str">"payload"</span>: {
+                            <span class="str">"product_id"</span>: <span class="kw">self</span>.state[<span class="str">"id"</span>],
+                            <span class="str">"size"</span>:       <span class="kw">self</span>.state[<span class="str">"selected_size"</span>],
+                        },
+                    },
+                )
+            )
+        <span class="kw">self</span>.state[<span class="str">"in_cart"</span>] = <span class="kw">True</span>
+
+    <span class="cm"># ── Optimistic UI ────────────────────────────────────────────────────</span>
+    <span class="kw">def</span> <span class="fn">get_optimistic_patch</span>(<span class="kw">self</span>, event: <span class="typ">str</span>, payload: <span class="typ">dict</span>) -> <span class="typ">dict</span> | <span class="kw">None</span>:
+        <span class="str">"""
+        Return immediate state updates the client applies before the server
+        responds. On error the client rolls back to the pre-patch state.
+        """</span>
+        <span class="kw">if</span> event == <span class="str">"select_size"</span>:
+            <span class="cm"># Show selection immediately — no spinner needed.</span>
+            <span class="kw">return</span> {<span class="str">"selected_size"</span>: payload.<span class="fn">get</span>(<span class="str">"size"</span>)}
+
+        <span class="kw">if</span> event == <span class="str">"add_to_cart"</span>:
+            <span class="cm"># Disable the button immediately to prevent double-clicks.</span>
+            <span class="kw">return</span> {<span class="str">"in_cart"</span>: <span class="kw">True</span>}
+
+        <span class="kw">return None</span></code></pre>
+    </div>
+
+    <div class="callout callout--insight">
+      <strong>Optimistic UI in two methods.</strong> <code>get_optimistic_patch()</code> returns a state delta that the client applies instantly — before the server round-trip completes. If the server returns an error, the client rolls back automatically. No <code>useOptimistic()</code>, no thunks, no reducers.
+    </div>
+
+    <h3 id="product-view">The View</h3>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">shop/views.py</span>
+        <span class="code-block__lang">Python</span>
+      </div>
+      <pre><code><span class="kw">from</span> component_framework.adapters.django_views <span class="kw">import</span> AuthenticatedComponentView
+<span class="kw">from</span> component_framework.adapters.django_ratelimit <span class="kw">import</span> RateLimitMixin
+
+
+<span class="kw">class</span> <span class="cls">ProductComponentView</span>(RateLimitMixin, AuthenticatedComponentView):
+    <span class="str">"""
+    Rate-limited, authenticated component endpoint.
+
+    - Unauthenticated requests  → JSON 401  (HTMX handles the redirect)
+    - &gt; 30 requests / min per user → JSON 429 + Retry-After header
+    """</span>
+
+    throttle_rate = <span class="str">"30/minute"</span>
+
+    <span class="kw">def</span> <span class="fn">get_throttle_key</span>(<span class="kw">self</span>, request, **kwargs):
+        <span class="kw">return</span> <span class="fn">f</span><span class="str">"product:{request.user.pk}"</span>
+
+    <span class="kw">def</span> <span class="fn">get_component_params</span>(<span class="kw">self</span>, request, **kwargs):
+        params = <span class="fn">super</span>().<span class="fn">get_component_params</span>(request, **kwargs)
+        params[<span class="str">"product_id"</span>] = <span class="fn">int</span>(kwargs.<span class="fn">get</span>(<span class="str">"product_id"</span>, <span class="num">0</span>))
+        <span class="kw">return</span> params</code></pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">shop/urls.py</span>
+        <span class="code-block__lang">Python</span>
+      </div>
+      <pre><code><span class="kw">from</span> django.urls <span class="kw">import</span> path
+<span class="kw">from</span> .views <span class="kw">import</span> ProductComponentView
+
+urlpatterns = [
+    path(
+        <span class="str">"components/product/&lt;int:product_id&gt;/"</span>,
+        ProductComponentView.<span class="fn">as_view</span>(),
+        name=<span class="str">"product_component"</span>,
+    ),
+]</code></pre>
+    </div>
+
+    <h3 id="product-template">The Template</h3>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">shop/templates/shop/product.html</span>
+        <span class="code-block__lang">Django Template</span>
+      </div>
+      <pre><code><span class="xml-cm">{# Outer element is the HTMX swap target #}</span>
+<span class="xml-tag">&lt;div</span> <span class="xml-attr">id=</span><span class="xml-val">"product-{{ component_id }}"</span>
+     <span class="xml-attr">hx-target=</span><span class="xml-val">"this"</span>
+     <span class="xml-attr">hx-swap=</span><span class="xml-val">"outerHTML"</span><span class="xml-tag">&gt;</span>
+
+  <span class="xml-tag">&lt;img</span> <span class="xml-attr">src=</span><span class="xml-val">"{{ state.image_url }}"</span> <span class="xml-attr">alt=</span><span class="xml-val">"{{ state.name }}"</span> <span class="xml-tag">/&gt;</span>
+
+  <span class="xml-tag">&lt;div</span> <span class="xml-attr">class=</span><span class="xml-val">"product-info"</span><span class="xml-tag">&gt;</span>
+    <span class="xml-tag">&lt;p</span> <span class="xml-attr">class=</span><span class="xml-val">"brand"</span><span class="xml-tag">&gt;</span>{{ state.brand }}<span class="xml-tag">&lt;/p&gt;</span>
+    <span class="xml-tag">&lt;h1&gt;</span>{{ state.name }}<span class="xml-tag">&lt;/h1&gt;</span>
+    <span class="xml-tag">&lt;p</span> <span class="xml-attr">class=</span><span class="xml-val">"price"</span><span class="xml-tag">&gt;</span>${{ state.price }}<span class="xml-tag">&lt;/p&gt;</span>
+  <span class="xml-tag">&lt;/div&gt;</span>
+
+  <span class="xml-cm">{# Size Selector #}</span>
+  <span class="xml-tag">&lt;div</span> <span class="xml-attr">class=</span><span class="xml-val">"sizes"</span><span class="xml-tag">&gt;</span>
+    {% for option in state.sizes %}
+      <span class="xml-tag">&lt;button</span>
+        <span class="xml-attr">hx-post=</span><span class="xml-val">"{% url 'product_component' state.id %}"</span>
+        <span class="xml-attr">hx-vals=</span><span class="xml-val">'{"event": "select_size", "size": "{{ option.size }}"}'</span>
+        <span class="xml-attr">class=</span><span class="xml-val">"size-btn {% if state.selected_size == option.size %}selected{% endif %}"</span>
+        {% if option.stock == 0 %}disabled{% endif %}<span class="xml-tag">&gt;</span>
+        {{ option.size }}
+        {% if option.stock &lt; 5 %}
+          <span class="xml-tag">&lt;span</span> <span class="xml-attr">class=</span><span class="xml-val">"low-stock"</span><span class="xml-tag">&gt;</span>Only {{ option.stock }} left<span class="xml-tag">&lt;/span&gt;</span>
+        {% endif %}
+      <span class="xml-tag">&lt;/button&gt;</span>
+    {% endfor %}
+  <span class="xml-tag">&lt;/div&gt;</span>
+
+  {% if errors.size %}<span class="xml-tag">&lt;p</span> <span class="xml-attr">class=</span><span class="xml-val">"error"</span><span class="xml-tag">&gt;</span>{{ errors.size }}<span class="xml-tag">&lt;/p&gt;</span>{% endif %}
+
+  <span class="xml-cm">{# Slot: reviews injected by the parent page view #}</span>
+  {% if slots.reviews %}
+    <span class="xml-tag">&lt;section</span> <span class="xml-attr">class=</span><span class="xml-val">"reviews"</span><span class="xml-tag">&gt;</span>{{ slots.reviews|safe }}<span class="xml-tag">&lt;/section&gt;</span>
+  {% endif %}
+
+  <span class="xml-cm">{# Add to Cart #}</span>
+  <span class="xml-tag">&lt;button</span>
+    <span class="xml-attr">hx-post=</span><span class="xml-val">"{% url 'product_component' state.id %}"</span>
+    <span class="xml-attr">hx-vals=</span><span class="xml-val">'{"event": "add_to_cart"}'</span>
+    {% if state.in_cart or not state.selected_size %}disabled{% endif %}<span class="xml-tag">&gt;</span>
+    {% if state.in_cart %}Added to Cart ✓{% else %}Add to Cart{% endif %}
+  <span class="xml-tag">&lt;/button&gt;</span>
+
+<span class="xml-tag">&lt;/div&gt;</span></code></pre>
+    </div>
+
+    <!-- CART COMPONENT -->
+    <h2 id="cart" data-n="02">CartComponent</h2>
+    <p>Renders the current cart contents, handles quantity changes and item removal, and updates in real-time via WebSocket push from <code>ProductComponent</code>.</p>
+
+    <h3 id="cart-component">The Component</h3>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">shop/components.py (continued)</span>
+        <span class="code-block__lang">Python</span>
+      </div>
+      <pre><code><span class="dec">@registry.register(<span class="str">"cart"</span>)</span>
+<span class="kw">class</span> <span class="cls">CartComponent</span>(Component):
+    <span class="str">"""
+    Shopping cart — persists in server state, updates via WebSocket events.
+
+    State shape:
+        items: list[{product_id, name, size, price, qty}]
+        total: str  (Decimal as string for JSON safety)
+    """</span>
+
+    template_name = <span class="str">"shop/cart.html"</span>
+
+    <span class="kw">def</span> <span class="fn">mount</span>(<span class="kw">self</span>):
+        <span class="kw">self</span>.state.<span class="fn">update</span>({<span class="str">"items"</span>: [], <span class="str">"total"</span>: <span class="str">"0.00"</span>})
+
+    <span class="kw">def</span> <span class="fn">_recalculate_total</span>(<span class="kw">self</span>):
+        <span class="kw">from</span> decimal <span class="kw">import</span> Decimal
+        total = <span class="fn">sum</span>(
+            <span class="cls">Decimal</span>(item[<span class="str">"price"</span>]) * item[<span class="str">"qty"</span>]
+            <span class="kw">for</span> item <span class="kw">in</span> <span class="kw">self</span>.state[<span class="str">"items"</span>]
+        )
+        <span class="kw">self</span>.state[<span class="str">"total"</span>] = <span class="fn">str</span>(total)
+
+    <span class="kw">def</span> <span class="fn">on_add_item</span>(<span class="kw">self</span>, product_id: <span class="typ">int</span>, size: <span class="typ">str</span>):
+        <span class="str">"""Add an item or increment its quantity if already present."""</span>
+        <span class="kw">from</span> .models <span class="kw">import</span> Product
+
+        <span class="kw">for</span> item <span class="kw">in</span> <span class="kw">self</span>.state[<span class="str">"items"</span>]:
+            <span class="kw">if</span> item[<span class="str">"product_id"</span>] == product_id <span class="kw">and</span> item[<span class="str">"size"</span>] == size:
+                item[<span class="str">"qty"</span>] += <span class="num">1</span>
+                <span class="kw">self</span>.<span class="fn">_recalculate_total</span>()
+                <span class="kw">return</span>
+
+        product = Product.objects.<span class="fn">get</span>(pk=product_id)
+        <span class="kw">self</span>.state[<span class="str">"items"</span>].<span class="fn">append</span>({
+            <span class="str">"product_id"</span>: product_id,
+            <span class="str">"name"</span>:       product.name,
+            <span class="str">"size"</span>:       size,
+            <span class="str">"price"</span>:      <span class="fn">str</span>(product.price),
+            <span class="str">"qty"</span>:        <span class="num">1</span>,
+            <span class="str">"image_url"</span>:  product.thumbnail.url,
+        })
+        <span class="kw">self</span>.<span class="fn">_recalculate_total</span>()
+
+    <span class="kw">def</span> <span class="fn">on_remove_item</span>(<span class="kw">self</span>, product_id: <span class="typ">int</span>, size: <span class="typ">str</span>):
+        <span class="kw">self</span>.state[<span class="str">"items"</span>] = [
+            item <span class="kw">for</span> item <span class="kw">in</span> <span class="kw">self</span>.state[<span class="str">"items"</span>]
+            <span class="kw">if not</span> (item[<span class="str">"product_id"</span>] == product_id <span class="kw">and</span> item[<span class="str">"size"</span>] == size)
+        ]
+        <span class="kw">self</span>.<span class="fn">_recalculate_total</span>()
+
+    <span class="kw">def</span> <span class="fn">on_set_qty</span>(<span class="kw">self</span>, product_id: <span class="typ">int</span>, size: <span class="typ">str</span>, qty: <span class="typ">int</span>):
+        <span class="kw">if</span> qty &lt;= <span class="num">0</span>:
+            <span class="kw">self</span>.<span class="fn">on_remove_item</span>(product_id, size)
+            <span class="kw">return</span>
+        <span class="kw">for</span> item <span class="kw">in</span> <span class="kw">self</span>.state[<span class="str">"items"</span>]:
+            <span class="kw">if</span> item[<span class="str">"product_id"</span>] == product_id <span class="kw">and</span> item[<span class="str">"size"</span>] == size:
+                item[<span class="str">"qty"</span>] = qty
+        <span class="kw">self</span>.<span class="fn">_recalculate_total</span>()
+
+    <span class="cm"># ── Optimistic UI ────────────────────────────────────────────────────</span>
+    <span class="kw">def</span> <span class="fn">get_optimistic_patch</span>(<span class="kw">self</span>, event: <span class="typ">str</span>, payload: <span class="typ">dict</span>) -> <span class="typ">dict</span> | <span class="kw">None</span>:
+        <span class="kw">if</span> event == <span class="str">"remove_item"</span>:
+            <span class="cm"># Immediately hide the row before the server confirms deletion.</span>
+            product_id = payload.<span class="fn">get</span>(<span class="str">"product_id"</span>)
+            size = payload.<span class="fn">get</span>(<span class="str">"size"</span>)
+            remaining = [
+                item <span class="kw">for</span> item <span class="kw">in</span> <span class="kw">self</span>.state.<span class="fn">get</span>(<span class="str">"items"</span>, [])
+                <span class="kw">if not</span> (item[<span class="str">"product_id"</span>] == product_id <span class="kw">and</span> item[<span class="str">"size"</span>] == size)
+            ]
+            <span class="kw">return</span> {<span class="str">"items"</span>: remaining}
+        <span class="kw">return None</span></code></pre>
+    </div>
+
+    <h3 id="cart-websocket">Real-Time WebSocket Updates</h3>
+    <p>When <code>ProductComponent.on_add_to_cart()</code> fires, it broadcasts a message to the user's cart channel. The cart consumer listens and pushes an updated render to the browser — all without the user doing anything.</p>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">shop/consumers.py  (Django Channels)</span>
+        <span class="code-block__lang">Python</span>
+      </div>
+      <pre><code><span class="kw">from</span> component_framework.core <span class="kw">import</span> ws_manager
+
+
+<span class="kw">class</span> <span class="cls">CartConsumer</span>(ws_manager.ComponentConsumer):
+    <span class="str">"""
+    WebSocket consumer that keeps the cart widget live.
+
+    The parent class handles:
+      - group subscription (based on user id)
+      - dispatching incoming messages as component events
+      - pushing rendered HTML back to the client
+    """</span>
+    component_name = <span class="str">"cart"</span>
+
+    <span class="kw">async def</span> <span class="fn">websocket_connect</span>(<span class="kw">self</span>, message):
+        user = <span class="kw">self</span>.scope[<span class="str">"user"</span>]
+        <span class="kw">if not</span> user.is_authenticated:
+            <span class="kw">await self</span>.<span class="fn">close</span>()
+            <span class="kw">return</span>
+        <span class="kw">await self</span>.channel_layer.<span class="fn">group_add</span>(
+            <span class="fn">f</span><span class="str">"cart-{user.pk}"</span>, <span class="kw">self</span>.channel_name
+        )
+        <span class="kw">await super</span>().<span class="fn">websocket_connect</span>(message)</code></pre>
+    </div>
+
+    <h3 id="cart-caching">Caching the Product Page</h3>
+    <p>The cart widget must never be cached — it's user-specific and mutable. But the <strong>product listing page</strong> surrounding it is an excellent caching target.</p>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">shop/views.py (continued)</span>
+        <span class="code-block__lang">Python</span>
+      </div>
+      <pre><code><span class="kw">class</span> <span class="cls">CachedProductPageView</span>(CacheMixin, ComponentView):
+    <span class="str">"""
+    Cache product page HTML for 5 minutes per product.
+    Event requests (add_to_cart, select_size) bypass the cache automatically.
+    """</span>
+
+    cache_timeout = <span class="num">300</span>
+
+    <span class="kw">def</span> <span class="fn">get_cache_key</span>(<span class="kw">self</span>, name, params, state):
+        product_id = params.<span class="fn">get</span>(<span class="str">"product_id"</span>, <span class="str">"unknown"</span>)
+        <span class="kw">return</span> <span class="fn">f</span><span class="str">"product-page:{product_id}"</span></code></pre>
+    </div>
+
+    <!-- COMPOSITION -->
+    <h2 id="composition" data-n="03">Page Composition</h2>
+    <p>The full product page composes <code>ProductComponent</code> with a <code>ReviewsComponent</code> injected into the <code>"reviews"</code> slot. <code>compose()</code> wires the slot and renders both components in one call.</p>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">shop/page_views.py</span>
+        <span class="code-block__lang">Python</span>
+      </div>
+      <pre><code><span class="kw">from</span> django.views.generic <span class="kw">import</span> TemplateView
+<span class="kw">from</span> component_framework.core <span class="kw">import</span> compose, registry
+
+
+<span class="kw">class</span> <span class="cls">ProductPageView</span>(TemplateView):
+    template_name = <span class="str">"shop/product_page.html"</span>
+
+    <span class="kw">def</span> <span class="fn">get_context_data</span>(<span class="kw">self</span>, **kwargs):
+        context = <span class="fn">super</span>().<span class="fn">get_context_data</span>(**kwargs)
+        product_id = <span class="kw">self</span>.kwargs[<span class="str">"product_id"</span>]
+
+        reviews_cls = registry.<span class="fn">get</span>(<span class="str">"reviews"</span>)
+        product_cls = registry.<span class="fn">get</span>(<span class="str">"product"</span>)
+
+        <span class="cm"># compose() wires the slot and renders both components in one call</span>
+        product = <span class="fn">compose</span>(
+            product_cls,
+            params={<span class="str">"product_id"</span>: product_id, <span class="str">"user"</span>: <span class="kw">self</span>.request.user},
+            reviews=<span class="fn">reviews_cls</span>(product_id=product_id),
+        )
+        result = product.<span class="fn">dispatch</span>()
+        context[<span class="str">"product_html"</span>] = result[<span class="str">"html"</span>]
+        context[<span class="str">"product_state"</span>] = result[<span class="str">"state"</span>]
+        <span class="kw">return</span> context</code></pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">shop/templates/shop/product_page.html</span>
+        <span class="code-block__lang">Django Template</span>
+      </div>
+      <pre><code>{% extends <span class="xml-val">"base.html"</span> %}
+{% block content %}
+  <span class="xml-tag">&lt;div</span> <span class="xml-attr">class=</span><span class="xml-val">"product-layout"</span><span class="xml-tag">&gt;</span>
+    <span class="xml-tag">&lt;div</span> <span class="xml-attr">class=</span><span class="xml-val">"product-main"</span><span class="xml-tag">&gt;</span>
+      {{ product_html|safe }}
+    <span class="xml-tag">&lt;/div&gt;</span>
+    <span class="xml-tag">&lt;aside</span> <span class="xml-attr">class=</span><span class="xml-val">"cart-sidebar"</span><span class="xml-tag">&gt;</span>
+      <span class="xml-cm">{# Cart widget — synced via WebSocket, initially server-rendered #}</span>
+      <span class="xml-tag">&lt;div</span> <span class="xml-attr">id=</span><span class="xml-val">"cart-widget"</span>
+           <span class="xml-attr">hx-ext=</span><span class="xml-val">"ws"</span>
+           <span class="xml-attr">ws-connect=</span><span class="xml-val">"/ws/cart/"</span><span class="xml-tag">&gt;</span>
+      <span class="xml-tag">&lt;/div&gt;</span>
+    <span class="xml-tag">&lt;/aside&gt;</span>
+  <span class="xml-tag">&lt;/div&gt;</span>
+{% endblock %}</code></pre>
+    </div>
+
+    <!-- PERMISSIONS -->
+    <h2 id="permissions" data-n="04">Permission Gating</h2>
+    <p>The checkout component requires authentication. Setting <code>permission_classes</code> on the component class means <em>every</em> view that serves it — FBV or CBV — enforces the check automatically. Denied requests return JSON 401/403, never a redirect that would break HTMX.</p>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">shop/components.py (continued)</span>
+        <span class="code-block__lang">Python</span>
+      </div>
+      <pre><code><span class="kw">from</span> component_framework.core.permissions <span class="kw">import</span> IsAuthenticated
+
+
+<span class="dec">@registry.register(<span class="str">"checkout"</span>)</span>
+<span class="kw">class</span> <span class="cls">CheckoutComponent</span>(Component):
+    permission_classes = [IsAuthenticated]
+    template_name = <span class="str">"shop/checkout.html"</span>
+
+    <span class="kw">def</span> <span class="fn">mount</span>(<span class="kw">self</span>):
+        user = <span class="kw">self</span>.params[<span class="str">"user"</span>]
+        <span class="kw">self</span>.state[<span class="str">"email"</span>]   = user.email
+        <span class="kw">self</span>.state[<span class="str">"address"</span>] = user.profile.shipping_address
+
+    <span class="kw">def</span> <span class="fn">on_place_order</span>(<span class="kw">self</span>, payment_token: <span class="typ">str</span>):
+        <span class="cm"># ... process payment, create Order record ...</span>
+        <span class="kw">self</span>.state[<span class="str">"confirmed"</span>] = <span class="kw">True</span></code></pre>
+    </div>
+
+    <div class="callout callout--note">
+      <strong>What unauthenticated requests receive:</strong> <code>{"error": "Authentication required"}</code> with HTTP <code>401</code>. HTMX's <code>htmx:responseError</code> event handles the redirect to login on the client side — no server-side redirect needed.
+    </div>
+
+    <!-- RATE LIMITING -->
+    <h2 id="ratelimit" data-n="05">Rate Limiting the Cart</h2>
+    <p>Protect the add-to-cart endpoint from accidental double-submission or abuse. Two equivalent approaches — a decorator or a mixin:</p>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">shop/urls.py  (decorator style)</span>
+        <span class="code-block__lang">Python</span>
+      </div>
+      <pre><code><span class="kw">from</span> component_framework.adapters.django_ratelimit <span class="kw">import</span> rate_limit_component
+
+urlpatterns = [
+    path(
+        <span class="str">"components/cart/"</span>,
+        <span class="fn">rate_limit_component</span>(<span class="str">"5/second"</span>)(
+            AuthenticatedComponentView.<span class="fn">as_view</span>()
+        ),
+    ),
+]</code></pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">shop/views.py  (mixin style)</span>
+        <span class="code-block__lang">Python</span>
+      </div>
+      <pre><code><span class="kw">class</span> <span class="cls">CartView</span>(RateLimitMixin, AuthenticatedComponentView):
+    throttle_rate = <span class="str">"5/second"</span>
+
+    <span class="kw">def</span> <span class="fn">get_throttle_key</span>(<span class="kw">self</span>, request, **kwargs):
+        <span class="kw">return</span> <span class="fn">f</span><span class="str">"cart:{request.user.pk}"</span></code></pre>
+    </div>
+
+    <div class="callout callout--note">
+      Excess requests receive <strong>HTTP 429</strong> with a <code>Retry-After</code> header. The JS client handles this gracefully and rolls back any optimistic state automatically.
+    </div>
+
+    <!-- REACT vs CFX -->
+    <h2 id="compare" data-n="§">React vs Component Framework</h2>
+    <p>Here is the same cart update in a React + Redux stack compared to component-framework. Three separate concepts (async thunk, reducer, optimistic hook) across multiple files, plus TypeScript types, plus a store provider, plus a bundler — versus one Python class.</p>
+
+    <div class="code-split">
+      <div>
+        <div class="code-split__label" style="color:var(--muted)">// REACT + REDUX</div>
+        <div class="code-block" style="margin-top:0">
+          <div class="code-block__header">
+            <span class="code-block__filename">cart.ts</span>
+            <span class="code-block__lang">TypeScript</span>
+          </div>
+          <pre><code><span class="cm">// 1. async thunk</span>
+<span class="kw">const</span> <span class="fn">addToCart</span> = <span class="fn">createAsyncThunk</span>(
+  <span class="str">'cart/addItem'</span>,
+  <span class="kw">async</span> (item, { dispatch }) => {
+    <span class="kw">const</span> r = <span class="kw">await</span> <span class="fn">fetch</span>(<span class="str">'/api/cart/'</span>, {
+      method: <span class="str">'POST'</span>,
+      body: <span class="fn">JSON.stringify</span>(item),
+      headers: { <span class="str">'X-CSRFToken'</span>: <span class="fn">getCsrf</span>() },
+    });
+    <span class="kw">return</span> r.<span class="fn">json</span>();
+  }
+);
+
+<span class="cm">// 2. reducer</span>
+<span class="kw">const</span> cartSlice = <span class="fn">createSlice</span>({
+  name: <span class="str">'cart'</span>,
+  initialState: { items: [], total: <span class="str">'0.00'</span> },
+  extraReducers: (builder) => {
+    builder
+      .<span class="fn">addCase</span>(addToCart.pending,   s => {
+        s.status = <span class="str">'loading'</span>
+      })
+      .<span class="fn">addCase</span>(addToCart.fulfilled, (s, a) => {
+        s.items  = a.payload.items;
+        s.total  = a.payload.total;
+        s.status = <span class="str">'idle'</span>;
+      })
+      .<span class="fn">addCase</span>(addToCart.rejected,  s => {
+        s.status = <span class="str">'error'</span>
+      });
+  },
+});
+
+<span class="cm">// 3. optimistic hook (React 19)</span>
+<span class="kw">function</span> <span class="fn">CartButton</span>({ item }) {
+  <span class="kw">const</span> [optimisticItems, <span class="fn">addOptimistic</span>] =
+    <span class="fn">useOptimistic</span>(items,
+      (state, newItem) =>
+        [...state, { ...newItem, pending: <span class="kw">true</span> }]
+    );
+  <span class="cm">/* + store provider, types, bundler cfg */</span>
+}</code></pre>
+        </div>
+      </div>
+
+      <div>
+        <div class="code-split__label" style="color:var(--green)">// COMPONENT FRAMEWORK</div>
+        <div class="code-block" style="margin-top:0;border-color:var(--border-lit)">
+          <div class="code-block__header">
+            <span class="code-block__filename">cart/components.py</span>
+            <span class="code-block__lang">Python</span>
+          </div>
+          <pre><code><span class="dec">@registry.register(<span class="str">"cart"</span>)</span>
+<span class="kw">class</span> <span class="cls">CartComponent</span>(Component):
+
+    <span class="kw">def</span> <span class="fn">on_add_item</span>(<span class="kw">self</span>,
+                   product_id: <span class="typ">int</span>,
+                   size: <span class="typ">str</span>):
+        <span class="cm">"""Add item or increment qty."""</span>
+        <span class="kw">for</span> item <span class="kw">in</span> <span class="kw">self</span>.state[<span class="str">"items"</span>]:
+            <span class="kw">if</span> (item[<span class="str">"product_id"</span>] == product_id
+                    <span class="kw">and</span> item[<span class="str">"size"</span>] == size):
+                item[<span class="str">"qty"</span>] += <span class="num">1</span>
+                <span class="kw">self</span>.<span class="fn">_recalculate_total</span>()
+                <span class="kw">return</span>
+        <span class="kw">self</span>.state[<span class="str">"items"</span>].<span class="fn">append</span>({
+            <span class="str">"product_id"</span>: product_id,
+            <span class="str">"size"</span>:       size,
+            <span class="str">"qty"</span>:        <span class="num">1</span>,
+        })
+        <span class="kw">self</span>.<span class="fn">_recalculate_total</span>()
+
+    <span class="kw">def</span> <span class="fn">get_optimistic_patch</span>(<span class="kw">self</span>,
+                             event: <span class="typ">str</span>,
+                             payload: <span class="typ">dict</span>
+                             ) -> <span class="typ">dict</span> | <span class="kw">None</span>:
+        <span class="kw">if</span> event == <span class="str">"add_item"</span>:
+            <span class="kw">return</span> {
+                <span class="str">"items"</span>:
+                    <span class="kw">self</span>.state[<span class="str">"items"</span>]
+                    + [{**payload, <span class="str">"qty"</span>: <span class="num">1</span>}]
+            }
+        <span class="kw">return None</span>
+
+<span class="cm"># That's it. pytest covers the rest.</span>
+
+
+</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <table class="cmp-table">
+      <thead>
+        <tr>
+          <th>Concern</th>
+          <th class="th-react">React + Redux</th>
+          <th class="th-cfx">Component Framework</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>State location</td>
+          <td class="td-react"><code>useState</code> / Redux store in browser</td>
+          <td><code>self.state</code> dict on the server</td>
+        </tr>
+        <tr>
+          <td>Sync strategy</td>
+          <td class="td-react">REST/GraphQL polling or WS events</td>
+          <td>Built-in server state — no sync needed</td>
+        </tr>
+        <tr>
+          <td>Optimistic UI</td>
+          <td class="td-react"><code>useOptimistic()</code> + rollback logic</td>
+          <td><code>get_optimistic_patch()</code> → auto rollback</td>
+        </tr>
+        <tr>
+          <td>Auth gating</td>
+          <td class="td-react">Middleware + <code>useSession()</code> hook</td>
+          <td><code>permission_classes = [IsAuthenticated]</code></td>
+        </tr>
+        <tr>
+          <td>Rate limiting</td>
+          <td class="td-react">Custom middleware or API gateway</td>
+          <td><code>RateLimitMixin</code> / <code>@rate_limit_component</code></td>
+        </tr>
+        <tr>
+          <td>Caching</td>
+          <td class="td-react"><code>useMemo</code> + server-side cache</td>
+          <td><code>CacheMixin</code> — event requests bypass</td>
+        </tr>
+        <tr>
+          <td>Build step</td>
+          <td class="td-react">webpack / Vite required</td>
+          <td><span class="win">None</span></td>
+        </tr>
+        <tr>
+          <td>JS payload</td>
+          <td class="td-react">150–400 KB gzipped</td>
+          <td><span class="win">~5 KB</span> (htmx + component-client.js)</td>
+        </tr>
+        <tr>
+          <td>Test tooling</td>
+          <td class="td-react">Jest + Storybook + RTL</td>
+          <td><span class="win">pytest</span> — pure Python, no browser</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- TESTING -->
+    <h2 id="testing" data-n="§">Testing</h2>
+    <p>Because components are pure Python, the full cart behaviour is testable without Django, HTMX, or a running server. <code>ComponentTestCase</code> provides <code>make_component()</code> which mounts the component in a test context.</p>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">shop/tests/test_cart.py</span>
+        <span class="code-block__lang">Python</span>
+      </div>
+      <pre><code><span class="kw">from</span> component_framework.testing <span class="kw">import</span> ComponentTestCase, MockRenderer
+<span class="kw">from</span> shop.components <span class="kw">import</span> CartComponent
+
+
+<span class="kw">class</span> <span class="cls">TestCartComponent</span>(ComponentTestCase):
+
+    <span class="kw">def</span> <span class="fn">setUp</span>(<span class="kw">self</span>):
+        CartComponent.renderer = <span class="cls">MockRenderer</span>()
+
+    <span class="kw">def</span> <span class="fn">test_add_item</span>(<span class="kw">self</span>):
+        cart = <span class="kw">self</span>.<span class="fn">make_component</span>(CartComponent)
+        cart.<span class="fn">mount</span>()
+        cart.<span class="fn">on_add_item</span>(product_id=<span class="num">42</span>, size=<span class="str">"M"</span>)
+
+        <span class="kw">self</span>.<span class="fn">assertEqual</span>(<span class="fn">len</span>(cart.state[<span class="str">"items"</span>]), <span class="num">1</span>)
+        <span class="kw">self</span>.<span class="fn">assertEqual</span>(cart.state[<span class="str">"items"</span>][<span class="num">0</span>][<span class="str">"qty"</span>], <span class="num">1</span>)
+
+    <span class="kw">def</span> <span class="fn">test_add_same_item_increments_qty</span>(<span class="kw">self</span>):
+        cart = <span class="kw">self</span>.<span class="fn">make_component</span>(CartComponent)
+        cart.<span class="fn">mount</span>()
+        cart.<span class="fn">on_add_item</span>(product_id=<span class="num">42</span>, size=<span class="str">"M"</span>)
+        cart.<span class="fn">on_add_item</span>(product_id=<span class="num">42</span>, size=<span class="str">"M"</span>)
+
+        <span class="kw">self</span>.<span class="fn">assertEqual</span>(<span class="fn">len</span>(cart.state[<span class="str">"items"</span>]), <span class="num">1</span>)
+        <span class="kw">self</span>.<span class="fn">assertEqual</span>(cart.state[<span class="str">"items"</span>][<span class="num">0</span>][<span class="str">"qty"</span>], <span class="num">2</span>)
+
+    <span class="kw">def</span> <span class="fn">test_remove_item</span>(<span class="kw">self</span>):
+        cart = <span class="kw">self</span>.<span class="fn">make_component</span>(CartComponent)
+        cart.<span class="fn">mount</span>()
+        cart.<span class="fn">on_add_item</span>(product_id=<span class="num">42</span>, size=<span class="str">"M"</span>)
+        cart.<span class="fn">on_remove_item</span>(product_id=<span class="num">42</span>, size=<span class="str">"M"</span>)
+
+        <span class="kw">self</span>.<span class="fn">assertEqual</span>(cart.state[<span class="str">"items"</span>], [])
+
+    <span class="kw">def</span> <span class="fn">test_optimistic_patch_remove</span>(<span class="kw">self</span>):
+        cart = <span class="kw">self</span>.<span class="fn">make_component</span>(CartComponent)
+        cart.<span class="fn">mount</span>()
+        cart.<span class="fn">on_add_item</span>(product_id=<span class="num">42</span>, size=<span class="str">"M"</span>)
+
+        patch = cart.<span class="fn">get_optimistic_patch</span>(<span class="str">"remove_item"</span>, {<span class="str">"product_id"</span>: <span class="num">42</span>, <span class="str">"size"</span>: <span class="str">"M"</span>})
+        <span class="kw">self</span>.<span class="fn">assertEqual</span>(patch[<span class="str">"items"</span>], [])
+
+    <span class="kw">def</span> <span class="fn">test_total_recalculates</span>(<span class="kw">self</span>):
+        cart = <span class="kw">self</span>.<span class="fn">make_component</span>(CartComponent)
+        cart.<span class="fn">mount</span>()
+        cart.state[<span class="str">"items"</span>] = [{
+            <span class="str">"product_id"</span>: <span class="num">1</span>, <span class="str">"size"</span>: <span class="str">"S"</span>,
+            <span class="str">"price"</span>: <span class="str">"29.99"</span>, <span class="str">"qty"</span>: <span class="num">3</span>,
+        }]
+        cart.<span class="fn">_recalculate_total</span>()
+        <span class="kw">self</span>.<span class="fn">assertEqual</span>(cart.state[<span class="str">"total"</span>], <span class="str">"89.97"</span>)</code></pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-block__header">
+        <span class="code-block__filename">shell</span>
+        <span class="code-block__lang">bash</span>
+      </div>
+      <pre><code>pytest shop/tests/ -v</code></pre>
+    </div>
+
+    <!-- RUNNING -->
+    <h2 id="running" data-n="§">Running the Example</h2>
+
+    <ol class="run-steps">
+      <li>
+        <div class="step-text">
+          <strong>Clone and install</strong><br>
+          <div class="code-block" style="margin-top:0.6rem">
+            <div class="code-block__header"><span class="code-block__filename">shell</span><span class="code-block__lang">bash</span></div>
+            <pre><code>git clone https://github.com/fsecada01/component-framework
+cd component-framework/examples/django_example
+uv sync</code></pre>
+          </div>
+        </div>
+      </li>
+      <li>
+        <div class="step-text">
+          <strong>Migrate and seed</strong><br>
+          <div class="code-block" style="margin-top:0.6rem">
+            <div class="code-block__header"><span class="code-block__filename">shell</span><span class="code-block__lang">bash</span></div>
+            <pre><code>python manage.py migrate
+python manage.py loaddata shop_fixtures.json</code></pre>
+          </div>
+        </div>
+      </li>
+      <li>
+        <div class="step-text">
+          <strong>Start Redis</strong> (required for WebSocket channel layer)<br>
+          <div class="code-block" style="margin-top:0.6rem">
+            <div class="code-block__header"><span class="code-block__filename">shell</span><span class="code-block__lang">bash</span></div>
+            <pre><code>docker run -p 6379:6379 redis:7-alpine</code></pre>
+          </div>
+        </div>
+      </li>
+      <li>
+        <div class="step-text">
+          <strong>Run the dev server</strong><br>
+          <div class="code-block" style="margin-top:0.6rem">
+            <div class="code-block__header"><span class="code-block__filename">shell</span><span class="code-block__lang">bash</span></div>
+            <pre><code>python manage.py runserver
+# → http://localhost:8000/shop/product/1/</code></pre>
+          </div>
+        </div>
+      </li>
+    </ol>
+
+    <div class="callout callout--insight">
+      Open <strong>http://localhost:8000/shop/product/1/</strong> — select a size, add items to the cart, and watch the cart widget update in real-time via WebSocket, with optimistic UI making every click feel instant. No page reload. No spinner. Just Python.
+    </div>
+
+    <!-- SUMMARY -->
+    <h2 id="summary" data-n="§">Summary</h2>
+
+    <table class="summary-table">
+      <thead>
+        <tr>
+          <th>Feature</th>
+          <th>Component</th>
+          <th>How</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Real-time render</td>
+          <td>ProductComponent</td>
+          <td>HTMX <code style="font-family:var(--mono);font-size:11px;color:var(--sky)">hx-post</code> + server re-render on every event</td>
+        </tr>
+        <tr>
+          <td>Optimistic UI</td>
+          <td>get_optimistic_patch()</td>
+          <td>Pre-dispatch state patch — JS rolls back on error</td>
+        </tr>
+        <tr>
+          <td>WebSocket push</td>
+          <td>CartComponent</td>
+          <td><code style="font-family:var(--mono);font-size:11px;color:var(--sky)">ws_manager.broadcast()</code> → Channels → browser</td>
+        </tr>
+        <tr>
+          <td>Auth gating</td>
+          <td>CheckoutComponent</td>
+          <td><code style="font-family:var(--mono);font-size:11px;color:var(--sky)">permission_classes = [IsAuthenticated]</code></td>
+        </tr>
+        <tr>
+          <td>Rate limiting</td>
+          <td>Cart endpoint</td>
+          <td><code style="font-family:var(--mono);font-size:11px;color:var(--sky)">RateLimitMixin</code> / <code style="font-family:var(--mono);font-size:11px;color:var(--sky)">@rate_limit_component</code></td>
+        </tr>
+        <tr>
+          <td>Caching</td>
+          <td>Product page view</td>
+          <td><code style="font-family:var(--mono);font-size:11px;color:var(--sky)">CacheMixin</code> — event requests bypass automatically</td>
+        </tr>
+        <tr>
+          <td>Composition</td>
+          <td>ProductPageView</td>
+          <td><code style="font-family:var(--mono);font-size:11px;color:var(--sky)">compose(product, reviews=reviews_instance)</code></td>
+        </tr>
+        <tr>
+          <td>Testing</td>
+          <td>All components</td>
+          <td>Pure Python — <code style="font-family:var(--mono);font-size:11px;color:var(--sky)">pytest</code>, <code style="font-family:var(--mono);font-size:11px;color:var(--sky)">MockRenderer</code>, <code style="font-family:var(--mono);font-size:11px;color:var(--sky)">ComponentTestCase</code></td>
+        </tr>
+      </tbody>
+    </table>
+
+  </article>
+</div>
+
+<!-- ── FOOTER ─────────────────────────────────────────────────────────────── -->
+<footer>
+  <span>component-framework — MIT license</span>
+  <span>
+    <a href="https://github.com/fsecada01/component-framework" target="_blank" rel="noopener">GitHub</a>
+    <span class="sep">·</span>
+    <a href="https://pypi.org/project/component-framework/" target="_blank" rel="noopener">PyPI</a>
+    <span class="sep">·</span>
+    built with <a href="https://pdoc.dev" target="_blank" rel="noopener">pdoc</a>
+  </span>
+</footer>
+
+</body>
+</html>
