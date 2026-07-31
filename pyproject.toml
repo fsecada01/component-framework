@@ -1,6 +1,6 @@
 [project]
 name = "component-framework"
-version = "0.6.0b0"
+version = "0.6.0"
 description = "Framework-agnostic server components with LiveView-style interactivity"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -12,11 +12,21 @@ keywords = ["components", "server-components", "liveview", "htmx", "fastapi", "d
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
+    # PyPI's sidebar reads the license from this classifier, not from the
+    # `license` field.
+    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Framework :: Django",
+    "Framework :: FastAPI",
+    "Framework :: Flask",
+    "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
+    "Topic :: Software Development :: Libraries :: Application Frameworks",
+    "Typing :: Typed",
 ]
 
 dependencies = [
@@ -46,6 +56,13 @@ flask = [
 ]
 websockets = [
     "websockets>=12.0",
+]
+# `component_framework.testing` imports pytest at module scope — it ships
+# pytest fixtures and a pytest-style base class. Without this extra a
+# consumer following the README's testing sample hit ModuleNotFoundError,
+# because pytest was only reachable through `dev-base` (#49).
+testing = [
+    "pytest>=7.4.0",
 ]
 dev-base = [
     "pytest>=7.4.0",

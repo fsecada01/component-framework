@@ -316,7 +316,8 @@ class CachedView(CacheMixin, ComponentView):
 Add rate limiting (requires django-ratelimit).
 
 ```python
-from component_framework.adapters.django_views import RateLimitMixin, ComponentView
+from component_framework.adapters.django_ratelimit import RateLimitMixin
+from component_framework.adapters.django_views import ComponentView
 
 class RateLimitedView(RateLimitMixin, ComponentView):
     rate_limit_key = "component"

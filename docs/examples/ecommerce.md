@@ -79,7 +79,7 @@ pip install component-framework django django-channels
 ```python
 # settings.py
 INSTALLED_APPS = [
-    ...
+    ...,
     "channels",
     "component_framework",
 ]
@@ -611,7 +611,7 @@ serialisation/deserialisation.
 class CartComponent(Component):
 
     def on_add_item(self, product_id: int, size: str):
-        # ... 10 lines of plain Python (see above) ...
+        ...  # 10 lines of plain Python, see above
 
     def get_optimistic_patch(self, event: str, payload: dict) -> dict | None:
         if event == "add_item":

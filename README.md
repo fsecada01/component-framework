@@ -1,6 +1,6 @@
 # Component Framework
 
-> **Beta** — the core lifecycle, permissions, composition, and testing utilities are stable, but the public API can still change before 1.0. Not yet published to PyPI (see [Installation](#installation)).
+> **Beta** — the core lifecycle, permissions, composition, and testing utilities are stable, but the public API can still change before 1.0. See [Installation](#installation).
 
 Server-driven UI components for Python web frameworks, in the style of Phoenix LiveView and Laravel Livewire: state and event handling live on the server, and [HTMX](https://htmx.org/) handles the client-side wiring instead of a JavaScript framework.
 
@@ -64,28 +64,45 @@ A few things are Django-only today even though the underlying hook is framework-
 
 ## Installation
 
-**Not on PyPI yet** — install from source:
+```bash
+# uv (recommended)
+uv add "component-framework[fastapi]"     # or [django] / [litestar] / [flask]
+
+# or with pip
+pip install "component-framework[fastapi]"
+```
+
+Pick the extra for the web framework you're on. `pydantic>=2.0` is the only mandatory dependency; everything else — FastAPI, Django, Litestar, Flask, JinjaX, Channels — is optional, so you only pull in what you use.
+
+```bash
+pip install "component-framework[fastapi]"                       # single adapter
+pip install "component-framework[fastapi,django,litestar,flask]"  # several
+pip install "component-framework[all]"                            # every adapter, plus the websockets extra
+pip install "component-framework[fastapi,testing]"                # + the pytest helpers, see Testing below
+```
+
+The quotes matter in most shells — bare brackets are glob syntax in zsh and get eaten before pip sees them.
+
+Import an adapter whose extra you skipped and you get a deliberate error naming the fix, not a bare `ModuleNotFoundError`:
+
+```
+ImportError: 'jinjax' is not installed. Install the 'fastapi' extra:
+pip install 'component-framework[fastapi]'
+```
+
+> Extras were made optional in 0.3.0 — if you're upgrading from before that and assumed `fastapi`/`uvicorn`/`jinjax` came by default, see [CHANGELOG.md](https://github.com/fsecada01/component-framework/blob/master/CHANGELOG.md).
+
+### From a checkout
+
+For hacking on the framework itself:
 
 ```bash
 git clone https://github.com/fsecada01/component-framework.git
 cd component-framework
-
-# uv (recommended)
-uv pip install -e ".[fastapi]"   # or [django] / [litestar] / [flask] / [all]
-
-# or with pip
-pip install -e ".[fastapi]"
+uv pip install -e ".[dev]"
 ```
 
-`pydantic>=2.0` is the only mandatory dependency; everything else — FastAPI, Django, Litestar, Flask, JinjaX, Channels — is an optional extra so you only pull in what you use.
-
-```bash
-pip install -e ".[fastapi]"                        # single adapter
-pip install -e ".[fastapi,django,litestar,flask]"   # several
-pip install -e ".[all]"                             # everything, including dev-adjacent websockets extra
-```
-
-> Extras were made optional in 0.3.0 — if you're on an older checkout that assumed `fastapi`/`uvicorn`/`jinjax` installed by default, see [CHANGELOG.md](https://github.com/fsecada01/component-framework/blob/master/CHANGELOG.md).
+See [CONTRIBUTING.md](https://github.com/fsecada01/component-framework/blob/master/CONTRIBUTING.md).
 
 ---
 
@@ -204,17 +221,27 @@ class ContactForm(FormComponent):
 ```
 
 ```python
-# Composition: slots + a composite parent
-from component_framework.core.composition import SlotComponent, CompositeComponent
+# Composition: a parent declares named slots, children fill them
+from component_framework.core import Component, registry
+from component_framework.core.composition import compose
 
 @registry.register("card")
-class Card(SlotComponent):
+class Card(Component):
     template_name = "card.html"
-    slots = ["header", "body", "footer"]
+    slots = ["header", "body", "footer"]   # omit to accept any slot name
 
-@registry.register("product_page")
-class ProductPage(CompositeComponent):
-    components = {"card": Card, "cart": CartComponent}
+@registry.register("cart_summary")
+class CartSummary(Component):
+    template_name = "cart_summary.html"
+
+# Assemble in one call. Each child's rendered HTML lands in the parent's
+# template context under `slots`, keyed by slot name.
+page = compose(
+    Card,
+    params={"title": "Your order"},
+    body=CartSummary(),
+)
+result = page.dispatch()
 ```
 
 ```python
@@ -233,15 +260,21 @@ class OrderEditor(DjangoModelComponent):
 ```
 
 ```python
-# Testing a component without an HTTP server
+# Testing a component without an HTTP server.
+# Needs the `testing` extra: pip install "component-framework[testing]"
 from component_framework.testing import ComponentTestCase
 
 class TestCounter(ComponentTestCase):
+    component_class = Counter          # a MockRenderer is installed per test
+
+    def test_initial_state(self):
+        result = self.mount()
+        assert result["state"]["count"] == 0
+
     def test_increment(self):
-        component = self.mount_component("counter")
-        self.assert_state(component, count=0)
-        self.dispatch_event(component, "increment", amount=5)
-        self.assert_state(component, count=5)
+        self.mount()
+        self.dispatch("increment", {"amount": 5})
+        self.assert_state(count=5)
 ```
 
 More worked examples: [`docs/examples/ecommerce.md`](https://github.com/fsecada01/component-framework/blob/master/docs/examples/ecommerce.md) (real-time cart), [`docs/examples/wizard.md`](https://github.com/fsecada01/component-framework/blob/master/docs/examples/wizard.md) (multi-step FastAPI wizard), and the runnable apps under [`examples/`](https://github.com/fsecada01/component-framework/tree/master/examples/).
