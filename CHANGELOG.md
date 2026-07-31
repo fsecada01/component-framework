@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-07-30
+
+First release published to PyPI. No code changes from `0.6.0b0` — the beta is
+promoted to a final release so that dependents can require a stable version.
+`cf-ui` declares `component-framework>=0.4`, and a specifier without a
+pre-release marker only resolves to a pre-release when no final release exists;
+relying on that fallback would mean the resolution changed silently the first
+time any stable version appeared.
+
+### Added
+
+- Trusted publishing to PyPI via GitHub Actions OIDC on a `v*` tag (#47). No
+  API token is stored in the repository.
+
 ## [0.6.0b0] - 2026-07-20
 
 ### Added

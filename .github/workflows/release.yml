@@ -1,0 +1,65 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          python-version: "3.12"
+
+      - name: Build sdist and wheel
+        run: uv build
+
+      # Catches a malformed README or broken metadata before anything is
+      # uploaded — a bad upload cannot be replaced, only yanked.
+      - name: Validate distributions
+        run: uvx twine check dist/*
+
+      # The tag is the release's identity; if it disagrees with the version in
+      # pyproject.toml the wheel would be published under a name the tag does
+      # not describe. Fail here rather than after upload.
+      - name: Tag must match the declared version
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          declared=$(python -c "import tomllib,pathlib; print(tomllib.loads(pathlib.Path('pyproject.toml').read_text())['project']['version'])")
+          tagged="${GITHUB_REF_NAME#v}"
+          echo "pyproject: $declared / tag: $tagged"
+          test "$declared" = "$tagged"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    # Gates the upload behind a named environment, so protection rules can
+    # require a review before anything reaches PyPI.
+    environment:
+      name: pypi
+      url: https://pypi.org/p/component-framework
+    permissions:
+      # Required for trusted publishing: the job mints a short-lived OIDC
+      # token that PyPI exchanges for an upload token. No API token is stored.
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
