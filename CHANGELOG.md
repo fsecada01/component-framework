@@ -9,17 +9,76 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.6.0] - 2026-07-30
 
-First release published to PyPI. No code changes from `0.6.0b0` — the beta is
-promoted to a final release so that dependents can require a stable version.
-`cf-ui` declares `component-framework>=0.4`, and a specifier without a
-pre-release marker only resolves to a pre-release when no final release exists;
-relying on that fallback would mean the resolution changed silently the first
-time any stable version appeared.
+First release published to PyPI. No behavioural change from `0.6.0b0` — the
+beta is promoted to a final release so that dependents can require a stable
+version. `cf-ui` declares `component-framework>=0.4`, and a specifier without
+a pre-release marker only resolves to a pre-release when no final release
+exists; relying on that fallback would mean the resolution changed silently
+the first time any stable version appeared.
+
+The rest of this entry is what an audit of the built wheel turned up: the
+package was installable, but not yet fit to *hand to someone*.
 
 ### Added
 
 - Trusted publishing to PyPI via GitHub Actions OIDC on a `v*` tag (#47). No
-  API token is stored in the repository.
+  API token is stored in the repository. The build job also refuses to hand
+  off a wheel missing the client assets or `py.typed` — those ship inside the
+  package with no explicit include, so a packaging regression would produce a
+  wheel that installs and imports cleanly and then serves no interactivity.
+- **`py.typed` (#49).** The codebase is type-checked in CI and ships
+  `component-client.d.ts` for the JS, but without the PEP 561 marker every
+  Python consumer running mypy or pyright saw the whole package as untyped.
+  The types existed; they were not advertised.
+- **A `testing` extra (#49)** declaring pytest.
+  `component_framework.testing` imports pytest at module scope — it ships
+  fixtures and a pytest-style base class — but pytest was only reachable via
+  `dev-base`, so following the README's testing sample after
+  `pip install component-framework[fastapi]` raised `ModuleNotFoundError`.
+- **Classifiers** for the license (which is what PyPI's sidebar reads), the
+  frameworks the adapters target, and `Typing :: Typed`.
+
+### Fixed — documentation that did not survive contact with the package (#49)
+
+Found by building the wheel, installing it into a clean venv, and checking
+every documented import against the *installed* package rather than the
+source tree.
+
+- **The README described an install nobody could perform.** Every instruction
+  was `pip install -e ".[extra]"` — an editable install from a checkout — and
+  the section opened with "Not on PyPI yet". The README *is* the PyPI landing
+  page, so the one line a visitor arriving there needed was the one that was
+  missing. It now leads with `pip install "component-framework[fastapi]"`,
+  documents the quoting (bare brackets are glob syntax in zsh), shows the
+  missing-extra `ImportError` a reader will actually meet, and demotes the
+  editable install to a contributor note.
+- **The README's composition example was invented.** It imported
+  `SlotComponent` and `CompositeComponent` from `core.composition`, which
+  exports neither, and set a `components = {...}` attribute nothing reads.
+  The real API is a `Component` with a `slots` ClassVar, assembled with
+  `compose()`.
+- **The README's testing example used methods that do not exist**
+  (`mount_component`, `dispatch_event`, and `assert_state` with a positional
+  component argument), and omitted the required `component_class`.
+- **`docs/LOCKED_FIELDS.md`** imported `Component` and `registry` from the
+  top-level package, which exports only `CorruptStateError` and
+  `StateSigner`.
+- **`docs/CBV_GUIDE.md`** imported `RateLimitMixin` from
+  `adapters.django_views`; it lives in `adapters.django_ratelimit`, as the
+  README said all along.
+- **Two `docs/examples/ecommerce.md` samples did not parse** — a bare `...`
+  inside a list literal, and a method whose body was only a comment.
+
+### Added — a test that reads the docs (#49)
+
+`tests/test_docs_samples.py` parses every fenced `python` block in the
+README, CONTRIBUTING, and `docs/`, and resolves every
+`from component_framework… import …` against the real package. Nothing here
+read the documentation before, which is why all six defects above shipped;
+the guard goes red on every one of them when run against the previous text.
+It also fails if the README ever again claims the package is not on PyPI.
+Ported from cf-ui's `test_docs_samples.py`, which exists because
+`ComponentCatalog` and `<CfCard>` sat in *that* README for two releases.
 
 ## [0.6.0b0] - 2026-07-20
 

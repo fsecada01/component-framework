@@ -38,6 +38,39 @@ jobs:
           echo "pyproject: $declared / tag: $tagged"
           test "$declared" = "$tagged"
 
+      # The package is not only Python. The client JS, its vendored Idiomorph
+      # copy, the stylesheet, and the PEP 561 marker all live inside the
+      # package so hatchling picks them up with no explicit include — which is
+      # exactly what would make a regression here quiet. A wheel missing
+      # component-client.js installs and imports cleanly and then serves no
+      # interactivity; a wheel missing py.typed types as `Any` everywhere with
+      # no error at all.
+      - name: Wheel must contain the client assets and the typing marker
+        run: |
+          python - <<'PY'
+          import pathlib, sys, zipfile
+
+          wheel = next(iter(sorted(pathlib.Path("dist").glob("*.whl"))))
+          names = zipfile.ZipFile(wheel).namelist()
+          print(f"{wheel.name}: {len(names)} entries")
+
+          missing = [
+              required
+              for required in [
+                  "component_framework/py.typed",
+                  "component_framework/static/component_framework/js/component-client.js",
+                  "component_framework/static/component_framework/js/component-client.d.ts",
+                  "component_framework/static/component_framework/js/vendor/idiomorph.js",
+                  "component_framework/static/component_framework/css/component-framework.css",
+              ]
+              if not any(n.endswith(required) for n in names)
+          ]
+          if missing:
+              sys.exit("wheel is missing shipped content:\n  " + "\n  ".join(missing))
+
+          print("ok: client assets and py.typed present")
+          PY
+
       - uses: actions/upload-artifact@v4
         with:
           name: dist

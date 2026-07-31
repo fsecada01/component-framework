@@ -19,7 +19,7 @@ client must never influence, in either mode.
 ```python
 from typing import ClassVar
 
-from component_framework import Component, registry
+from component_framework.core import Component, registry
 
 
 @registry.register("account_panel")
