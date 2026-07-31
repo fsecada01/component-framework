@@ -1,6 +1,6 @@
 # Component Framework
 
-> **Beta** — the core lifecycle, permissions, composition, and testing utilities are stable, but the public API can still change before 1.0. Not yet published to PyPI (see [Installation](#installation)).
+> **Beta** — the core lifecycle, permissions, composition, and testing utilities are stable, but the public API can still change before 1.0. See [Installation](#installation).
 
 Server-driven UI components for Python web frameworks, in the style of Phoenix LiveView and Laravel Livewire: state and event handling live on the server, and [HTMX](https://htmx.org/) handles the client-side wiring instead of a JavaScript framework.
 
@@ -37,12 +37,12 @@ Component Framework Core
 Backend (database / services)
 ```
 
-Each request round-trip re-hydrates the component from the state the previous response sent down, dispatches the event to an `on_<event>` (or `async def on_<event>`) handler, re-renders, and returns HTML plus the new state. The client (`component-client.js`, in `src/component_framework/static/`) has no framework dependency — it reads `data-component`/`data-event`/`data-payload` attributes, POSTs the event, and reconciles the response into the DOM via [Idiomorph](docs/CLIENT_MORPHING.md), preserving focus, scroll position, in-flight input, and unaffected nodes' identity (including already-bound event listeners) instead of a full markup replace.
+Each request round-trip re-hydrates the component from the state the previous response sent down, dispatches the event to an `on_<event>` (or `async def on_<event>`) handler, re-renders, and returns HTML plus the new state. The client (`component-client.js`, in `src/component_framework/static/`) has no framework dependency — it reads `data-component`/`data-event`/`data-payload` attributes, POSTs the event, and reconciles the response into the DOM via [Idiomorph](https://github.com/fsecada01/component-framework/blob/master/docs/CLIENT_MORPHING.md), preserving focus, scroll position, in-flight input, and unaffected nodes' identity (including already-bound event listeners) instead of a full markup replace.
 
 Because state round-trips through the client by default, the framework includes:
 - **State size guards** — a 64 KB warning and a 512 KB hard limit on serialized state (`core/component.py`).
-- **Optional HMAC state signing** — sign outbound state and reject tampered/unsigned state on the way back in ([`docs/STATE_SIGNING.md`](docs/STATE_SIGNING.md)).
-- **Locked fields** — declare state keys (roles, prices, user IDs) that the client can never influence; they're stripped from what's sent to the client and re-derived server-side on every request ([`docs/LOCKED_FIELDS.md`](docs/LOCKED_FIELDS.md)).
+- **Optional HMAC state signing** — sign outbound state and reject tampered/unsigned state on the way back in ([`docs/STATE_SIGNING.md`](https://github.com/fsecada01/component-framework/blob/master/docs/STATE_SIGNING.md)).
+- **Locked fields** — declare state keys (roles, prices, user IDs) that the client can never influence; they're stripped from what's sent to the client and re-derived server-side on every request ([`docs/LOCKED_FIELDS.md`](https://github.com/fsecada01/component-framework/blob/master/docs/LOCKED_FIELDS.md)).
 
 ---
 
@@ -56,7 +56,7 @@ Because state round-trips through the client by default, the framework includes:
 | **Flask** | Yes | Not yet (planned) | Not yet (planned) | Flask's Jinja2 environment | `[flask]` |
 
 A few things are Django-only today even though the underlying hook is framework-agnostic in `core/`:
-- **CSRF protection** — enforced via Django's `CsrfViewMiddleware`. FastAPI, Litestar, and Flask have **no CSRF enforcement** in the adapter itself; see [`docs/SECURITY_CSRF.md`](docs/SECURITY_CSRF.md) for the full per-adapter audit and integration guidance before putting cookie/session auth in front of those adapters.
+- **CSRF protection** — enforced via Django's `CsrfViewMiddleware`. FastAPI, Litestar, and Flask have **no CSRF enforcement** in the adapter itself; see [`docs/SECURITY_CSRF.md`](https://github.com/fsecada01/component-framework/blob/master/docs/SECURITY_CSRF.md) for the full per-adapter audit and integration guidance before putting cookie/session auth in front of those adapters.
 - **`RateLimitMixin`** and **`CacheMixin`** — both wrap Django's cache framework (`adapters/django_ratelimit.py`, `adapters/django_views.py`); no FastAPI/Litestar/Flask equivalent exists yet.
 - **Server-confirmed optimistic patches** — `Component.get_optimistic_patch()` is defined on the framework-agnostic base class, but only the Django adapter currently surfaces it in the response payload. Client-side optimistic prediction (`data-optimistic` attributes in `component-client.js`) works with every adapter, since it's pure client-side JS talking to any of them over HTTP.
 
@@ -90,7 +90,7 @@ ImportError: 'jinjax' is not installed. Install the 'fastapi' extra:
 pip install 'component-framework[fastapi]'
 ```
 
-> Extras were made optional in 0.3.0 — if you're upgrading from before that and assumed `fastapi`/`uvicorn`/`jinjax` came by default, see [CHANGELOG.md](CHANGELOG.md).
+> Extras were made optional in 0.3.0 — if you're upgrading from before that and assumed `fastapi`/`uvicorn`/`jinjax` came by default, see [CHANGELOG.md](https://github.com/fsecada01/component-framework/blob/master/CHANGELOG.md).
 
 ### From a checkout
 
@@ -102,7 +102,7 @@ cd component-framework
 uv pip install -e ".[dev]"
 ```
 
-See [CONTRIBUTING.md](CONTRIBUTING.md).
+See [CONTRIBUTING.md](https://github.com/fsecada01/component-framework/blob/master/CONTRIBUTING.md).
 
 ---
 
@@ -189,7 +189,7 @@ register_component_routes(app)            # POST /components/<name>
 - Optional HMAC-SHA256 state signing (`core/signing.py`, `StateSigner`) — versioned `cfs1.<payload>.<mac>` tokens, key rotation via comma-separated keys, tampered/raw-dict state rejected with HTTP 400
 - `locked_fields` — server-trusted state keys stripped from outbound state and re-derived on every inbound request
 - 64 KB warn / 512 KB hard limit on serialized state size
-- CSRF: enforced on Django only today — see [`docs/SECURITY_CSRF.md`](docs/SECURITY_CSRF.md)
+- CSRF: enforced on Django only today — see [`docs/SECURITY_CSRF.md`](https://github.com/fsecada01/component-framework/blob/master/docs/SECURITY_CSRF.md)
 
 **Django-specific**
 - Model binding (`DjangoModelComponent`) with `select_related`/`prefetch_related` and transactional saves
@@ -277,7 +277,7 @@ class TestCounter(ComponentTestCase):
         self.assert_state(count=5)
 ```
 
-More worked examples: [`docs/examples/ecommerce.md`](docs/examples/ecommerce.md) (real-time cart), [`docs/examples/wizard.md`](docs/examples/wizard.md) (multi-step FastAPI wizard), and the runnable apps under [`examples/`](examples/).
+More worked examples: [`docs/examples/ecommerce.md`](https://github.com/fsecada01/component-framework/blob/master/docs/examples/ecommerce.md) (real-time cart), [`docs/examples/wizard.md`](https://github.com/fsecada01/component-framework/blob/master/docs/examples/wizard.md) (multi-step FastAPI wizard), and the runnable apps under [`examples/`](https://github.com/fsecada01/component-framework/tree/master/examples/).
 
 ---
 
@@ -287,15 +287,15 @@ Full docs (generated from docstrings via [pdoc](https://pdoc.dev/), versioned pe
 
 | Guide | Covers |
 |---|---|
-| [Architecture spec](docs/server_component_spec.md) | Core design goals and component lifecycle |
-| [Django implementation](docs/DJANGO_IMPLEMENTATION.md) | Django adapter setup and patterns |
-| [Class-based views](docs/CBV_GUIDE.md) | Django CBV auth/permission patterns |
-| [State signing](docs/STATE_SIGNING.md) | HMAC state setup per adapter, key rotation |
-| [Locked fields](docs/LOCKED_FIELDS.md) | Server-trusted state fields, threat model |
-| [CSRF & CSWSH guide](docs/SECURITY_CSRF.md) | Per-adapter CSRF audit, WebSocket hijacking guidance |
-| [Client-side DOM morphing](docs/CLIENT_MORPHING.md) | Idiomorph integration, `data-no-morph` escape hatch for JS-owned regions |
-| [E-commerce example](docs/examples/ecommerce.md) | Real-time cart + product walkthrough |
-| [Multi-step wizard](docs/examples/wizard.md) | FastAPI wizard recipe |
+| [Architecture spec](https://github.com/fsecada01/component-framework/blob/master/docs/server_component_spec.md) | Core design goals and component lifecycle |
+| [Django implementation](https://github.com/fsecada01/component-framework/blob/master/docs/DJANGO_IMPLEMENTATION.md) | Django adapter setup and patterns |
+| [Class-based views](https://github.com/fsecada01/component-framework/blob/master/docs/CBV_GUIDE.md) | Django CBV auth/permission patterns |
+| [State signing](https://github.com/fsecada01/component-framework/blob/master/docs/STATE_SIGNING.md) | HMAC state setup per adapter, key rotation |
+| [Locked fields](https://github.com/fsecada01/component-framework/blob/master/docs/LOCKED_FIELDS.md) | Server-trusted state fields, threat model |
+| [CSRF & CSWSH guide](https://github.com/fsecada01/component-framework/blob/master/docs/SECURITY_CSRF.md) | Per-adapter CSRF audit, WebSocket hijacking guidance |
+| [Client-side DOM morphing](https://github.com/fsecada01/component-framework/blob/master/docs/CLIENT_MORPHING.md) | Idiomorph integration, `data-no-morph` escape hatch for JS-owned regions |
+| [E-commerce example](https://github.com/fsecada01/component-framework/blob/master/docs/examples/ecommerce.md) | Real-time cart + product walkthrough |
+| [Multi-step wizard](https://github.com/fsecada01/component-framework/blob/master/docs/examples/wizard.md) | FastAPI wizard recipe |
 
 ---
 
@@ -346,13 +346,13 @@ just format / just lint / just lint-fix / just check
 just docs-build / just docs-serve   # pdoc, http://localhost:8000
 ```
 
-Contributions: open an issue for anything non-trivial before starting; small fixes can go straight to a PR. See [CONTRIBUTING.md](CONTRIBUTING.md).
+Contributions: open an issue for anything non-trivial before starting; small fixes can go straight to a PR. See [CONTRIBUTING.md](https://github.com/fsecada01/component-framework/blob/master/CONTRIBUTING.md).
 
 ---
 
 ## Known limitations
 
-- CSRF is enforced on Django only; FastAPI, Litestar, and Flask have no CSRF protection in the adapter — read [`docs/SECURITY_CSRF.md`](docs/SECURITY_CSRF.md) before putting cookie/session auth in front of them.
+- CSRF is enforced on Django only; FastAPI, Litestar, and Flask have no CSRF protection in the adapter — read [`docs/SECURITY_CSRF.md`](https://github.com/fsecada01/component-framework/blob/master/docs/SECURITY_CSRF.md) before putting cookie/session auth in front of them.
 - No origin check or handshake token on any WebSocket adapter (Cross-Site WebSocket Hijacking exposure) — see the same doc.
 - `RateLimitMixin` and `CacheMixin` are Django-only.
 - Flask has no WebSocket or SSE support yet.
@@ -363,7 +363,7 @@ Contributions: open an issue for anything non-trivial before starting; small fix
 
 ## Roadmap
 
-Beta features through 0.6.0 (permissions, rate limiting, caching, composition, testing utilities, the Litestar and Flask adapters, optional HMAC state signing, locked fields, Idiomorph-based DOM morphing with focus/scroll/in-flight-input preservation, stable list reconciliation keys, a JS-owned-region escape hatch, and a CSRF/CSWSH coverage audit) are shipped. What's next, in order, is scoped in [CHANGELOG.md](CHANGELOG.md) and tracked via [GitHub milestones](https://github.com/fsecada01/component-framework/milestones):
+Beta features through 0.6.0 (permissions, rate limiting, caching, composition, testing utilities, the Litestar and Flask adapters, optional HMAC state signing, locked fields, Idiomorph-based DOM morphing with focus/scroll/in-flight-input preservation, stable list reconciliation keys, a JS-owned-region escape hatch, and a CSRF/CSWSH coverage audit) are shipped. What's next, in order, is scoped in [CHANGELOG.md](https://github.com/fsecada01/component-framework/blob/master/CHANGELOG.md) and tracked via [GitHub milestones](https://github.com/fsecada01/component-framework/milestones):
 
 - **0.7.0b — table stakes**: SPA-style navigation (history, back button), file uploads, on-blur partial validation, a verified 422 re-render convention across adapters, WebSocket reconnection/resync, Flask WebSocket/SSE parity.
 - **0.8.0b — mindshare**: telemetry/observability hooks, published benchmarks (none exist yet — no performance numbers are claimed anywhere else in this README), a JS interop/optimistic-command DSL.
@@ -382,7 +382,7 @@ Optional extras: `[fastapi]` (FastAPI 0.109+, Uvicorn, JinjaX 0.41+), `[django]`
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT — see [LICENSE](https://github.com/fsecada01/component-framework/blob/master/LICENSE).
 
 Inspired by [Phoenix LiveView](https://hexdocs.pm/phoenix_live_view/), [Laravel Livewire](https://laravel-livewire.com/), [Hotwire/Turbo](https://turbo.hotwired.dev/), and [HTMX](https://htmx.org/).
 

@@ -182,20 +182,98 @@ def test_the_fence_regex_finds_the_blocks_it_claims_to():
 # ── The README's install instructions must describe the published package ──
 
 
+#: Every phrasing of "you cannot install this from PyPI" that was in the file.
+#: Matched loosely on purpose — the first cut of this guard pinned the exact
+#: string "Not on PyPI" and sailed straight past a second, differently-worded
+#: claim in the very first line of the same README.
+NOT_ON_PYPI = re.compile(r"not (?:yet )?(?:on|published to) PyPI", re.I)
+
+
 def test_the_readme_documents_installing_from_pypi():
     """The README *is* the PyPI landing page.
 
     Before #49 every install line was `pip install -e ".[extra]"` — an
-    editable install from a checkout — and the section opened with "Not on
-    PyPI yet". A visitor arriving from PyPI found no instruction that applied
-    to them.
+    editable install from a checkout — and the file said twice that the
+    package was not on PyPI. A visitor arriving from PyPI found no
+    instruction that applied to them.
     """
     readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
 
-    assert "Not on PyPI" not in readme, (
-        "the README still claims the package is not on PyPI; it is published now"
+    stale = NOT_ON_PYPI.search(readme)
+    assert stale is None, (
+        f"the README still claims the package is not on PyPI ({stale.group(0)!r}); "
+        "it is published now"
     )
-    assert re.search(r"(?:pip|uv pip) install ['\"]?component-framework\[", readme), (
+    assert re.search(r"(?:pip|uv) (?:pip )?(?:install|add) ['\"]?component-framework\[", readme), (
         "the README never shows `pip install component-framework[extra]` — the one "
         "line a reader arriving from the PyPI page needs."
     )
+
+
+def test_the_not_on_pypi_guard_matches_both_phrasings_that_were_in_the_file():
+    """Pin the loosened pattern against the two real sentences it replaced."""
+    for phrasing in [
+        "**Not on PyPI yet** — install from source:",
+        "the public API can still change before 1.0. Not yet published to PyPI (see …).",
+    ]:
+        assert NOT_ON_PYPI.search(phrasing), phrasing
+    assert NOT_ON_PYPI.search("This package is on PyPI.") is None
+
+
+# ── README links have to work off GitHub too ───────────────────────────────
+
+BLOB = "https://github.com/fsecada01/component-framework/blob/master/"
+TREE = "https://github.com/fsecada01/component-framework/tree/master/"
+
+
+def _readme_links() -> list[tuple[str, str]]:
+    readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+    return re.findall(r"\[([^\]]+)\]\(([^)]+)\)", readme)
+
+
+def test_every_readme_link_is_absolute():
+    """The README renders on PyPI, where a relative link is a dead link.
+
+    The docs site cannot cover for it either: that site is a pdoc API
+    reference and does not publish the markdown guides at all. Anchors are
+    fine — they resolve on both surfaces.
+    """
+    relative = [
+        (label, target)
+        for label, target in _readme_links()
+        if not target.startswith(("http://", "https://", "#", "mailto:"))
+    ]
+    assert not relative, (
+        "README links must be absolute so they work from the PyPI page: "
+        + ", ".join(f"[{label}]({target})" for label, target in relative)
+    )
+
+
+def test_every_absolute_readme_link_into_this_repo_points_at_a_real_file():
+    """An absolute link to a moved file 404s silently — worse than relative.
+
+    Checked against ``git ls-files`` rather than the filesystem, because a
+    path that exists locally but is untracked still 404s on github.com.
+    """
+    import subprocess
+
+    tracked = set(
+        subprocess.run(
+            ["git", "ls-files"], cwd=REPO_ROOT, capture_output=True, text=True, check=True
+        ).stdout.split()
+    )
+    assert tracked, "git ls-files returned nothing; this guard would pass vacuously"
+
+    checked, dead = 0, []
+    for _, url in _readme_links():
+        for prefix in (BLOB, TREE):
+            if not url.startswith(prefix):
+                continue
+            path = url[len(prefix) :].split("#")[0].rstrip("/")
+            checked += 1
+            # A directory target is fine if anything tracked lives under it.
+            if path not in tracked and not any(t.startswith(path + "/") for t in tracked):
+                dead.append(url)
+
+    assert checked >= 15, f"only {checked} in-repo README links found; is the prefix stale?"
+    assert not dead, "README links point at paths git does not track:\n  " + "\n  ".join(dead)
